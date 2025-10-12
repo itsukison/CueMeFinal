@@ -64,6 +64,11 @@ interface ElectronAPI {
   onAudioBatchProcessed: (callback: (questions: Array<{ text: string; timestamp: number }>) => void) => () => void
   onAudioStreamStateChanged: (callback: (state: { isListening: boolean; error?: string }) => void) => () => void
   onAudioStreamError: (callback: (error: string) => void) => () => void
+  
+  // Permission methods
+  permissionGetStatus: () => Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown' }>
+  permissionRequestMicrophone: () => Promise<{ granted: boolean; error?: string }>
+  permissionRequestSystemAudio: () => Promise<{ granted: boolean; error?: string }>
   // Auth methods
   authSignIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   authSignUp: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
@@ -291,5 +296,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => {
       ipcRenderer.removeListener("open-dev-auth", subscription)
     }
-  }
+  },
+  
+  // Permission methods
+  permissionGetStatus: () => ipcRenderer.invoke("permission-check-status") as Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown' }>,
+  permissionRequestMicrophone: () => ipcRenderer.invoke("permission-request-microphone") as Promise<{ granted: boolean; error?: string }>,
+  permissionRequestSystemAudio: () => ipcRenderer.invoke("permission-request-system-audio") as Promise<{ granted: boolean; error?: string }>
 } as ElectronAPI)

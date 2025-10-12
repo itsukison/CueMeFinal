@@ -4,6 +4,8 @@ import { SystemAudioCapture, AudioSource } from "./SystemAudioCapture";
 import { AudioTranscriber } from "./audio/AudioTranscriber";
 import { QuestionRefiner } from "./audio/QuestionRefiner";
 import { StreamingQuestionDetector } from "./audio/StreamingQuestionDetector";
+import { PermissionWatcher } from "./core/PermissionWatcher";
+import { ProcessSupervisor } from "./core/ProcessSupervisor";
 import {
   AudioChunk,
   AudioStreamState,
@@ -20,6 +22,8 @@ export class AudioStreamProcessor extends EventEmitter {
   private audioTranscriber: AudioTranscriber;
   private questionRefiner: QuestionRefiner;
   private streamingDetector: StreamingQuestionDetector;
+  private permissionWatcher: PermissionWatcher;
+  private processSupervisor: ProcessSupervisor;
   
   // Audio processing
   private currentAudioData: Float32Array[] = [];
@@ -28,6 +32,9 @@ export class AudioStreamProcessor extends EventEmitter {
   private tempBuffer: Float32Array | null = null;
   private lastChunkTime: number = 0;
   private accumulatedSamples: number = 0;
+  
+  // Permission retry state
+  private pendingSystemAudioSource: string | null = null;
 
   constructor(openaiApiKey: string, config?: Partial<AudioStreamConfig>) {
     super();
@@ -75,6 +82,14 @@ export class AudioStreamProcessor extends EventEmitter {
       bufferSize: 4096
     });
 
+    // Initialize PermissionWatcher for seamless system audio retry
+    this.permissionWatcher = new PermissionWatcher();
+    this.setupPermissionWatcher();
+
+    // Initialize ProcessSupervisor to prevent permission conflicts
+    this.processSupervisor = new ProcessSupervisor();
+    this.setupProcessSupervisor();
+
     // Setup system audio capture event listeners
     this.setupSystemAudioEvents();
   }
@@ -93,7 +108,13 @@ export class AudioStreamProcessor extends EventEmitter {
           const captureState = this.systemAudioCapture.getState();
           this.state.currentAudioSource = captureState.currentSource;
           
+          // Register the current main process to track audio usage
+          this.processSupervisor.registerAudioProcess(process.pid);
+          
         } catch (systemError) {
+          // Store the requested system audio source for automatic retry
+          this.pendingSystemAudioSource = audioSourceId;
+          
           // Enhanced fallback strategy
           let fallbackSucceeded = false;
           const fallbackAttempts = [
@@ -160,6 +181,8 @@ export class AudioStreamProcessor extends EventEmitter {
       // Stop system audio capture if active
       if (this.state.currentAudioSource?.type === 'system') {
         await this.systemAudioCapture.stopCapture();
+        // Unregister from process supervisor
+        this.processSupervisor.unregisterAudioProcess(process.pid);
       }
 
       this.state.isListening = false;
@@ -453,16 +476,48 @@ export class AudioStreamProcessor extends EventEmitter {
   }
 
   /**
-   * Request permissions for audio capture
+   * Request permissions for audio capture with enhanced recovery
    */
-  public async requestAudioPermissions(): Promise<{ granted: boolean; error?: string }> {
+  public async requestAudioPermissions(): Promise<{ 
+    granted: boolean; 
+    error?: string;
+    analysis?: any;
+    recoveryAttempted?: boolean;
+  }> {
     try {
-      return await this.systemAudioCapture.requestPermissions();
+      console.log('[AudioStreamProcessor] Requesting audio permissions...');
+      
+      // First try the standard permission request
+      const standardResult = await this.systemAudioCapture.requestPermissions();
+      
+      if (standardResult.granted) {
+        console.log('[AudioStreamProcessor] Standard permission request succeeded');
+        return standardResult;
+      }
+      
+      // If standard request failed, try enhanced recovery
+      console.log('[AudioStreamProcessor] Standard request failed, attempting enhanced recovery...');
+      const analysis = this.permissionWatcher.getPermissionAnalysis();
+      const recovery = await this.permissionWatcher.attemptPermissionRecovery();
+      
+      return { 
+        granted: recovery.success,
+        error: recovery.success ? undefined : recovery.message,
+        analysis,
+        recoveryAttempted: true
+      };
+      
     } catch (error) {
       console.error('[AudioStreamProcessor] Permission request failed:', error);
+      
+      // Even if main request fails, provide diagnostic info
+      const analysis = this.permissionWatcher.getPermissionAnalysis();
+      
       return { 
         granted: false, 
-        error: `Permission request failed: ${(error as Error).message}` 
+        error: `Permission request failed: ${(error as Error).message}`,
+        analysis,
+        recoveryAttempted: false
       };
     }
   }
@@ -515,12 +570,259 @@ export class AudioStreamProcessor extends EventEmitter {
   }
 
   /**
+   * Setup process supervisor for automatic conflict resolution
+   */
+  private setupProcessSupervisor(): void {
+    // Start supervision immediately to prevent conflicts
+    this.processSupervisor.startSupervision();
+
+    this.processSupervisor.on('conflict-resolved', (info) => {
+      console.log('[AudioStreamProcessor] ✅ Process conflict resolved automatically');
+      console.log(`[AudioStreamProcessor] Kept: ${info.kept.name} (${info.kept.pid})`);
+      console.log(`[AudioStreamProcessor] Terminated: ${info.terminated.length} conflicting processes`);
+      
+      // Emit notification about conflict resolution
+      this.emit('process-conflict-resolved', {
+        message: 'Multiple audio processes detected and resolved automatically',
+        details: info
+      });
+    });
+
+    this.processSupervisor.on('cleanup-completed', () => {
+      console.log('[AudioStreamProcessor] ✅ Initial process cleanup completed');
+    });
+
+    this.processSupervisor.on('cleanup-incomplete', (remaining) => {
+      console.warn(`[AudioStreamProcessor] ⚠️  ${remaining.length} processes still running after cleanup`);
+      this.emit('process-cleanup-warning', {
+        message: 'Some audio processes could not be cleaned up automatically',
+        remainingProcesses: remaining
+      });
+    });
+
+    console.log('[AudioStreamProcessor] ✅ Process supervisor configured');
+  }
+
+  /**
+   * Setup permission watcher for automatic system audio retry
+   */
+  private setupPermissionWatcher(): void {
+    this.permissionWatcher.on('screen-recording-granted', async () => {
+      console.log('[AudioStreamProcessor] Screen Recording permission granted - attempting system audio retry...');
+      
+      // Get detailed permission analysis
+      const analysis = this.permissionWatcher.getPermissionAnalysis();
+      console.log('[AudioStreamProcessor] Permission analysis:', analysis);
+      
+      // If we have a pending system audio source, retry it
+      if (this.pendingSystemAudioSource && this.state.isListening) {
+        await this.retrySystemAudio(this.pendingSystemAudioSource);
+      }
+      
+      // Emit enhanced status update
+      this.emit('permission-status-changed', {
+        type: 'granted',
+        analysis,
+        autoRetryAttempted: !!this.pendingSystemAudioSource
+      });
+    });
+
+    this.permissionWatcher.on('screen-recording-revoked', () => {
+      console.log('[AudioStreamProcessor] Screen Recording permission revoked - falling back to microphone...');
+      
+      // Get detailed permission analysis
+      const analysis = this.permissionWatcher.getPermissionAnalysis();
+      console.log('[AudioStreamProcessor] Permission analysis:', analysis);
+      
+      // If currently using system audio, fall back to microphone
+      if (this.state.currentAudioSource?.type === 'system') {
+        this.handleSystemAudioFallback();
+      }
+      
+      // Emit enhanced status update
+      this.emit('permission-status-changed', {
+        type: 'revoked',
+        analysis,
+        fallbackActivated: this.state.currentAudioSource?.type === 'microphone'
+      });
+    });
+
+    // Start watching for permission changes
+    this.permissionWatcher.startWatching();
+  }
+
+  /**
+   * Retry system audio capture after permission is granted
+   */
+  private async retrySystemAudio(sourceId: string): Promise<void> {
+    try {
+      console.log('[AudioStreamProcessor] Retrying system audio capture...');
+      
+      await this.systemAudioCapture.startCapture(sourceId);
+      const captureState = this.systemAudioCapture.getState();
+      
+      if (captureState.currentSource) {
+        this.state.currentAudioSource = captureState.currentSource;
+        this.pendingSystemAudioSource = null; // Clear pending state
+        
+        this.emit('state-changed', { ...this.state });
+        this.emit('system-audio-ready', captureState.currentSource);
+        
+        console.log('[AudioStreamProcessor] ✅ System audio automatically restored!');
+      }
+    } catch (error) {
+      console.error('[AudioStreamProcessor] Automatic system audio retry failed:', error);
+      // Keep the pending state for future retries
+    }
+  }
+
+  /**
+   * Handle fallback from system audio to microphone
+   */
+  private handleSystemAudioFallback(): void {
+    console.log('[AudioStreamProcessor] Falling back to microphone...');
+    
+    // Switch to microphone source
+    this.state.currentAudioSource = {
+      id: 'microphone',
+      name: 'Microphone (Fallback)',
+      type: 'microphone',
+      available: true
+    };
+    
+    this.emit('state-changed', { ...this.state });
+    this.emit('audio-source-fallback', 'microphone');
+  }
+
+  /**
+   * Get comprehensive permission diagnostics
+   */
+  public getPermissionDiagnostics(): {
+    status: 'working' | 'needs_permission' | 'signature_issue' | 'system_issue';
+    message: string;
+    actionRequired: string[];
+    technicalDetails: {
+      currentPermissions: any;
+      isProductionBuild: boolean;
+      hasSystemAudioBinary: boolean;
+      systemInfo: string;
+    };
+  } {
+    const analysis = this.permissionWatcher.getPermissionAnalysis();
+    const current = this.permissionWatcher.getCurrentStatus();
+    
+    // Check if SystemAudioCapture binary exists
+    const fs = require('fs');
+    const path = require('path');
+    const binaryPath = path.join(process.resourcesPath || process.cwd(), 'dist-native', 'SystemAudioCapture');
+    const hasSystemAudioBinary = fs.existsSync(binaryPath);
+    
+    // Check if this is a production build
+    const isProductionBuild = process.env.NODE_ENV === 'production' || 
+                              process.resourcesPath !== undefined ||
+                              !process.execPath.includes('node_modules');
+    
+    return {
+      status: analysis.status,
+      message: analysis.message,
+      actionRequired: analysis.actionRequired,
+      technicalDetails: {
+        currentPermissions: current,
+        isProductionBuild,
+        hasSystemAudioBinary,
+        systemInfo: `macOS ${process.platform}, Node ${process.version}`
+      }
+    };
+  }
+
+  /**
+   * Attempt comprehensive permission fix
+   */
+  public async attemptPermissionFix(): Promise<{
+    success: boolean;
+    message: string;
+    stepsCompleted: string[];
+    nextActions: string[];
+  }> {
+    const stepsCompleted: string[] = [];
+    const nextActions: string[] = [];
+    
+    try {
+      console.log('[AudioStreamProcessor] Starting comprehensive permission fix...');
+      
+      // Step 1: Get current diagnostics
+      const diagnostics = this.getPermissionDiagnostics();
+      stepsCompleted.push('Analyzed current system state');
+      
+      // Step 2: Check if binary exists
+      if (!diagnostics.technicalDetails.hasSystemAudioBinary) {
+        nextActions.push('Build SystemAudioCapture binary: npm run build:swift');
+        return {
+          success: false,
+          message: 'SystemAudioCapture binary missing',
+          stepsCompleted,
+          nextActions
+        };
+      }
+      stepsCompleted.push('Verified SystemAudioCapture binary exists');
+      
+      // Step 3: Handle development vs production
+      if (!diagnostics.technicalDetails.isProductionBuild) {
+        nextActions.push('Use production build for stable permissions: npm run app:build:mac');
+        nextActions.push('Or re-grant permission manually for development build');
+      }
+      
+      // Step 4: Attempt automatic recovery
+      const recovery = await this.permissionWatcher.attemptPermissionRecovery();
+      stepsCompleted.push(...recovery.actionsAttempted);
+      
+      if (recovery.success) {
+        return {
+          success: true,
+          message: 'Permission fix completed successfully',
+          stepsCompleted,
+          nextActions: ['Test system audio in the app']
+        };
+      }
+      
+      // Step 5: Provide manual instructions
+      nextActions.push(...diagnostics.actionRequired);
+      
+      return {
+        success: false,
+        message: recovery.message,
+        stepsCompleted,
+        nextActions
+      };
+      
+    } catch (error) {
+      console.error('[AudioStreamProcessor] Permission fix failed:', error);
+      return {
+        success: false,
+        message: `Permission fix failed: ${(error as Error).message}`,
+        stepsCompleted,
+        nextActions: ['Check console for detailed error information']
+      };
+    }
+  }
+
+  /**
    * Cleanup resources
    */
   public destroy(): void {
     this.removeAllListeners();
     this.currentAudioData = [];
     this.state.questionBuffer = [];
+    
+    // Cleanup permission watcher
+    if (this.permissionWatcher) {
+      this.permissionWatcher.destroy();
+    }
+    
+    // Cleanup process supervisor
+    if (this.processSupervisor) {
+      this.processSupervisor.destroy();
+    }
     
     // Cleanup system audio capture
     if (this.systemAudioCapture) {

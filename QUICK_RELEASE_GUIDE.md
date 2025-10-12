@@ -14,13 +14,13 @@ npm run app:build:mac
 ```
 
 This creates:
-- `release/CueMe-1.0.53.dmg` (Universal)
-- `release/CueMe-1.0.53-arm64.dmg` (Apple Silicon - Recommended)
+- `release/CueMe-1.0.56.dmg` (Universal)
+- `release/CueMe-1.0.56-arm64.dmg` (Apple Silicon - Recommended)
 
 ### **2. Test**
 ```bash
 # Mount the DMG
-open release/CueMe-1.0.53-arm64.dmg
+open release/CueMe-1.0.56-arm64.dmg
 
 # Install and test:
 # - Grant Screen Recording permission
@@ -31,14 +31,14 @@ open release/CueMe-1.0.53-arm64.dmg
 
 **Option A: Manual Upload**
 1. Go to https://github.com/itsukison/CueMeFinal/releases/new
-2. Create new release (e.g., `v1.0.53`)
+2. Create new release (e.g., `v1.0.56`)
 3. Upload DMG files
 4. Publish!
 
 **Option B: Automated**
 ```bash
-git tag v1.0.53
-git push origin v1.0.53
+git tag v1.0.56
+git push origin v1.0.56
 npm run release
 ```
 

@@ -9,6 +9,7 @@ import { DocumentService } from "../DocumentService";
 import { UsageTracker } from "../UsageTracker";
 import { AudioStreamProcessor } from "../AudioStreamProcessor";
 import { PermissionStorage } from "../PermissionStorage";
+import { UniversalPermissionManager } from "./UniversalPermissionManager";
 import { AuthCallbackServer } from "./AuthCallbackServer";
 
 /**
@@ -28,6 +29,7 @@ export class AppState {
   public usageTracker: UsageTracker;
   public audioStreamProcessor: AudioStreamProcessor;
   public permissionStorage: PermissionStorage;
+  public universalPermissionManager: UniversalPermissionManager;
   private authCallbackServer: AuthCallbackServer;
   private tray: Tray | null = null;
 
@@ -81,6 +83,10 @@ export class AppState {
     // Initialize PermissionStorage
     this.permissionStorage = new PermissionStorage();
 
+    // Initialize Universal Permission Manager for seamless permission handling
+    this.universalPermissionManager = new UniversalPermissionManager();
+    this.setupUniversalPermissionManager();
+
     // Setup auth callback server
     this.authCallbackServer = new AuthCallbackServer(
       this.authService,
@@ -121,6 +127,40 @@ export class AppState {
 
     // Initialize ShortcutsHelper
     this.shortcutsHelper = new ShortcutsHelper(this);
+  }
+
+  /**
+   * Setup Universal Permission Manager for seamless permission handling
+   */
+  private setupUniversalPermissionManager(): void {
+    // Initialize the universal permission system
+    this.universalPermissionManager.initialize().catch(error => {
+      console.error('[AppState] Universal permission manager initialization failed:', error);
+    });
+
+    // Forward events to main window for UI updates
+    this.universalPermissionManager.on('first-time-setup-needed', () => {
+      const mainWindow = this.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('permission-first-time-setup-needed');
+      }
+    });
+
+    this.universalPermissionManager.on('permissions-granted', (status) => {
+      const mainWindow = this.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('permissions-granted', status);
+      }
+    });
+
+    this.universalPermissionManager.on('process-conflict-resolved', (info) => {
+      const mainWindow = this.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('process-conflict-resolved', info);
+      }
+    });
+
+    console.log('[AppState] ✅ Universal Permission Manager configured');
   }
 
   /**

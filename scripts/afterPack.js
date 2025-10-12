@@ -42,44 +42,99 @@ module.exports = async function(context) {
     fs.chmodSync(binaryPath, 0o755);
     console.log('✅ Execute permissions set (755)');
 
-    // Step 2: Code sign the binary
-    const identity = process.env.APPLE_IDENTITY || process.env.CSC_NAME || '-';
+    // Step 2: Enhanced code signing for universal compatibility
+    const identity = process.env.APPLE_IDENTITY || process.env.CSC_NAME || process.env.CSC_IDENTITY_AUTO_DISCOVERY || '-';
     
-    if (identity) {
-      console.log(`🔏 Code signing binary with identity: ${identity}`);
+    console.log(`🔏 Code signing binary for universal deployment...`);
+    
+    try {
+      const entitlementsPath = path.join(process.cwd(), 'assets', 'entitlements.mac.plist');
       
-      try {
-        // Sign with hardened runtime and entitlements
-        const entitlementsPath = path.join(process.cwd(), 'assets', 'entitlements.mac.plist');
-        
-        const signCommand = `codesign --force --sign "${identity}" --options runtime --entitlements "${entitlementsPath}" "${binaryPath}"`;
-        
-        execSync(signCommand, { stdio: 'inherit' });
-        console.log('✅ Binary code-signed successfully');
-        
-        // Verify signature
-        const verifyCommand = `codesign --verify --verbose "${binaryPath}"`;
-        execSync(verifyCommand, { stdio: 'inherit' });
-        console.log('✅ Signature verified');
-        
-      } catch (signError) {
-        console.error('❌ Code signing failed:', signError.message);
-        console.warn('⚠️  Binary will not be signed. This may cause issues on other machines.');
+      // Enhanced signing with timeout and retry
+      const signWithRetry = async (retries = 3) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const signCommand = `codesign --force --sign "${identity}" --options runtime --entitlements "${entitlementsPath}" --timestamp "${binaryPath}"`;
+            
+            execSync(signCommand, { 
+              stdio: 'inherit',
+              timeout: 30000  // 30 second timeout
+            });
+            
+            console.log(`✅ Binary code-signed successfully (attempt ${i + 1})`);
+            return true;
+          } catch (error) {
+            console.warn(`⚠️  Signing attempt ${i + 1} failed: ${error.message}`);
+            if (i === retries - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s between retries
+          }
+        }
+      };
+      
+      await signWithRetry();
+      
+      // Enhanced verification with detailed output
+      const verifyCommand = `codesign --verify --deep --strict --verbose=2 "${binaryPath}"`;
+      execSync(verifyCommand, { 
+        stdio: 'inherit',
+        timeout: 10000
+      });
+      console.log('✅ Signature verified with strict validation');
+      
+      // Check entitlements are properly applied
+      const entitlementsCommand = `codesign --display --entitlements - "${binaryPath}"`;
+      const entitlementsOutput = execSync(entitlementsCommand, { 
+        encoding: 'utf8',
+        timeout: 10000
+      });
+      
+      if (entitlementsOutput.includes('com.apple.security.device.screen-capture')) {
+        console.log('✅ Screen capture entitlement confirmed');
+      } else {
+        console.warn('⚠️  Screen capture entitlement may not be applied correctly');
       }
-    } else {
-      console.warn('⚠️  No code signing identity found (APPLE_IDENTITY or CSC_NAME)');
-      console.warn('   Binary will not be signed. This may cause issues on other machines.');
+      
+    } catch (signError) {
+      console.error('❌ Enhanced code signing failed:', signError.message);
+      
+      // Fallback: Try basic adhoc signing for development
+      try {
+        console.log('🔄 Attempting fallback adhoc signing...');
+        const adhocCommand = `codesign --force --sign - "${binaryPath}"`;
+        execSync(adhocCommand, { stdio: 'inherit', timeout: 10000 });
+        console.log('✅ Fallback adhoc signing successful');
+        console.warn('⚠️  Using adhoc signature - may require permission re-grant');
+      } catch (adhocError) {
+        console.error('❌ All signing methods failed:', adhocError.message);
+        console.warn('⚠️  Binary will remain unsigned - will likely fail on other machines');
+      }
     }
 
-    // Step 3: Verify binary is executable
-    console.log('🧪 Testing binary...');
+    // Step 3: Enhanced binary testing with permission validation
+    console.log('🧪 Testing binary with permission checks...');
     try {
+      // Test basic execution
       const testCommand = `"${binaryPath}" --help`;
-      execSync(testCommand, { timeout: 2000, stdio: 'pipe' });
-      console.log('✅ Binary is executable');
+      execSync(testCommand, { timeout: 5000, stdio: 'pipe' });
+      console.log('✅ Binary executes successfully');
+      
+      // Test permission status
+      const permissionCommand = `"${binaryPath}" permissions`;
+      const permissionOutput = execSync(permissionCommand, { 
+        timeout: 5000, 
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
+      
+      if (permissionOutput.includes('granted')) {
+        console.log('✅ Binary can check permissions successfully');
+      } else {
+        console.log('📝 Binary permission check output:', permissionOutput.split('\n')[0]);
+      }
+      
     } catch (testError) {
-      // Binary might not respond to --help, which is okay
-      console.log('⚠️  Binary test inconclusive (this may be normal for daemon processes)');
+      console.warn('⚠️  Binary testing inconclusive (may be normal for daemon processes)');
+      console.log('   Error:', testError.message.split('\n')[0]);
     }
 
     // Step 4: Display final status
