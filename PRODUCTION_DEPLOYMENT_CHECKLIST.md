@@ -36,9 +36,9 @@ Your CueMe app is **properly configured** for system audio to work in production
 npm run app:build:mac
 
 # 2. This creates:
-#    - release/CueMe-1.0.56.dmg          (Universal binary)
-#    - release/CueMe-1.0.56-arm64.dmg    (Apple Silicon)
-#    - release/CueMe-1.0.56-mac.zip      (Archive)
+#    - release/CueMe-1.0.57.dmg          (Universal binary)
+#    - release/CueMe-1.0.57-arm64.dmg    (Apple Silicon)
+#    - release/CueMe-1.0.57-mac.zip      (Archive)
 
 # 3. Manually upload DMG files to GitHub Releases page
 #    Go to: https://github.com/itsukison/CueMeFinal/releases
@@ -79,7 +79,7 @@ APPLE_TEAM_ID=<Your Apple Team ID>                 # For notarization
 - [ ] **Test production build locally**
   ```bash
   npm run app:build:mac
-  open release/CueMe-1.0.56-arm64.dmg
+  open release/CueMe-1.0.57-arm64.dmg
   ```
 
 - [ ] **Verify system audio works**
@@ -96,13 +96,13 @@ APPLE_TEAM_ID=<Your Apple Team ID>                 # For notarization
 - [ ] **Update version number**
   ```bash
   # In package.json
-  "version": "1.0.56"  # Increment version
+  "version": "1.0.57"  # Increment version
   ```
 
 - [ ] **Commit all changes**
   ```bash
   git add .
-  git commit -m "chore: bump version to 1.0.56"
+  git commit -m "chore: bump version to 1.0.57"
   git push origin main
   ```
 
@@ -164,7 +164,7 @@ If you don't have a certificate:
 ### **Step-by-Step User Experience:**
 
 1. **Download DMG from GitHub Releases**
-   - User downloads `CueMe-1.0.56-arm64.dmg`
+   - User downloads `CueMe-1.0.57-arm64.dmg`
    - macOS verifies the download
 
 2. **Installation**
@@ -264,7 +264,7 @@ Here's why:
 1. **Test production build locally:**
    ```bash
    npm run app:build:mac
-   open release/CueMe-1.0.56-arm64.dmg
+   open release/CueMe-1.0.57-arm64.dmg
    ```
 
 2. **Verify system audio works in production build**
@@ -290,5 +290,5 @@ Here's why:
 ---
 
 **Last Updated**: October 12, 2025  
-**Version**: 1.0.56  
+**Version**: 1.0.57  
 **Status**: ✅ Ready for Production Deployment
