@@ -194,7 +194,7 @@ export class SystemAudioCapture extends EventEmitter {
       try {
         console.log('[SystemAudioCapture] Checking ScreenCaptureKit status...');
         
-        // Use command line argument instead of stdin
+        // Use new command format
         const process = spawn(this.swiftBinaryPath, ['status'], {
           stdio: ['pipe', 'pipe', 'pipe']
         });
@@ -209,28 +209,25 @@ export class SystemAudioCapture extends EventEmitter {
             hasResponded = true;
             resolve(false);
           }
-        }, 5000); // Reduced timeout
+        }, 5000);
 
         process.stdout.on('data', (data) => {
           output += data.toString();
-          console.log('[SystemAudioCapture] Raw output:', data.toString());
           
-          // Look for status data in real-time
-          const statusMatch = output.match(/STATUS_DATA: (.+)/);
-          if (statusMatch && !hasResponded) {
-            clearTimeout(timeout);
-            hasResponded = true;
-            
-            try {
-              const status = JSON.parse(statusMatch[1]);
-              console.log('[SystemAudioCapture] ScreenCaptureKit status:', status);
-              resolve(status.isAvailable === true);
-            } catch (parseError) {
-              console.error('[SystemAudioCapture] Failed to parse status:', parseError);
-              resolve(false);
+          // Parse JSON response from new Swift binary
+          try {
+            const response = JSON.parse(output.trim());
+            if (response.type === 'status' && !hasResponded) {
+              clearTimeout(timeout);
+              hasResponded = true;
+              
+              const isAvailable = response.data?.isAvailable === true;
+              console.log('[SystemAudioCapture] ScreenCaptureKit status:', response.data);
+              resolve(isAvailable);
+              process.kill();
             }
-            
-            process.kill();
+          } catch (parseError) {
+            // Continue collecting output - might be partial JSON
           }
         });
 
@@ -245,14 +242,7 @@ export class SystemAudioCapture extends EventEmitter {
             
             console.log(`[SystemAudioCapture] ScreenCaptureKit process exited with code ${code}`);
             console.log('[SystemAudioCapture] Full output was:', output);
-            
-            // Even if no STATUS_DATA, try to determine from output
-            if (output.includes('ScreenCaptureKit available')) {
-              console.log('[SystemAudioCapture] Assuming ScreenCaptureKit available based on output');
-              resolve(true);
-            } else {
-              resolve(false);
-            }
+            resolve(false);
           }
         });
 
@@ -515,8 +505,8 @@ export class SystemAudioCapture extends EventEmitter {
     console.log('[SystemAudioCapture] Starting ScreenCaptureKit system audio capture...');
     
     try {
-      // Spawn the Swift binary process
-      this.swiftProcess = spawn(this.swiftBinaryPath, [], {
+      // Spawn the Swift binary process with start-stream command
+      this.swiftProcess = spawn(this.swiftBinaryPath, ['start-stream'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
@@ -536,33 +526,32 @@ export class SystemAudioCapture extends EventEmitter {
       // Handle stdout for audio data and status messages
       this.swiftProcess.stdout?.on('data', (data) => {
         const output = data.toString();
-        const lines = output.split('\n');
+        const lines = output.split('\n').filter(line => line.trim());
         
         for (const line of lines) {
-          if (line.startsWith('AUDIO_DATA: ')) {
-            try {
-              const jsonStr = line.substring('AUDIO_DATA: '.length);
-              const audioMessage = JSON.parse(jsonStr);
+          try {
+            const message = JSON.parse(line);
+            
+            if (message.type === 'audio') {
+              // Convert base64 audio data to Buffer and process
+              const audioBuffer = Buffer.from(message.data, 'base64');
               
-              // Convert base64 audio data back to Buffer
-              const audioBuffer = Buffer.from(audioMessage.data, 'base64');
+              // Convert Float32 stereo to Int16 mono for existing pipeline
+              const processedBuffer = this.convertFloat32StereoToInt16Mono(audioBuffer, message.sampleRate || 48000, this.config.sampleRate);
               
               // Emit audio data for processing
-              this.emit('audio-data', audioBuffer);
+              this.emit('audio-data', processedBuffer);
               
-            } catch (parseError) {
-              console.error('[SystemAudioCapture] Error parsing audio data:', parseError);
+            } else if (message.type === 'status') {
+              console.log(`[SystemAudioCapture] ScreenCaptureKit status: ${message.message}`);
+              
+            } else if (message.type === 'error') {
+              console.error(`[SystemAudioCapture] ScreenCaptureKit error: ${message.message}`);
+              this.emit('error', new Error(`ScreenCaptureKit: ${message.message}`));
             }
-          } else if (line.startsWith('STATUS: ')) {
-            const status = line.substring('STATUS: '.length);
-            console.log(`[SystemAudioCapture] ScreenCaptureKit status: ${status}`);
-          } else if (line.startsWith('ERROR: ')) {
-            const error = line.substring('ERROR: '.length);
-            console.error(`[SystemAudioCapture] ScreenCaptureKit error: ${error}`);
-            this.emit('error', new Error(`ScreenCaptureKit: ${error}`));
-          } else if (line.startsWith('INFO: ')) {
-            const info = line.substring('INFO: '.length);
-            console.log(`[SystemAudioCapture] ScreenCaptureKit: ${info}`);
+            
+          } catch (parseError) {
+            // Ignore non-JSON lines (might be partial data)
           }
         }
       });
@@ -572,30 +561,44 @@ export class SystemAudioCapture extends EventEmitter {
         console.error('[SystemAudioCapture] ScreenCaptureKit stderr:', data.toString());
       });
 
-      // Start capture
+      // Wait for ready status
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error('ScreenCaptureKit startup timeout'));
-        }, 10000);
+          console.error('[SystemAudioCapture] ⚠️  ScreenCaptureKit startup timeout - this usually means:');
+          console.error('[SystemAudioCapture]    1. A permission dialog is waiting for user input');
+          console.error('[SystemAudioCapture]    2. Screen Recording permission needs to be granted manually');
+          console.error('[SystemAudioCapture]    3. TCC permission database has stale entries');
+          console.error('[SystemAudioCapture] 💡 Solution: Use production build for reliable system audio');
+          console.error('[SystemAudioCapture]    → Run: ./scripts/run-production-for-audio.sh');
+          reject(new Error('ScreenCaptureKit startup timeout - permission dialog may be waiting. Try production build for reliable system audio.'));
+        }, 6000); // Reduced from 10s to 6s
 
-        // Listen for success indicator
+        // Listen for READY status
         const onData = (data: Buffer) => {
           const output = data.toString();
-          if (output.includes('STATUS: READY')) {
-            clearTimeout(timeout);
-            this.swiftProcess?.stdout?.off('data', onData);
-            resolve();
-          } else if (output.includes('ERROR:')) {
-            clearTimeout(timeout);
-            this.swiftProcess?.stdout?.off('data', onData);
-            reject(new Error(output));
+          const lines = output.split('\n').filter(line => line.trim());
+          
+          for (const line of lines) {
+            try {
+              const message = JSON.parse(line);
+              if (message.type === 'status' && message.message === 'READY') {
+                clearTimeout(timeout);
+                this.swiftProcess?.stdout?.off('data', onData);
+                resolve();
+                return;
+              } else if (message.type === 'error') {
+                clearTimeout(timeout);
+                this.swiftProcess?.stdout?.off('data', onData);
+                reject(new Error(message.message));
+                return;
+              }
+            } catch (parseError) {
+              // Continue processing
+            }
           }
         };
 
         this.swiftProcess?.stdout?.on('data', onData);
-        
-        // Send start command
-        this.swiftProcess?.stdin?.write('start\n');
       });
       
     } catch (error) {
@@ -673,6 +676,62 @@ export class SystemAudioCapture extends EventEmitter {
   }
 
   /**
+   * Convert Float32 stereo audio from Swift to Int16 mono for CueMe pipeline
+   */
+  private convertFloat32StereoToInt16Mono(audioBuffer: Buffer, sourceSampleRate: number, targetSampleRate: number): Buffer {
+    try {
+      // Interpret buffer as Float32 data
+      const float32Data = new Float32Array(audioBuffer.buffer, audioBuffer.byteOffset, audioBuffer.byteLength / 4);
+      const channels = 2; // Swift binary outputs stereo
+      const frameCount = float32Data.length / channels;
+      
+      // Convert stereo to mono by averaging channels
+      const monoFloat32 = new Float32Array(frameCount);
+      for (let i = 0; i < frameCount; i++) {
+        const left = float32Data[i * channels];
+        const right = float32Data[i * channels + 1];
+        monoFloat32[i] = (left + right) / 2;
+      }
+      
+      // Resample if needed (simplified - for production, use proper resampling)
+      let resampledData: Float32Array;
+      if (sourceSampleRate !== targetSampleRate) {
+        const resampleRatio = targetSampleRate / sourceSampleRate;
+        const newLength = Math.floor(monoFloat32.length * resampleRatio);
+        resampledData = new Float32Array(newLength);
+        
+        for (let i = 0; i < newLength; i++) {
+          const sourceIndex = i / resampleRatio;
+          const index = Math.floor(sourceIndex);
+          if (index < monoFloat32.length - 1) {
+            // Linear interpolation
+            const fraction = sourceIndex - index;
+            resampledData[i] = monoFloat32[index] * (1 - fraction) + monoFloat32[index + 1] * fraction;
+          } else if (index < monoFloat32.length) {
+            resampledData[i] = monoFloat32[index];
+          }
+        }
+      } else {
+        resampledData = monoFloat32;
+      }
+      
+      // Convert Float32 to Int16 Buffer
+      const int16Buffer = Buffer.alloc(resampledData.length * 2);
+      for (let i = 0; i < resampledData.length; i++) {
+        const sample = Math.max(-32768, Math.min(32767, resampledData[i] * 32767));
+        int16Buffer.writeInt16LE(sample, i * 2);
+      }
+      
+      return int16Buffer;
+      
+    } catch (error) {
+      console.error('[SystemAudioCapture] Audio conversion error:', error);
+      // Return empty buffer on conversion error
+      return Buffer.alloc(0);
+    }
+  }
+
+  /**
    * Check if system audio capture is supported on current platform
    */
   public static async isSystemAudioSupported(): Promise<boolean> {
@@ -698,7 +757,7 @@ export class SystemAudioCapture extends EventEmitter {
       try {
         console.log('[SystemAudioCapture] Requesting ScreenCaptureKit permissions...');
         
-        // Use command line argument instead of stdin
+        // Use new permissions command
         const process = spawn(this.swiftBinaryPath, ['permissions'], {
           stdio: ['pipe', 'pipe', 'pipe']
         });
@@ -722,26 +781,24 @@ export class SystemAudioCapture extends EventEmitter {
         process.stdout.on('data', (data) => {
           output += data.toString();
           
-          // Look for permission result
-          const permissionMatch = output.match(/PERMISSION_RESULT: (.+)/);
-          if (permissionMatch && !hasResponded) {
-            clearTimeout(timeout);
-            hasResponded = true;
-            
-            try {
-              const result = JSON.parse(permissionMatch[1]);
-              console.log('[SystemAudioCapture] ScreenCaptureKit permission result:', result);
+          // Parse JSON response from new Swift binary
+          try {
+            const response = JSON.parse(output.trim());
+            if (response.type === 'permission' && !hasResponded) {
+              clearTimeout(timeout);
+              hasResponded = true;
+              
+              const granted = response.granted === true;
+              console.log('[SystemAudioCapture] ScreenCaptureKit permission result:', response);
               
               resolve({ 
-                granted: result.granted === true,
-                error: result.granted ? undefined : (result.message || result.error || 'Permission denied')
+                granted,
+                error: granted ? undefined : (response.message || 'Permission denied')
               });
-            } catch (parseError) {
-              console.error('[SystemAudioCapture] Failed to parse permission result:', parseError);
-              resolve({ granted: false, error: 'Failed to parse permission response' });
+              process.kill();
             }
-            
-            process.kill();
+          } catch (parseError) {
+            // Continue collecting output - might be partial JSON
           }
         });
 
@@ -774,16 +831,6 @@ export class SystemAudioCapture extends EventEmitter {
             });
           }
         });
-
-        // Command line argument used, no need to send to stdin
-        // process.stdin.write('permissions\n');
-        
-        // End stdin after a short delay
-        // setTimeout(() => {
-        //   if (process && !process.killed) {
-        //     process.stdin.end();
-        //   }
-        // }, 1000);
         
       } catch (error) {
         console.error('[SystemAudioCapture] Permission request failed:', error);

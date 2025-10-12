@@ -54,7 +54,7 @@ export class EnvLoader {
    */
   static validate(): { valid: boolean; missing: string[] } {
     const required = ['GEMINI_API_KEY'];
-    const optional = ['OPENAI_API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+    const optional = ['OPENAI_API_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'];
     
     const missing: string[] = [];
     

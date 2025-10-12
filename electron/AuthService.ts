@@ -441,16 +441,36 @@ export class AuthService {
 
   public async signInWithEmail(email: string, password: string) {
     try {
+      this.log('info', 'Attempting sign in with email:', email);
+      
       const { data, error } = await this.supabase.auth.signInWithPassword({
         email,
         password
       })
 
-      if (error) throw error
+      if (error) {
+        this.log('error', 'Supabase sign in error:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        });
+        throw error;
+      }
+
+      this.log('info', '✅ Sign in successful:', {
+        userEmail: data.user?.email,
+        userId: data.user?.id,
+        hasSession: !!data.session
+      });
 
       return { success: true, user: data.user }
-    } catch (error) {
-      console.error('Sign in error:', error)
+    } catch (error: any) {
+      this.log('error', 'Sign in error:', {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        stack: error.stack
+      });
       return { success: false, error: error.message }
     }
   }

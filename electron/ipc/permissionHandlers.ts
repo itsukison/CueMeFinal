@@ -42,6 +42,28 @@ export function registerPermissionHandlers(appState: AppState): void {
     }
   });
 
+  // Request system audio permission (Screen Recording on macOS)
+  ipcMain.handle("permission-request-system-audio", async () => {
+    try {
+      console.log('[Permission] Requesting system audio permission via Swift binary...');
+      const result = await appState.audioStreamProcessor.requestAudioPermissions();
+      console.log('[Permission] System audio permission result:', result);
+      
+      if (!result.granted) {
+        console.log('[Permission] Permission denied, opening System Preferences...');
+        // Auto-open System Preferences to Screen Recording
+        if (process.platform === 'darwin') {
+          await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+        }
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error("Error requesting system audio permission:", error);
+      return { granted: false, error: error.message };
+    }
+  });
+
   // Open system preferences for permissions
   ipcMain.handle("permission-open-system-preferences", async (event, permissionType?: string) => {
     try {

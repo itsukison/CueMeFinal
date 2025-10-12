@@ -43,7 +43,7 @@ module.exports = async function(context) {
     console.log('✅ Execute permissions set (755)');
 
     // Step 2: Code sign the binary
-    const identity = process.env.APPLE_IDENTITY || process.env.CSC_NAME;
+    const identity = process.env.APPLE_IDENTITY || process.env.CSC_NAME || '-';
     
     if (identity) {
       console.log(`🔏 Code signing binary with identity: ${identity}`);
