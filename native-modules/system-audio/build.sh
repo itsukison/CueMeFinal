@@ -45,10 +45,21 @@ echo "macOS version: $macos_version"
 # Compile Swift binary
 echo "Compiling SystemAudioCapture.swift..."
 
+# Check if Info.plist exists
+if [[ ! -f "Info.plist" ]]; then
+    echo "❌ Error: Info.plist not found"
+    echo "   Info.plist is required for macOS 14.2+ system audio support"
+    exit 1
+fi
+
 swiftc \
     -o SystemAudioCapture \
     -target arm64-apple-macos13.0 \
     -O \
+    -Xlinker -sectcreate \
+    -Xlinker __TEXT \
+    -Xlinker __info_plist \
+    -Xlinker Info.plist \
     SystemAudioCapture.swift
 
 # Copy to output directory
@@ -83,12 +94,35 @@ if [[ -f "$OUTPUT_DIR/SystemAudioCapture" ]]; then
     echo "✅ SystemAudioCapture binary built successfully"
     echo "Binary location: $OUTPUT_DIR/SystemAudioCapture"
     
+    # Verify Info.plist is embedded
+    echo "Verifying Info.plist embedding..."
+    if otool -s __TEXT __info_plist "$OUTPUT_DIR/SystemAudioCapture" > /dev/null 2>&1; then
+        echo "✅ Info.plist embedded successfully"
+        
+        # Extract and display the embedded plist (first few lines)
+        echo "Embedded Info.plist content (preview):"
+        otool -s __TEXT __info_plist "$OUTPUT_DIR/SystemAudioCapture" 2>&1 | head -10
+    else
+        echo "❌ WARNING: Info.plist NOT embedded!"
+        echo "   System audio will fail on macOS 14.2+ without Info.plist"
+        echo "   Check that Info.plist exists in the build directory"
+        exit 1
+    fi
+    
     # Test basic functionality
     echo "Testing binary..."
     if "$OUTPUT_DIR/SystemAudioCapture" status > /dev/null 2>&1; then
         echo "✅ Binary test passed"
     else
         echo "⚠️  Binary test failed (this may be normal if permissions not granted)"
+    fi
+    
+    # Test selftest mode
+    echo "Testing selftest mode..."
+    if "$OUTPUT_DIR/SystemAudioCapture" --selftest > /dev/null 2>&1; then
+        echo "✅ Selftest mode works"
+    else
+        echo "⚠️  Selftest mode failed"
     fi
 else
     echo "❌ Build failed: binary not found"

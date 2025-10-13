@@ -288,6 +288,9 @@ export class PermissionWatcher extends EventEmitter {
 
   /**
    * Test if system audio is actually accessible (not just permission status)
+   * 
+   * Note: ScreenCaptureKit uses Screen Recording permission (no usage string).
+   * NSAudioCaptureUsageDescription is required for CoreAudio taps on macOS 14.2+.
    */
   private canActuallyAccessSystemAudio(): boolean {
     try {
@@ -301,14 +304,28 @@ export class PermissionWatcher extends EventEmitter {
         : path.join(process.resourcesPath, 'dist-native', 'SystemAudioCapture');
       
       // Test if binary can actually check system audio availability
+      // Use longer timeout and robust multi-line JSON parsing
       const output = execSync(`"${binaryPath}" status`, { 
         encoding: 'utf8', 
-        timeout: 3000,
+        timeout: 5000, // Increased from 3s for reliability
         stdio: 'pipe'
       });
       
-      const result = JSON.parse(output.trim());
-      return result.data?.isAvailable === true;
+      // Parse multi-line output - Swift binary may emit multiple JSON messages
+      const lines = output.trim().split('\n');
+      for (const line of lines) {
+        try {
+          const result = JSON.parse(line);
+          if (result.type === 'status' && result.data) {
+            return result.data.isAvailable === true;
+          }
+        } catch {
+          // Skip non-JSON lines (stderr warnings, partial output, etc.)
+          continue;
+        }
+      }
+      
+      return false;
       
     } catch (error) {
       console.warn('[PermissionWatcher] System audio capability test failed:', error);

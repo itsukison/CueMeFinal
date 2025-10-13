@@ -48,7 +48,13 @@ module.exports = async function(context) {
     console.log(`🔏 Code signing binary for universal deployment...`);
     
     try {
-      const entitlementsPath = path.join(process.cwd(), 'assets', 'entitlements.mac.plist');
+      // Use the helper's entitlements, not the main app's
+      const entitlementsPath = path.join(process.cwd(), 'native-modules', 'system-audio', 'entitlements.plist');
+      
+      if (!fs.existsSync(entitlementsPath)) {
+        console.warn(`⚠️  Entitlements not found at: ${entitlementsPath}`);
+        console.warn('   Using basic signing without entitlements');
+      }
       
       // Enhanced signing with timeout and retry
       const signWithRetry = async (retries = 3) => {
@@ -94,6 +100,57 @@ module.exports = async function(context) {
         console.warn('⚠️  Screen capture entitlement may not be applied correctly');
       }
       
+      // CRITICAL: Verify Info.plist is embedded
+      console.log('🔍 Verifying Info.plist embedding...');
+      try {
+        const infoPlistCheck = execSync(`otool -s __TEXT __info_plist "${binaryPath}"`, {
+          encoding: 'utf8',
+          timeout: 5000,
+          stdio: 'pipe'
+        });
+        
+        if (infoPlistCheck.includes('Contents of (__TEXT,__info_plist) section')) {
+          console.log('✅ Info.plist embedded in binary');
+          console.log('   This is CRITICAL for macOS 14.2+ system audio support');
+          
+          // Additional validation: Extract and decode Info.plist content
+          try {
+            // Extract the raw hex data and convert to readable plist
+            const hexExtractCommand = `otool -s __TEXT __info_plist "${binaryPath}" | tail -n +2 | cut -c17-50 | tr -d ' \n'`;
+            const hexData = execSync(hexExtractCommand, {
+              encoding: 'utf8',
+              timeout: 5000,
+              stdio: 'pipe'
+            }).trim();
+            
+            if (hexData.length > 0) {
+              // Convert hex to buffer and then to string to check for our usage description
+              const buffer = Buffer.from(hexData, 'hex');
+              const plistContent = buffer.toString('utf8');
+              
+              if (plistContent.includes('NSAudioCaptureUsageDescription')) {
+                console.log('✅ NSAudioCaptureUsageDescription found in embedded Info.plist');
+              } else {
+                console.warn('⚠️  NSAudioCaptureUsageDescription not found in Info.plist content');
+                console.log('   This may indicate an embedding issue - check build.sh');
+              }
+            } else {
+              console.warn('⚠️  Could not extract Info.plist content for validation');
+            }
+          } catch (extractError) {
+            console.warn('⚠️  Could not validate Info.plist content:', extractError.message.split('\n')[0]);
+          }
+        } else {
+          console.error('❌ CRITICAL: Info.plist NOT embedded!');
+          console.error('   Binary will fail on macOS 14.2+ without NSAudioCaptureUsageDescription');
+          console.error('   Check native-modules/system-audio/build.sh');
+          throw new Error('Info.plist missing from binary');
+        }
+      } catch (otoolError) {
+        console.error('❌ Failed to verify Info.plist:', otoolError.message);
+        console.warn('⚠️  Binary may not work on macOS 14.2+');
+      }
+      
     } catch (signError) {
       console.error('❌ Enhanced code signing failed:', signError.message);
       
@@ -113,10 +170,24 @@ module.exports = async function(context) {
     // Step 3: Enhanced binary testing with permission validation
     console.log('🧪 Testing binary with permission checks...');
     try {
-      // Test basic execution
-      const testCommand = `"${binaryPath}" --help`;
+      // Test basic execution with status command (not --help which isn't supported)
+      const testCommand = `"${binaryPath}" status`;
       execSync(testCommand, { timeout: 5000, stdio: 'pipe' });
       console.log('✅ Binary executes successfully');
+      
+      // Test selftest mode (no permissions required)
+      const selftestCommand = `"${binaryPath}" --selftest`;
+      const selftestOutput = execSync(selftestCommand, { 
+        timeout: 5000, 
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
+      
+      if (selftestOutput.includes('SELFTEST_COMPLETE')) {
+        console.log('✅ Selftest mode works (audio pipeline validated)');
+      } else {
+        console.log('📝 Selftest output:', selftestOutput.split('\n')[0]);
+      }
       
       // Test permission status
       const permissionCommand = `"${binaryPath}" permissions`;

@@ -34,8 +34,13 @@ class SystemAudioCapture: NSObject, SCStreamDelegate, SCStreamOutput {
             return
         }
         
+        if arguments.contains("--selftest") {
+            runSelfTest()
+            return
+        }
+        
         // Default - invalid arguments
-        ResponseHandler.returnResponse(["type": "error", "message": "Invalid arguments. Use: status, permissions, or start-stream"])
+        ResponseHandler.returnResponse(["type": "error", "message": "Invalid arguments. Use: status, permissions, start-stream, or --selftest"])
     }
     
     func checkStatus() {
@@ -290,6 +295,74 @@ class SystemAudioCapture: NSObject, SCStreamDelegate, SCStreamOutput {
         ], shouldExitProcess: false)
         
         semaphoreStreamingStopped.signal()
+    }
+    
+    /// Self-test mode: Generate a 1 kHz sine wave for 500ms to verify audio pipeline
+    /// without requiring any system permissions. Useful for smoke testing.
+    func runSelfTest() {
+        ResponseHandler.returnResponse([
+            "type": "status",
+            "message": "SELFTEST_START"
+        ], shouldExitProcess: false)
+        
+        // Generate 500ms of 1 kHz sine wave at 48kHz sample rate
+        let sampleRate: Double = 48000
+        let frequency: Double = 1000 // 1 kHz
+        let duration: Double = 0.5 // 500ms
+        let frameCount = Int(sampleRate * duration)
+        
+        // Create audio format (Float32 stereo, matching real capture)
+        guard let audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 2, interleaved: false) else {
+            ResponseHandler.returnResponse([
+                "type": "error",
+                "message": "SELFTEST_FAILED: Could not create audio format"
+            ])
+            return
+        }
+        
+        guard let audioBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: AVAudioFrameCount(frameCount)) else {
+            ResponseHandler.returnResponse([
+                "type": "error",
+                "message": "SELFTEST_FAILED: Could not create audio buffer"
+            ])
+            return
+        }
+        
+        audioBuffer.frameLength = AVAudioFrameCount(frameCount)
+        
+        // Generate sine wave in both channels
+        guard let leftChannel = audioBuffer.floatChannelData?[0],
+              let rightChannel = audioBuffer.floatChannelData?[1] else {
+            ResponseHandler.returnResponse([
+                "type": "error",
+                "message": "SELFTEST_FAILED: Could not access channel data"
+            ])
+            return
+        }
+        
+        for i in 0..<frameCount {
+            let sample = Float(sin(2.0 * Double.pi * frequency * Double(i) / sampleRate))
+            leftChannel[i] = sample * 0.5  // 50% amplitude to avoid clipping
+            rightChannel[i] = sample * 0.5
+        }
+        
+        // Convert to base64 and emit (same format as real audio)
+        if let audioData = audioBuffer.toBase64Data() {
+            ResponseHandler.returnResponse([
+                "type": "audio",
+                "data": audioData,
+                "sampleRate": audioBuffer.format.sampleRate,
+                "channels": audioBuffer.format.channelCount,
+                "frameLength": audioBuffer.frameLength,
+                "timestamp": Date().timeIntervalSince1970 * 1000,
+                "selftest": true
+            ], shouldExitProcess: false)
+        }
+        
+        ResponseHandler.returnResponse([
+            "type": "status",
+            "message": "SELFTEST_COMPLETE"
+        ])
     }
 
     func stream(_ stream: SCStream, didStopWithError error: Error) {
