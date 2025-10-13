@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 
 # Comprehensive CueMe Permission Diagnostic Tool
 # Analyzes and fixes common permission issues
