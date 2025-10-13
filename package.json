@@ -1,6 +1,6 @@
 {
   "name": "CueMe",
-  "version": "1.0.60",
+  "version": "1.0.61",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
@@ -27,7 +27,9 @@
     "protocols": [
       {
         "name": "cueme-protocol",
-        "schemes": ["cueme"]
+        "schemes": [
+          "cueme"
+        ]
       }
     ],
     "files": [
