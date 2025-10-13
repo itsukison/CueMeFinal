@@ -14,13 +14,13 @@ npm run app:build:mac
 ```
 
 This creates:
-- `release/CueMe-1.0.58.dmg` (Universal)
-- `release/CueMe-1.0.58-arm64.dmg` (Apple Silicon - Recommended)
+- `release/CueMe-1.0.60.dmg` (Universal)
+- `release/CueMe-1.0.60-arm64.dmg` (Apple Silicon - Recommended)
 
 ### **2. Test**
 ```bash
 # Mount the DMG
-open release/CueMe-1.0.58-arm64.dmg
+open release/CueMe-1.0.60-arm64.dmg
 
 # Install and test:
 # - Grant Screen Recording permission

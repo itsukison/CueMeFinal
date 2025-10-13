@@ -2,7 +2,7 @@
 
 **Date**: 2025-10-13  
 **Status**: ✅ COMPLETE - Production builds validated and working  
-**Version**: 1.0.58 (Universal macOS)
+**Version**: 1.0.60 (Universal macOS)
 
 ---
 
@@ -33,8 +33,8 @@
 ```
 
 **Production Files Ready**:
-- `release/CueMe-1.0.58.dmg` (x64)
-- `release/CueMe-1.0.58-arm64.dmg` (arm64)
+- `release/CueMe-1.0.60.dmg` (x64)
+- `release/CueMe-1.0.60-arm64.dmg` (arm64)
 
 ---
 
