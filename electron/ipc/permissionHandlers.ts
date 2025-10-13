@@ -206,4 +206,59 @@ export function registerPermissionHandlers(appState: AppState): void {
       return { success: false, error: error.message };
     }
   });
+
+  // Enhanced diagnostic handlers
+  ipcMain.handle("run-permission-diagnostics", async () => {
+    try {
+      console.log('[IPC] Running permission diagnostics...');
+      const { spawn } = require('child_process');
+      const path = require('path');
+      
+      const scriptPath = path.join(process.cwd(), 'scripts', 'diagnose-permissions.sh');
+      
+      // Run diagnostic script in background
+      const child = spawn('bash', [scriptPath], {
+        detached: true,
+        stdio: 'inherit'
+      });
+      
+      child.unref();
+      
+      return { success: true, message: 'Diagnostic script launched in terminal' };
+    } catch (error: any) {
+      console.error("Error running diagnostics:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("fix-development-signature", async () => {
+    try {
+      console.log('[IPC] Fixing development signature...');
+      const { execSync } = require('child_process');
+      const path = require('path');
+      
+      const scriptPath = path.join(process.cwd(), 'scripts', 'sign-electron-dev.sh');
+      
+      // Run signature fix script
+      const output = execSync(`bash "${scriptPath}"`, {
+        encoding: 'utf8',
+        timeout: 30000
+      });
+      
+      console.log('[IPC] Signature fix output:', output);
+      
+      return { 
+        success: true, 
+        message: 'Development signature fixed successfully',
+        output: output
+      };
+    } catch (error: any) {
+      console.error("Error fixing signature:", error);
+      return { 
+        success: false, 
+        error: error.message,
+        message: 'Failed to fix development signature'
+      };
+    }
+  });
 }

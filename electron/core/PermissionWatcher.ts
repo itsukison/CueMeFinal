@@ -166,7 +166,7 @@ export class PermissionWatcher extends EventEmitter {
   }
 
   /**
-   * Get detailed permission analysis
+   * Get detailed permission analysis with enhanced detection
    */
   public getPermissionAnalysis(): {
     status: 'working' | 'needs_permission' | 'signature_issue' | 'system_issue';
@@ -176,7 +176,8 @@ export class PermissionWatcher extends EventEmitter {
     const current = this.getCurrentStatus();
     
     if (current.screenCapture === 'granted') {
-      if (current.diagnostics.signatureStable) {
+      // Double-check with actual system audio capability
+      if (this.canActuallyAccessSystemAudio()) {
         return {
           status: 'working',
           message: 'System audio permissions are properly configured',
@@ -185,21 +186,33 @@ export class PermissionWatcher extends EventEmitter {
       } else {
         return {
           status: 'signature_issue',
-          message: 'Permission granted but app signature is unstable (development build)',
+          message: 'Permission granted but system audio inaccessible (signature or TCC issue)',
           actionRequired: [
-            'Use production build for stable system audio',
-            'Or re-grant permission after each development build'
+            'Sign development Electron with stable identifier: ./scripts/sign-electron-dev.sh',
+            'Or use production build for reliable system audio',
+            'If issues persist, reset permissions: ./scripts/nuclear-permission-reset.sh'
           ]
         };
       }
-    } else if (current.screenCapture === 'denied' || current.screenCapture === 'not-determined') {
+    } else if (current.screenCapture === 'denied') {
       return {
         status: 'needs_permission',
-        message: 'Screen Recording permission required for system audio',
+        message: 'Screen Recording permission explicitly denied',
         actionRequired: [
           'Open System Settings → Privacy & Security → Screen Recording',
-          'Add and enable CueMe',
-          'Restart the app'
+          'Find and enable CueMe (or Electron)',
+          'Restart the app after granting permission',
+          'If app not listed, try: ./scripts/sign-electron-dev.sh'
+        ]
+      };
+    } else if (current.screenCapture === 'not-determined') {
+      return {
+        status: 'needs_permission',
+        message: 'Screen Recording permission not yet requested',
+        actionRequired: [
+          'Click "Request Permissions" in the app',
+          'Grant permission when macOS prompts',
+          'If no prompt appears, check System Settings manually'
         ]
       };
     } else {
@@ -207,9 +220,10 @@ export class PermissionWatcher extends EventEmitter {
         status: 'system_issue',
         message: `Unknown permission state: ${current.screenCapture}`,
         actionRequired: [
-          'Restart macOS',
-          'Reset TCC database if problems persist',
-          'Check Console.app for TCC errors'
+          'Restart the app',
+          'Check Console.app for TCC-related errors',
+          'If issues persist: ./scripts/nuclear-permission-reset.sh',
+          'Consider restarting macOS'
         ]
       };
     }
@@ -269,6 +283,36 @@ export class PermissionWatcher extends EventEmitter {
         message: `Permission recovery failed: ${(error as Error).message}`,
         actionsAttempted
       };
+    }
+  }
+
+  /**
+   * Test if system audio is actually accessible (not just permission status)
+   */
+  private canActuallyAccessSystemAudio(): boolean {
+    try {
+      const path = require('path');
+      const { execSync } = require('child_process');
+      
+      // Get binary path
+      const isDev = !require('electron').app.isPackaged;
+      const binaryPath = isDev 
+        ? path.join(process.cwd(), 'dist-native', 'SystemAudioCapture')
+        : path.join(process.resourcesPath, 'dist-native', 'SystemAudioCapture');
+      
+      // Test if binary can actually check system audio availability
+      const output = execSync(`"${binaryPath}" status`, { 
+        encoding: 'utf8', 
+        timeout: 3000,
+        stdio: 'pipe'
+      });
+      
+      const result = JSON.parse(output.trim());
+      return result.data?.isAvailable === true;
+      
+    } catch (error) {
+      console.warn('[PermissionWatcher] System audio capability test failed:', error);
+      return false;
     }
   }
 

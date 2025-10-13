@@ -21,9 +21,24 @@ export const FirstLaunchSetup: React.FC<FirstLaunchSetupProps> = ({ onComplete, 
   const [testingSystemAudio, setTestingSystemAudio] = useState(false);
   const [systemAudioWorking, setSystemAudioWorking] = useState<boolean | null>(null);
 
+  const [permissionDiagnostics, setPermissionDiagnostics] = useState<any>(null);
+  const [fixingPermissions, setFixingPermissions] = useState(false);
+
   useEffect(() => {
     checkPermissions();
+    getPermissionDiagnostics();
   }, []);
+
+  const getPermissionDiagnostics = async () => {
+    try {
+      const result = await window.electronAPI.invoke('permission-get-diagnostics');
+      if (result.success) {
+        setPermissionDiagnostics(result.diagnostics);
+      }
+    } catch (error) {
+      console.error('Failed to get permission diagnostics:', error);
+    }
+  };
 
   const checkPermissions = async () => {
     try {
@@ -85,10 +100,72 @@ export const FirstLaunchSetup: React.FC<FirstLaunchSetupProps> = ({ onComplete, 
     }
   };
 
-  const handleComplete = () => {
-    // Save that first launch setup is complete
-    localStorage.setItem('cueme-first-launch-complete', 'true');
-    onComplete();
+  const attemptPermissionFix = async () => {
+    setFixingPermissions(true);
+    try {
+      const result = await window.electronAPI.invoke('permission-attempt-fix');
+      if (result.success) {
+        console.log('Permission fix successful:', result);
+        await checkPermissions();
+        await getPermissionDiagnostics();
+      } else {
+        console.error('Permission fix failed:', result);
+        alert(`Permission fix failed: ${result.message}
+
+Next steps:
+${result.nextActions.join('
+')}`);
+      }
+    } catch (error) {
+      console.error('Permission fix error:', error);
+      alert('Permission fix failed. Please try manual troubleshooting.');
+    } finally {
+      setFixingPermissions(false);
+    }
+  };
+
+  const openDiagnostics = async () => {
+    try {
+      // This will run the diagnostic script
+      alert('Opening diagnostic tool...\n\nCheck your terminal for detailed permission analysis and fix recommendations.');
+      await window.electronAPI.invoke('run-permission-diagnostics');
+    } catch (error) {
+      console.error('Failed to run diagnostics:', error);
+    }
+  };
+
+  const attemptPermissionFix = async () => {
+    setFixingPermissions(true);
+    try {
+      const result = await window.electronAPI.invoke('permission-attempt-fix');
+      if (result.success) {
+        console.log('Permission fix successful:', result);
+        await checkPermissions();
+        await getPermissionDiagnostics();
+      } else {
+        console.error('Permission fix failed:', result);
+        alert(`Permission fix failed: ${result.message}
+
+Next steps:
+${result.nextActions.join('
+')}`);
+      }
+    } catch (error) {
+      console.error('Permission fix error:', error);
+      alert('Permission fix failed. Please try manual troubleshooting.');
+    } finally {
+      setFixingPermissions(false);
+    }
+  };
+
+  const openDiagnostics = async () => {
+    try {
+      // This will run the diagnostic script
+      alert('Opening diagnostic tool...\n\nCheck your terminal for detailed permission analysis and fix recommendations.');
+      await window.electronAPI.invoke('run-permission-diagnostics');
+    } catch (error) {
+      console.error('Failed to run diagnostics:', error);
+    }
   };
 
   const getPermissionIcon = (status: string) => {
