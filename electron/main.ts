@@ -27,7 +27,7 @@ if (process.env.NODE_ENV === 'production' || !process.env.NODE_ENV) {
   }, 2000);
 }
 
-import { app } from "electron";
+import { app, session, desktopCapturer } from "electron";
 import { initializeIpcHandlers } from "./ipc";
 import { AppState } from "./core/AppState";
 import { DeepLinkHandler } from "./core/DeepLinkHandler";
@@ -102,6 +102,29 @@ async function initializeApp() {
 
   app.whenReady().then(async () => {
     console.log('[App Init] ✅ Electron app is ready!');
+    
+    // Setup display media request handler for system audio loopback
+    // This enables Electron's native audio loopback capture
+    console.log('[App Init] Setting up display media request handler...');
+    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+      desktopCapturer.getSources({ types: ['screen'] })
+        .then((sources) => {
+          if (sources && sources.length > 0) {
+            console.log('[DisplayMedia] Granting access to screen with loopback audio');
+            // Grant access to first screen with loopback audio
+            // This bypasses the system picker and enables audio: 'loopback'
+            callback({ video: sources[0], audio: 'loopback' });
+          } else {
+            console.warn('[DisplayMedia] No screen sources available');
+            callback({});
+          }
+        })
+        .catch((error) => {
+          console.error('[DisplayMedia] Failed to get desktop sources:', error);
+          callback({});
+        });
+    });
+    
     console.log('[App Init] Creating main window...');
     appState.createWindow();
     

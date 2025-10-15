@@ -136,7 +136,29 @@ export class SystemAudioCapture extends EventEmitter {
         available: true
       });
 
-      // Check system audio availability
+      // Add Electron Loopback (PRIMARY method for macOS system audio)
+      if (process.platform === 'darwin' && process.versions.electron) {
+        const majorVersion = parseInt(process.versions.electron.split('.')[0]);
+        if (majorVersion >= 29) { // Loopback support in Electron 29+
+          try {
+            // Check if screen recording permission is available
+            const hasPermission = await this.checkScreenRecordingPermission();
+            
+            sources.push({
+              id: 'system-loopback',
+              name: 'System Audio (Loopback)',
+              type: 'system',
+              available: hasPermission
+            });
+            
+            console.log('[SystemAudioCapture] Electron loopback available:', hasPermission);
+          } catch (error) {
+            console.error('[SystemAudioCapture] Error checking loopback availability:', error);
+          }
+        }
+      }
+
+      // Check ScreenCaptureKit availability (FALLBACK method)
       let systemAudioAvailable = false;
       let systemAudioName = 'System Audio';
 
@@ -183,6 +205,22 @@ export class SystemAudioCapture extends EventEmitter {
         type: 'microphone',
         available: true
       }];
+    }
+  }
+
+  /**
+   * Check if screen recording permission is available for Electron loopback
+   */
+  private async checkScreenRecordingPermission(): Promise<boolean> {
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        fetchWindowIcons: false
+      });
+      return sources.length > 0;
+    } catch (error) {
+      console.error('[SystemAudioCapture] Screen recording permission check failed:', error);
+      return false;
     }
   }
 
@@ -847,48 +885,37 @@ export class SystemAudioCapture extends EventEmitter {
    */
   public async requestPermissions(): Promise<{ granted: boolean; error?: string }> {
     try {
-      console.log('[SystemAudioCapture] Requesting permissions...');
+      console.log('[SystemAudioCapture] Requesting permissions for system audio loopback...');
       
-      // Note: Microphone permission testing is handled in the renderer process
-      // Here we handle system audio permissions
+      // For Electron loopback, we only need Screen Recording permission
+      // The setDisplayMediaRequestHandler will handle the actual grant
       
-      if (this.useScreenCaptureKit) {
-        // Use ScreenCaptureKit permission request
-        console.log('[SystemAudioCapture] Using ScreenCaptureKit permission request');
-        return await this.requestScreenCaptureKitPermissions();
-      } else {
-        // Fallback to legacy desktop capture permission check
-        console.log('[SystemAudioCapture] Using legacy desktop capture permission check');
-        try {
-          const sources = await desktopCapturer.getSources({
-            types: ['screen'],
-            fetchWindowIcons: false
-          });
-          
-          if (sources.length > 0) {
-            console.log('[SystemAudioCapture] Legacy system audio permission available');
-            return { granted: true };
-          } else {
-            return { 
-              granted: false, 
-              error: 'No desktop sources available. Screen recording permission may be required in System Preferences → Security & Privacy → Screen Recording.' 
-            };
-          }
-        } catch (sysError) {
-          console.error('[SystemAudioCapture] Legacy system audio permission failed:', sysError);
+      try {
+        const sources = await desktopCapturer.getSources({
+          types: ['screen'],
+          fetchWindowIcons: false
+        });
+        
+        if (sources.length > 0) {
+          console.log('[SystemAudioCapture] ✅ Screen Recording permission available');
+          console.log('[SystemAudioCapture] Electron loopback ready for system audio capture');
+          return { granted: true };
+        } else {
           return { 
             granted: false, 
-            error: `System audio permission denied. Please grant Screen Recording permission in System Preferences → Security & Privacy → Screen Recording, then restart the app.` 
+            error: 'Screen recording permission required. Please enable in System Settings → Privacy & Security → Screen Recording, then restart the app.' 
           };
         }
+      } catch (error) {
+        console.error('[SystemAudioCapture] Permission check failed:', error);
+        return { 
+          granted: false, 
+          error: `Permission denied: ${(error as Error).message}` 
+        };
       }
-      
     } catch (error) {
       console.error('[SystemAudioCapture] Permission request failed:', error);
-      return { 
-        granted: false, 
-        error: `Permission request failed: ${(error as Error).message}` 
-      };
+      return { granted: false, error: (error as Error).message };
     }
   }
 
