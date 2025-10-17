@@ -26,10 +26,13 @@ export class AudioTranscriber {
    */
   public async transcribe(chunk: AudioChunk): Promise<TranscriptionResult> {
     try {
+      console.log(`[AudioTranscriber] 🎤 Starting transcription for chunk ${chunk.id} (${chunk.duration}ms, ${chunk.data.length} samples)`);
+      
       // Check if audio has sufficient volume (not just silence/background noise)
       const hasSignificantAudio = this.hasSignificantAudio(chunk.data);
       
       if (!hasSignificantAudio) {
+        console.log('[AudioTranscriber] ⚠️ Audio chunk has insufficient volume (likely silence)');
         // Return empty result for silent/low-volume audio
         return {
           id: uuidv4(),
@@ -41,10 +44,16 @@ export class AudioTranscriber {
         };
       }
 
+      console.log('[AudioTranscriber] ✅ Audio has significant volume, proceeding with transcription');
+
       // Convert to PCM buffer for Whisper API
       const pcmBuffer = this.convertToPCM(chunk.data);
-      const tempFilePath = await this.createTempAudioFile(pcmBuffer);
+      console.log(`[AudioTranscriber] 📦 Created PCM buffer: ${pcmBuffer.length} bytes`);
       
+      const tempFilePath = await this.createTempAudioFile(pcmBuffer);
+      console.log(`[AudioTranscriber] 💾 Created temp file: ${tempFilePath}`);
+      
+      console.log('[AudioTranscriber] 🌐 Calling OpenAI Whisper API...');
       const transcription = await this.openai.audio.transcriptions.create({
         file: fs.createReadStream(tempFilePath),
         model: "whisper-1",
@@ -52,6 +61,8 @@ export class AudioTranscriber {
         response_format: "json",
         temperature: 0.2
       });
+
+      console.log(`[AudioTranscriber] ✅ Whisper API response: "${transcription.text}"`);
 
       // Clean up temp file
       await this.cleanupTempFile(tempFilePath);
@@ -68,7 +79,13 @@ export class AudioTranscriber {
       return result;
       
     } catch (error) {
-      console.error('[AudioTranscriber] Transcription error:', error);
+      console.error('[AudioTranscriber] ❌ Transcription error:', error);
+      if (error instanceof Error) {
+        console.error('[AudioTranscriber] Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       throw error;
     }
   }
@@ -79,8 +96,13 @@ export class AudioTranscriber {
   private hasSignificantAudio(audioData: Float32Array): boolean {
     // Calculate RMS (Root Mean Square) to measure audio energy
     let sumSquares = 0;
+    let maxSample = 0;
     for (let i = 0; i < audioData.length; i++) {
+      const absSample = Math.abs(audioData[i]);
       sumSquares += audioData[i] * audioData[i];
+      if (absSample > maxSample) {
+        maxSample = absSample;
+      }
     }
     const rms = Math.sqrt(sumSquares / audioData.length);
     
@@ -88,7 +110,14 @@ export class AudioTranscriber {
     // 0.01 = 1% of max volume - filters out very quiet background noise
     const SIGNIFICANT_AUDIO_THRESHOLD = 0.01;
     
-    return rms > SIGNIFICANT_AUDIO_THRESHOLD;
+    console.log(`[AudioTranscriber] 📊 Audio levels: RMS=${rms.toFixed(4)}, Max=${maxSample.toFixed(4)}, Threshold=${SIGNIFICANT_AUDIO_THRESHOLD}`);
+    
+    const hasAudio = rms > SIGNIFICANT_AUDIO_THRESHOLD;
+    if (!hasAudio) {
+      console.log(`[AudioTranscriber] ⚠️ Audio below threshold (RMS ${rms.toFixed(4)} < ${SIGNIFICANT_AUDIO_THRESHOLD})`);
+    }
+    
+    return hasAudio;
   }
 
   /**

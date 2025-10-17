@@ -220,9 +220,9 @@ export function registerAudioHandlers(appState: AppState): void {
 
   ipcMain.handle("audio-check-system-support", async () => {
     try {
-      const { SystemAudioCapture } = await import("../SystemAudioCapture");
-      const isSupported = await SystemAudioCapture.isSystemAudioSupported();
-      return { supported: isSupported };
+      // System audio is supported on macOS 14.2+ via audioteejs
+      // Check will be done in getAvailableSources()
+      return { supported: process.platform === 'darwin' };
     } catch (error: any) {
       console.error("Error checking system audio support:", error);
       return { supported: false };

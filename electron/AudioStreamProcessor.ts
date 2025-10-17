@@ -208,14 +208,18 @@ export class AudioStreamProcessor extends EventEmitter {
    * Process audio data chunk received from renderer
    */
   public async processAudioChunk(audioData: Buffer): Promise<void> {
-    if (!this.state.isListening) return;
+    if (!this.state.isListening) {
+      return;
+    }
 
     try {
       // Convert Buffer to Float32Array
       const float32Array = new Float32Array(audioData.length / 2);
+      let maxSample = 0;
       for (let i = 0; i < float32Array.length; i++) {
         const sample = audioData.readInt16LE(i * 2);
         float32Array[i] = sample / 32768.0;
+        maxSample = Math.max(maxSample, Math.abs(float32Array[i]));
       }
       
       // Add to current audio accumulation
@@ -226,10 +230,13 @@ export class AudioStreamProcessor extends EventEmitter {
       // Initialize last chunk time if not set
       if (this.lastChunkTime === 0) {
         this.lastChunkTime = Date.now();
+        console.log(`[AudioStreamProcessor] 🎬 Started accumulating audio data (first chunk max sample: ${maxSample.toFixed(4)})`);
       }
       
       // Check if we should create a chunk based on duration or word count
       if (await this.shouldCreateChunk()) {
+        const accumulatedDuration = (this.accumulatedSamples / this.config.sampleRate) * 1000;
+        console.log(`[AudioStreamProcessor] 🎯 Creating transcription chunk (${accumulatedDuration.toFixed(0)}ms, ${this.accumulatedSamples} samples)`);
         await this.createAndProcessChunk();
       }
       
@@ -310,7 +317,9 @@ export class AudioStreamProcessor extends EventEmitter {
    * Transcribe audio chunk using OpenAI Whisper
    */
   private async transcribeChunk(chunk: AudioChunk): Promise<void> {
-    if (!this.config.questionDetectionEnabled) return;
+    if (!this.config.questionDetectionEnabled) {
+      return;
+    }
 
     try {
       this.state.isProcessing = true;
@@ -318,6 +327,10 @@ export class AudioStreamProcessor extends EventEmitter {
 
       // Use AudioTranscriber module
       const result = await this.audioTranscriber.transcribe(chunk);
+      
+      if (result.text) {
+        console.log(`[AudioStreamProcessor] 📝 Transcription: "${result.text}"`);
+      }
 
       this.emit('transcription-completed', result);
 
@@ -351,11 +364,16 @@ export class AudioStreamProcessor extends EventEmitter {
    */
   private async detectAndRefineQuestions(transcription: TranscriptionResult): Promise<void> {
     try {
+      console.log(`[AudioStreamProcessor] 🔍 Checking for questions in: "${transcription.text}"`);
+      
       // Use QuestionRefiner module
       const refinedQuestions = await this.questionRefiner.detectAndRefineQuestions(transcription);
       
+      console.log(`[AudioStreamProcessor] Found ${refinedQuestions.length} questions`);
+      
       // Add valid questions to state and emit immediately
       for (const question of refinedQuestions) {
+        console.log(`[AudioStreamProcessor] ❓ Question detected: "${question.text}" (confidence: ${question.confidence})`);
         this.state.questionBuffer.push(question);
         this.emit('question-detected', question);
       }
@@ -487,37 +505,22 @@ export class AudioStreamProcessor extends EventEmitter {
     try {
       console.log('[AudioStreamProcessor] Requesting audio permissions...');
       
-      // First try the standard permission request
-      const standardResult = await this.systemAudioCapture.requestPermissions();
+      // audioteejs handles permissions automatically when starting capture
+      // Permissions will be requested when user tries to start system audio capture
+      // For now, we just return success - actual permission check happens on capture start
       
-      if (standardResult.granted) {
-        console.log('[AudioStreamProcessor] Standard permission request succeeded');
-        return standardResult;
-      }
-      
-      // If standard request failed, try enhanced recovery
-      console.log('[AudioStreamProcessor] Standard request failed, attempting enhanced recovery...');
-      const analysis = this.permissionWatcher.getPermissionAnalysis();
-      const recovery = await this.permissionWatcher.attemptPermissionRecovery();
-      
+      console.log('[AudioStreamProcessor] Permission check delegated to audioteejs');
       return { 
-        granted: recovery.success,
-        error: recovery.success ? undefined : recovery.message,
-        analysis,
-        recoveryAttempted: true
+        granted: true,
+        error: undefined
       };
       
     } catch (error) {
       console.error('[AudioStreamProcessor] Permission request failed:', error);
       
-      // Even if main request fails, provide diagnostic info
-      const analysis = this.permissionWatcher.getPermissionAnalysis();
-      
       return { 
         granted: false, 
-        error: `Permission request failed: ${(error as Error).message}`,
-        analysis,
-        recoveryAttempted: false
+        error: `Permission request failed: ${(error as Error).message}`
       };
     }
   }
@@ -541,22 +544,38 @@ export class AudioStreamProcessor extends EventEmitter {
     }
   }
   private setupSystemAudioEvents(): void {
+    let audioDataCount = 0;
+    let totalBytesReceived = 0;
+    
     this.systemAudioCapture.on('audio-data', (audioData: Buffer) => {
+      audioDataCount++;
+      totalBytesReceived += audioData.length;
+      
+      // Log every 50th audio data event
+      if (audioDataCount % 50 === 0) {
+        console.log(`[AudioStreamProcessor] 🎵 Received audio data: ${audioDataCount} chunks, ${totalBytesReceived} bytes total`);
+        console.log(`[AudioStreamProcessor] Current state: listening=${this.state.isListening}, source=${this.state.currentAudioSource?.name}`);
+      }
+      
       // Forward system audio data to existing processing pipeline
       if (this.state.isListening && this.state.currentAudioSource?.type === 'system') {
         this.processAudioChunk(audioData).catch(error => {
           console.error('[AudioStreamProcessor] Error processing system audio chunk:', error);
         });
+      } else if (audioDataCount === 1) {
+        // Log why we're not processing on first chunk
+        console.log(`[AudioStreamProcessor] ⚠️ Not processing audio: listening=${this.state.isListening}, source type=${this.state.currentAudioSource?.type}`);
       }
     });
 
     this.systemAudioCapture.on('source-changed', (source: AudioSource) => {
+      console.log(`[AudioStreamProcessor] Audio source changed: ${source.name}`);
       this.state.currentAudioSource = source;
       this.emit('state-changed', { ...this.state });
     });
 
     this.systemAudioCapture.on('error', (error: Error) => {
-      console.error('[AudioStreamProcessor] System audio capture error:', error);
+      console.error('[AudioStreamProcessor] System audio error:', error);
       this.emit('error', error);
     });
 

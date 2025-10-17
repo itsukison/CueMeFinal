@@ -391,109 +391,20 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
       try {
         console.log("[QueueCommands] Starting audio capture...");
 
-        // If using system audio, try Electron loopback capture first
+        // System audio is handled by the backend native Swift binary
+        // No frontend audio capture needed for system audio
         if (currentAudioSource?.type === "system") {
           console.log(
-            "[QueueCommands] Attempting Electron native loopback capture..."
+            "[QueueCommands] System audio selected - backend will handle capture via native binary"
           );
-
-          try {
-            // Request display media with audio loopback
-            // The setDisplayMediaRequestHandler in main process will grant access
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-              video: {
-                frameRate: 1,
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-              },
-              audio: true, // Will be mapped to 'loopback' by handler
-            });
-
-            // Verify we got audio tracks
-            const audioTracks = stream.getAudioTracks();
-            if (audioTracks.length === 0) {
-              throw new Error("No audio track in loopback stream");
-            }
-
-            console.log(
-              "[QueueCommands] ✅ System audio loopback capture successful"
-            );
-            console.log("[QueueCommands] Audio tracks:", audioTracks.length);
-
-            // Setup audio processing (same as microphone)
-            const ctx = new AudioContext({ sampleRate: 16000 });
-            console.log(
-              "[QueueCommands] AudioContext created for loopback, state:",
-              ctx.state
-            );
-
-            if (ctx.state === "suspended") {
-              await ctx.resume();
-              console.log("[QueueCommands] AudioContext resumed");
-            }
-
-            const source = ctx.createMediaStreamSource(stream);
-            console.log(
-              "[QueueCommands] Media stream source created for loopback"
-            );
-
-            // Use AudioWorklet for processing
-            try {
-              console.log(
-                "[QueueCommands] Setting up AudioWorklet for loopback..."
-              );
-              await ctx.audioWorklet.addModule("/audio-worklet-processor.js");
-              const workletNode = new AudioWorkletNode(ctx, "audio-processor");
-
-              // Connect: source -> worklet -> destination
-              source.connect(workletNode);
-              workletNode.connect(ctx.destination);
-
-              // Handle processed audio chunks
-              workletNode.port.onmessage = async (event) => {
-                const audioData = event.data;
-
-                // Send to backend for transcription
-                try {
-                  await window.electronAPI.audioStreamProcessChunk(audioData);
-                } catch (error) {
-                  console.error(
-                    "[QueueCommands] Error processing loopback chunk:",
-                    error
-                  );
-                }
-              };
-
-              // Store references for cleanup
-              setAudioContext(ctx);
-              setMediaStream(stream);
-              setWorkletNode(workletNode);
-
-              console.log(
-                "[QueueCommands] Loopback audio processing pipeline ready"
-              );
-              return; // Success - don't fall back to backend
-            } catch (workletError) {
-              console.error(
-                "[QueueCommands] AudioWorklet setup failed for loopback:",
-                workletError
-              );
-              // Clean up
-              ctx.close();
-              stream.getTracks().forEach((track) => track.stop());
-              throw workletError;
-            }
-          } catch (loopbackError) {
-            console.warn(
-              "[QueueCommands] Loopback capture failed:",
-              loopbackError
-            );
-            console.warn(
-              "[QueueCommands] Falling back to Swift binary approach..."
-            );
-            // Continue to existing backend Swift binary approach - just return
-            return;
-          }
+          
+          // Just set up the backend audio stream processing
+          // The native Swift binary will provide audio data to the backend
+          console.log("[QueueCommands] ✅ System audio capture delegated to backend");
+          
+          // For system audio, no frontend processing needed
+          // The backend native Swift binary handles everything
+          return;
         }
 
         // For microphone input, set up frontend capture
@@ -1041,7 +952,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
         // Clear previous errors
         setAudioError(null);
 
-        // Switch the audio source in the backend
+        // Switch the audio source in the backend (for all sources)
         const result = await window.electronAPI.audioSwitchSource(sourceId);
         if (!result.success) {
           const errorMsg = result.error || "Failed to switch audio source";

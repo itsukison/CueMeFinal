@@ -5,8 +5,7 @@
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "vite",
-    "build": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
-    "build:native": "./scripts/build-native.sh",
+    "build": "npm run clean && tsc -p electron/tsconfig.json && vite build",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5181 && npm run electron:dev\"",
@@ -36,6 +35,8 @@
       "dist/**/*",
       "dist-electron/**/*",
       "dist-native/**/*",
+      "node_modules/audiotee/bin/**/*",
+      "node_modules/audiotee/dist/**/*",
       "package.json"
     ],
     "directories": {
@@ -178,6 +179,7 @@
     "@radix-ui/react-toast": "^1.2.2",
     "@specy/liquid-glass-react": "^1.0.2",
     "@supabase/supabase-js": "^2.56.0",
+    "audiotee": "^0.0.6",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
