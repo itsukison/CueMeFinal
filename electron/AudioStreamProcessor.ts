@@ -33,6 +33,11 @@ export class AudioStreamProcessor extends EventEmitter {
   private lastChunkTime: number = 0;
   private accumulatedSamples: number = 0;
   
+  // Silence detection for better chunking
+  private isSpeaking: boolean = false;
+  private silenceStartTime: number = 0;
+  private speechStartTime: number = 0;
+  
   // Permission retry state
   private pendingSystemAudioSource: string | null = null;
 
@@ -49,15 +54,17 @@ export class AudioStreamProcessor extends EventEmitter {
     this.questionRefiner = new QuestionRefiner();
     this.streamingDetector = new StreamingQuestionDetector();
     
-    // Simplified configuration - removed batching
+    // Optimized configuration for complete question capture
     this.config = {
       sampleRate: 16000,
-      chunkDuration: 1000,
-      silenceThreshold: 800,
+      chunkDuration: 2000, // Minimum 2 seconds before considering transcription
+      silenceThreshold: 500, // Wait 500ms of silence before transcribing
       maxWords: 40,
       questionDetectionEnabled: true,
       batchInterval: 0, // Not used anymore
       maxBatchSize: 0, // Not used anymore
+      maxChunkDuration: 6000, // Maximum 6 seconds, force transcribe
+      silenceEnergyThreshold: 0.01, // RMS threshold for silence detection
       ...config
     };
 
@@ -222,6 +229,28 @@ export class AudioStreamProcessor extends EventEmitter {
         maxSample = Math.max(maxSample, Math.abs(float32Array[i]));
       }
       
+      // Calculate RMS (Root Mean Square) energy for silence detection
+      const rms = this.calculateRMS(float32Array);
+      const now = Date.now();
+      const wasSpeaking = this.isSpeaking;
+      
+      // Update speaking state based on RMS threshold
+      this.isSpeaking = rms > (this.config.silenceEnergyThreshold || 0.01);
+      
+      // Track silence/speech transitions
+      if (this.isSpeaking && !wasSpeaking) {
+        // Transition: silence → speech
+        this.speechStartTime = now;
+        if (this.currentAudioData.length === 0) {
+          console.log(`[AudioStreamProcessor] 🎤 Speech started (RMS: ${rms.toFixed(4)})`);
+        }
+      } else if (!this.isSpeaking && wasSpeaking) {
+        // Transition: speech → silence
+        this.silenceStartTime = now;
+        const speechDuration = (this.accumulatedSamples / this.config.sampleRate) * 1000;
+        console.log(`[AudioStreamProcessor] 🔇 Silence detected after ${speechDuration.toFixed(0)}ms of speech (RMS: ${rms.toFixed(4)})`);
+      }
+      
       // Add to current audio accumulation
       this.currentAudioData.push(float32Array);
       this.accumulatedSamples += float32Array.length;
@@ -230,13 +259,15 @@ export class AudioStreamProcessor extends EventEmitter {
       // Initialize last chunk time if not set
       if (this.lastChunkTime === 0) {
         this.lastChunkTime = Date.now();
-        console.log(`[AudioStreamProcessor] 🎬 Started accumulating audio data (first chunk max sample: ${maxSample.toFixed(4)})`);
+        this.speechStartTime = now;
+        console.log(`[AudioStreamProcessor] 🎬 Started accumulating audio data (RMS: ${rms.toFixed(4)})`);
       }
       
-      // Check if we should create a chunk based on duration or word count
+      // Check if we should create a chunk based on silence detection
       if (await this.shouldCreateChunk()) {
         const accumulatedDuration = (this.accumulatedSamples / this.config.sampleRate) * 1000;
-        console.log(`[AudioStreamProcessor] 🎯 Creating transcription chunk (${accumulatedDuration.toFixed(0)}ms, ${this.accumulatedSamples} samples)`);
+        const silenceDuration = this.silenceStartTime > 0 ? now - this.silenceStartTime : 0;
+        console.log(`[AudioStreamProcessor] 🎯 Creating transcription chunk (${accumulatedDuration.toFixed(0)}ms audio, ${silenceDuration.toFixed(0)}ms silence)`);
         await this.createAndProcessChunk();
       }
       
@@ -249,24 +280,49 @@ export class AudioStreamProcessor extends EventEmitter {
   }
 
   /**
-   * Determine if we should create a new chunk - ULTRA OPTIMIZED for speed
+   * Determine if we should create a new chunk - SILENCE-AWARE for complete questions
    */
   private async shouldCreateChunk(): Promise<boolean> {
     const now = Date.now();
-    const timeSinceLastChunk = now - this.lastChunkTime;
     const accumulatedDuration = (this.accumulatedSamples / this.config.sampleRate) * 1000;
+    const silenceDuration = this.silenceStartTime > 0 ? now - this.silenceStartTime : 0;
     
-    // OPTIMIZED: Create chunk if:
-    // 1. We have accumulated 800ms+ of audio OR
-    // 2. We haven't created a chunk in 1.5+ seconds OR  
-    // 3. Word count exceeds limit OR
-    // 4. We detect potential question markers in recent audio
-    const shouldCreateByDuration = accumulatedDuration >= 800;
-    const shouldCreateByTime = timeSinceLastChunk >= 1500;
-    const shouldCreateByWords = this.wordCount >= this.config.maxWords;
-    const shouldCreateByQuestionHint = this.streamingDetector.hasRecentQuestionActivity();
+    // Don't transcribe if we haven't accumulated minimum duration (2 seconds)
+    if (accumulatedDuration < this.config.chunkDuration) {
+      return false;
+    }
     
-    return shouldCreateByDuration || shouldCreateByTime || shouldCreateByWords || shouldCreateByQuestionHint;
+    // Force transcribe if we've exceeded maximum duration (6 seconds) - safety cap
+    const maxDuration = this.config.maxChunkDuration || 6000;
+    if (accumulatedDuration >= maxDuration) {
+      console.log(`[AudioStreamProcessor] ⏱️  Max duration reached (${accumulatedDuration.toFixed(0)}ms), forcing transcription`);
+      return true;
+    }
+    
+    // Force transcribe if word count exceeds limit
+    if (this.wordCount >= this.config.maxWords) {
+      console.log(`[AudioStreamProcessor] 📝 Word count limit reached (${this.wordCount}), forcing transcription`);
+      return true;
+    }
+    
+    // If currently speaking, don't transcribe yet (wait for natural pause)
+    if (this.isSpeaking) {
+      return false;
+    }
+    
+    // If in silence for long enough (500ms), transcribe the accumulated audio
+    if (silenceDuration >= this.config.silenceThreshold) {
+      console.log(`[AudioStreamProcessor] ✅ Natural pause detected (${silenceDuration.toFixed(0)}ms silence), ready to transcribe`);
+      return true;
+    }
+    
+    // Check for question hints as additional trigger (but still respect minimum duration)
+    if (this.streamingDetector.hasRecentQuestionActivity() && accumulatedDuration >= 1500) {
+      console.log(`[AudioStreamProcessor] ❓ Question pattern detected, ready to transcribe`);
+      return true;
+    }
+    
+    return false;
   }
 
   /**
@@ -294,11 +350,14 @@ export class AudioStreamProcessor extends EventEmitter {
         wordCount: this.wordCount
       };
 
-      // Reset accumulation
+      // Reset accumulation and silence tracking
       this.currentAudioData = [];
       this.wordCount = 0;
       this.accumulatedSamples = 0;
       this.lastChunkTime = Date.now();
+      this.silenceStartTime = 0;
+      this.speechStartTime = 0;
+      this.isSpeaking = false;
       
       this.emit('chunk-recorded', chunk);
       
@@ -417,6 +476,17 @@ export class AudioStreamProcessor extends EventEmitter {
    */
   private calculateDuration(sampleCount: number): number {
     return (sampleCount / this.config.sampleRate) * 1000;
+  }
+
+  /**
+   * Calculate RMS (Root Mean Square) energy of audio data for silence detection
+   */
+  private calculateRMS(audioData: Float32Array): number {
+    let sum = 0;
+    for (let i = 0; i < audioData.length; i++) {
+      sum += audioData[i] * audioData[i];
+    }
+    return Math.sqrt(sum / audioData.length);
   }
 
   /**

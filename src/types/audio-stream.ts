@@ -28,12 +28,14 @@ export interface AudioSource {
 
 export interface AudioStreamConfig {
   sampleRate: number;
-  chunkDuration: number;
-  silenceThreshold: number;
+  chunkDuration: number; // Minimum duration before considering transcription (ms)
+  silenceThreshold: number; // How long to wait in silence before transcribing (ms)
   maxWords: number;
   questionDetectionEnabled: boolean;
   batchInterval: number;
   maxBatchSize: number;
+  maxChunkDuration?: number; // Maximum duration before forcing transcription (ms)
+  silenceEnergyThreshold?: number; // RMS threshold for detecting silence (0-1)
 }
 
 export interface DetectedQuestion {

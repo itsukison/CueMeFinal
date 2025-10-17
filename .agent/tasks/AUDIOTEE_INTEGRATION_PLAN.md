@@ -708,9 +708,9 @@ If audioteejs doesn't work:
 
 ---
 
-**Document Status**: ✅ IMPLEMENTATION COMPLETE (Phases 1 & 2)  
+**Document Status**: ✅ IMPLEMENTATION COMPLETE + ENHANCED  
 **Last Updated**: 2025-10-17  
-**Status**: Ready for Phase 3 (Runtime Testing)
+**Status**: Ready for Testing (Silence-Based Chunking Added)
 
 ---
 
@@ -914,3 +914,93 @@ macOS requires explicit permission for "System Audio Recording Only" but some te
 **Alternative**: Use macOS's built-in Terminal.app which properly prompts for permission
 
 **For Production**: The signed Electron app will automatically prompt users for permission on first launch (no manual steps needed)
+
+---
+
+## Phase 5: Silence-Based Chunking Enhancement ✅ COMPLETE
+
+### Problem Identified
+
+After successful integration, user reported that audio was being "cut into very small chunks" (800ms), which caused:
+- Long questions (4-5 seconds) split into multiple transcriptions
+- Incomplete question detection (question fragments)
+- Less context for Whisper (lower accuracy)
+- More API calls (higher cost)
+
+Example: A 5-second question like "How would you implement a binary search tree in Python?" would be split into:
+- Chunk 1 (800ms): "How would you implement"
+- Chunk 2 (800ms): "a binary search tree"
+- Chunk 3 (800ms): "in Python?"
+
+Each fragment lacks context for proper question detection.
+
+### Solution Implemented
+
+**Silence-Based Chunking** - Wait for natural pauses in speech instead of fixed time intervals.
+
+**Key Changes:**
+
+1. **Added Silence Detection**:
+   - Calculate RMS (Root Mean Square) energy of each audio chunk
+   - Track speaking vs silence state
+   - Detect transitions (speech → silence, silence → speech)
+
+2. **Intelligent Chunking Logic**:
+   - **Minimum**: 2 seconds (don't transcribe too early)
+   - **Wait for silence**: 500ms of silence after speech (natural pause)
+   - **Maximum**: 6 seconds (safety cap to prevent memory issues)
+   - **Word limit**: Still respect max word count
+
+3. **Configuration Updates**:
+   ```typescript
+   {
+     chunkDuration: 2000,           // Min 2s before considering transcription
+     silenceThreshold: 500,         // Wait 500ms of silence
+     maxChunkDuration: 6000,        // Max 6s, force transcribe
+     silenceEnergyThreshold: 0.01   // RMS threshold for silence
+   }
+   ```
+
+4. **New Helper Methods**:
+   - `calculateRMS()` - Calculate audio energy for silence detection
+   - Enhanced `processAudioChunk()` - Track speech/silence transitions
+   - Improved `shouldCreateChunk()` - Silence-aware decision logic
+
+### Benefits
+
+- ✅ **Complete questions captured** - 4-5 second questions in one transcription
+- ✅ **Better accuracy** - More context for Whisper
+- ✅ **Easier question detection** - Complete sentences, not fragments
+- ✅ **Fewer API calls** - Transcribe less often (cheaper)
+- ✅ **Natural segmentation** - Follows speech patterns
+- ✅ **Configurable** - Can tune thresholds if needed
+
+### Example Behavior
+
+**Before (800ms chunks):**
+```
+[0-800ms]   → Transcribe: "How would you implement"
+[800-1600ms] → Transcribe: "a binary search tree"
+[1600-2400ms] → Transcribe: "in Python?"
+```
+
+**After (silence-based):**
+```
+[0-4500ms] → Speech detected, accumulating...
+[4500-5000ms] → Silence detected (500ms)
+[5000ms] → Transcribe: "How would you implement a binary search tree in Python?"
+```
+
+### Testing Status
+
+- ✅ TypeScript compilation: NO ERRORS
+- ✅ Build process: SUCCESS
+- 🔄 Runtime testing: READY (test with real questions)
+
+**Expected Logs:**
+```
+[AudioStreamProcessor] 🎤 Speech started (RMS: 0.0234)
+[AudioStreamProcessor] 🔇 Silence detected after 4500ms of speech (RMS: 0.0045)
+[AudioStreamProcessor] ✅ Natural pause detected (500ms silence), ready to transcribe
+[AudioStreamProcessor] 🎯 Creating transcription chunk (4500ms audio, 500ms silence)
+```
