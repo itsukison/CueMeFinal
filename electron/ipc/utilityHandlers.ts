@@ -1,6 +1,7 @@
 import { ipcMain, app, shell } from "electron";
 import path from "path";
 import type { AppState } from "../core/AppState";
+import { Logger } from "../utils/Logger";
 
 /**
  * Utility IPC handlers
@@ -130,6 +131,55 @@ export function registerUtilityHandlers(appState: AppState): void {
       return { success: true };
     } catch (error: any) {
       console.error('[IPC] ❌ Error opening external URL:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get system status for debugging
+  ipcMain.handle("get-system-status", async () => {
+    try {
+      Logger.info('[IPC] System status requested');
+      
+      const status = {
+        envLoaded: true, // EnvLoader always runs
+        openaiKeyPresent: !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== ''),
+        geminiKeyPresent: !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== ''),
+        supabaseConfigured: !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+        audioSystemInitialized: !!appState.audioStreamProcessor,
+        logFilePath: Logger.getLogPath(),
+        isPackaged: app.isPackaged,
+        platform: process.platform,
+        version: app.getVersion()
+      };
+      
+      Logger.info('[IPC] System status:', status);
+      return { success: true, status };
+    } catch (error: any) {
+      Logger.error('[IPC] Error getting system status:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Open log file in default viewer
+  ipcMain.handle("open-log-file", async () => {
+    try {
+      const logPath = Logger.getLogPath();
+      Logger.info('[IPC] Opening log file:', logPath);
+      await shell.openPath(logPath);
+      return { success: true, path: logPath };
+    } catch (error: any) {
+      Logger.error('[IPC] Error opening log file:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get log file path
+  ipcMain.handle("get-log-path", async () => {
+    try {
+      const logPath = Logger.getLogPath();
+      return { success: true, path: logPath };
+    } catch (error: any) {
+      Logger.error('[IPC] Error getting log path:', error);
       return { success: false, error: error.message };
     }
   });

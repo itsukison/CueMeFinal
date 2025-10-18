@@ -1,46 +1,62 @@
-/**
- * Centralized logging utility for electron main process
- */
-
-export enum LogLevel {
-  DEBUG = 'DEBUG',
-  INFO = 'INFO',
-  WARN = 'WARN',
-  ERROR = 'ERROR'
-}
-
-class Logger {
-  private prefix: string;
-
-  constructor(prefix: string) {
-    this.prefix = prefix;
-  }
-
-  debug(...args: any[]): void {
-    console.log(`[${this.prefix}] [DEBUG]`, ...args);
-  }
-
-  info(...args: any[]): void {
-    console.log(`[${this.prefix}] [INFO]`, ...args);
-  }
-
-  warn(...args: any[]): void {
-    console.warn(`[${this.prefix}] [WARN]`, ...args);
-  }
-
-  error(...args: any[]): void {
-    console.error(`[${this.prefix}] [ERROR]`, ...args);
-  }
-}
+import log from 'electron-log';
+import { app } from 'electron';
 
 /**
- * Create a logger instance with a specific prefix
+ * Centralized logging utility for production debugging
+ * Logs are written to:
+ * - macOS: ~/Library/Logs/CueMe/main.log
+ * - Windows: %USERPROFILE%\AppData\Roaming\CueMe\logs\main.log
+ * - Linux: ~/.config/CueMe/logs/main.log
  */
-export function createLogger(prefix: string): Logger {
-  return new Logger(prefix);
-}
+export class Logger {
+  private static initialized = false;
 
-/**
- * Default logger for general use
- */
-export const logger = createLogger('Electron');
+  static initialize() {
+    if (this.initialized) return;
+    
+    // Configure log levels
+    log.transports.file.level = 'info';
+    log.transports.console.level = 'debug';
+    
+    // Set log file name
+    log.transports.file.fileName = 'main.log';
+    
+    // Get log file path
+    const logPath = log.transports.file.getFile().path;
+    console.log(`[Logger] Logs will be written to: ${logPath}`);
+    
+    // Log app initialization info
+    log.info('='.repeat(80));
+    log.info(`CueMe v${app.getVersion()} - ${new Date().toISOString()}`);
+    log.info(`Platform: ${process.platform} ${process.arch}`);
+    log.info(`Node: ${process.version}`);
+    log.info(`Electron: ${process.versions.electron}`);
+    log.info(`Packaged: ${app.isPackaged}`);
+    log.info(`CWD: ${process.cwd()}`);
+    log.info(`Resources: ${process.resourcesPath || 'N/A'}`);
+    log.info(`Log File: ${logPath}`);
+    log.info('='.repeat(80));
+    
+    this.initialized = true;
+  }
+  
+  static info(message: string, ...args: any[]) {
+    log.info(message, ...args);
+  }
+  
+  static error(message: string, ...args: any[]) {
+    log.error(message, ...args);
+  }
+  
+  static warn(message: string, ...args: any[]) {
+    log.warn(message, ...args);
+  }
+  
+  static debug(message: string, ...args: any[]) {
+    log.debug(message, ...args);
+  }
+  
+  static getLogPath(): string {
+    return log.transports.file.getFile().path;
+  }
+}

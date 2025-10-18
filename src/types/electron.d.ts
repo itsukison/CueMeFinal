@@ -49,6 +49,11 @@ interface ElectronAPI {
   authResetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
   onAuthStateChange: (callback: (state: { user: any | null; session: any | null; isLoading: boolean }) => void) => () => void
   
+  // System status and logging
+  getSystemStatus: () => Promise<{ success: boolean; status?: any; error?: string }>
+  openLogFile: () => Promise<{ success: boolean; path?: string; error?: string }>
+  getLogPath: () => Promise<{ success: boolean; path?: string; error?: string }>
+  
   // Audio Stream methods
   audioStreamStart: (sourceId?: string) => Promise<{ success: boolean; error?: string }>
   audioStreamStop: () => Promise<{ success: boolean; error?: string }>

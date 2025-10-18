@@ -2,17 +2,18 @@
 import { EnvLoader } from "./core/EnvLoader";
 EnvLoader.load();
 
-// TEMPORARY: Force API key for testing (REMOVE AFTER TESTING)
-if (!process.env.OPENAI_API_KEY) {
-  console.log('🔑 [TEMP] Setting OpenAI API key for testing');
-  process.env.OPENAI_API_KEY = 'sk-your-actual-openai-key-here'; // Replace with your real key
-}
+import { app, session, desktopCapturer } from "electron";
+import { Logger } from "./utils/Logger";
 
-// IMMEDIATE DEBUG - Log environment status
-console.log('🚨 [PRODUCTION DEBUG] Environment check:');
-console.log('  NODE_ENV:', process.env.NODE_ENV);
-console.log('  OPENAI_API_KEY present:', !!process.env.OPENAI_API_KEY);
-console.log('  Process info:', {
+// Initialize Logger as early as possible
+Logger.initialize();
+
+// Log environment status with Logger
+Logger.info('🚨 [PRODUCTION DEBUG] Environment check:');
+Logger.info('  NODE_ENV:', process.env.NODE_ENV);
+Logger.info('  OPENAI_API_KEY present:', !!process.env.OPENAI_API_KEY);
+Logger.info('  GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY);
+Logger.info('  Process info:', {
   cwd: process.cwd(),
   resourcesPath: process.resourcesPath,
   platform: process.platform
@@ -21,13 +22,14 @@ console.log('  Process info:', {
 // Debug audio system in production builds
 import { AudioDebugger } from "./AudioDebugger";
 if (process.env.NODE_ENV === 'production' || !process.env.NODE_ENV) {
+  Logger.info('[Main] Running audio system diagnostics...');
   // Run diagnostics after a short delay to ensure Electron is ready
   setTimeout(() => {
-    AudioDebugger.diagnoseAudioSystem().catch(console.error);
+    AudioDebugger.diagnoseAudioSystem().catch(error => {
+      Logger.error('[Main] Audio diagnostics failed:', error);
+    });
   }, 2000);
 }
-
-import { app, session, desktopCapturer } from "electron";
 import { initializeIpcHandlers } from "./ipc";
 import { AppState } from "./core/AppState";
 import { DeepLinkHandler } from "./core/DeepLinkHandler";

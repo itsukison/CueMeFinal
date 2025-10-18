@@ -301,5 +301,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Permission methods
   permissionGetStatus: () => ipcRenderer.invoke("permission-check-status") as Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown' }>,
   permissionRequestMicrophone: () => ipcRenderer.invoke("permission-request-microphone") as Promise<{ granted: boolean; error?: string }>,
-  permissionRequestSystemAudio: () => ipcRenderer.invoke("permission-request-system-audio") as Promise<{ granted: boolean; error?: string }>
+  permissionRequestSystemAudio: () => ipcRenderer.invoke("permission-request-system-audio") as Promise<{ granted: boolean; error?: string }>,
+  
+  // System status and logging
+  getSystemStatus: () => ipcRenderer.invoke("get-system-status") as Promise<{ success: boolean; status?: any; error?: string }>,
+  openLogFile: () => ipcRenderer.invoke("open-log-file") as Promise<{ success: boolean; path?: string; error?: string }>,
+  getLogPath: () => ipcRenderer.invoke("get-log-path") as Promise<{ success: boolean; path?: string; error?: string }>
 } as ElectronAPI)
