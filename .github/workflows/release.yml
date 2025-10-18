@@ -79,6 +79,23 @@ jobs:
           echo "Installing dependencies with npm..."
           npm ci
 
+      - name: Build native Swift binary (macOS only)
+        if: matrix.platform == 'mac'
+        shell: bash
+        run: |
+          echo "🔨 Building native Swift binary for system audio capture..."
+          chmod +x scripts/build-native-binary.sh
+          ./scripts/build-native-binary.sh
+          
+          # Verify binary was created
+          if [ -f "dist-native/SystemAudioCapture" ]; then
+            echo "✅ Native binary built successfully"
+            ls -lh dist-native/SystemAudioCapture
+          else
+            echo "❌ Error: Native binary not found after build"
+            exit 1
+          fi
+
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |

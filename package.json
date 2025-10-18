@@ -1,11 +1,12 @@
 {
   "name": "CueMe",
-  "version": "1.0.65",
+  "version": "1.0.67",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "vite",
-    "build": "npm run clean && tsc -p electron/tsconfig.json && vite build",
+    "build:native": "bash scripts/build-native-binary.sh",
+    "build": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5181 && npm run electron:dev\"",
