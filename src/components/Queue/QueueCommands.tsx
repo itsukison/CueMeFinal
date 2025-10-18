@@ -1002,9 +1002,9 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
 
     return (
       <div className="w-fit overflow-visible">
-        <div className="text-xs text-white/90 liquid-glass-bar py-2 px-3 flex items-center justify-center gap-3 draggable-area overflow-visible">
+        <div className="text-xs text-white/90 liquid-glass-bar py-2 px-3 flex items-center justify-center gap-1 draggable-area overflow-visible">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <img src="./logo.png" alt="CueMe Logo" className="w-4 h-4" />
           </div>
 
@@ -1016,26 +1016,24 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
 
           {/* Solve Command */}
           {screenshots.length > 0 && (
-            <div className="flex items-center gap-2">
+            <>
               <span className="text-[11px] leading-none">Solve</span>
-              <div className="flex gap-1">
-                <button className="morphism-button px-1.5 py-1 text-[11px] leading-none text-white/70 flex items-center">
-                  <Command className="w-3 h-3" />
-                </button>
-                <button className="morphism-button px-1.5 py-1 text-[11px] leading-none text-white/70">
-                  ↵
-                </button>
-              </div>
-            </div>
+              <button className="morphism-button px-1.5 py-1 text-[11px] leading-none text-white/70 hover:text-white hover:bg-white/20 flex items-center transition-all">
+                <Command className="w-4 h-4" />
+              </button>
+              <button className="morphism-button px-1.5 py-1 text-[11px] leading-none text-white/70 hover:text-white hover:bg-white/20 transition-all">
+                ↵
+              </button>
+            </>
           )}
 
           {/* Always-On Listen Button */}
           {isAuthenticated && (
             <button
-              className={`morphism-button px-2 py-1 text-[11px] leading-none flex items-center gap-1 ${
+              className={`glass-button text-[11px] leading-none flex items-center gap-1 ${
                 isListening
-                  ? "!bg-emerald-600/70 hover:!bg-emerald-600/90 text-white"
-                  : "text-white/70 hover:text-white"
+                  ? "!bg-white/30 hover:!bg-white/40 text-white"
+                  : "text-white/70 hover:text-white hover:bg-white/15"
               }`}
               onClick={handleListenToggle}
               type="button"
@@ -1045,58 +1043,56 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             >
               {isListening ? (
                 <>
-                  <Mic className="w-3 h-3 mr-1" />
-                  <span className="animate-pulse">録音停止</span>
+                  <Mic className="w-4 h-4 mr-1" />
+                  <span className="animate-pulse">停止</span>
                 </>
               ) : (
                 <>
-                  <MicIcon className="w-3 h-3 mr-1" />
-                  <span>録音開始</span>
+                  <MicIcon className="w-4 h-4 mr-1" />
+                  <span>録音</span>
                 </>
               )}
             </button>
           )}
 
           {/* Chat Button */}
-          <div className="flex items-center gap-2">
-            <button
-              className="morphism-button px-2 py-1 text-[11px] leading-none text-white/70 flex items-center gap-1"
-              onClick={onChatToggle}
-              type="button"
-            >
-              <MessageCircle className="w-3 h-3 mr-1" />
-              チャット
-            </button>
-          </div>
+          <button
+            className="glass-button text-[11px] leading-none text-white/70 hover:text-white hover:bg-white/15 flex items-center gap-1"
+            onClick={onChatToggle}
+            type="button"
+          >
+            <MessageCircle className="w-4 h-4 mr-1" />
+            会話
+          </button>
 
           {/* Separator */}
-          <div className="h-4 w-px bg-white/20" />
+          <div className="h-4 w-px bg-white/20 mr-1.5" />
 
           {/* Response Mode Dropdown */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] leading-none">ファイル</span>
+            <FileText className="w-4 h-4 text-white/70" />
             <div className="relative" ref={dropdownRef}>
               <button
                 ref={triggerRef}
-                className="morphism-button px-2 py-1 text-[11px] leading-none text-white/70 flex items-center gap-1 min-w-[80px]"
+                className="morphism-button px-2 py-0 text-[11px] leading-none text-white/70 flex items-center gap-1 min-w-[80px] h-6"
                 onClick={toggleDropdown}
                 type="button"
               >
                 {responseMode.type === "plain" ? (
                   <>
-                    <Bot className="w-3 h-3" />
+                    <Bot className="w-4 h-4" />
                     <span>デフォルト</span>
                   </>
                 ) : (
                   <>
-                    <Database className="w-3 h-3" />
+                    <Database className="w-4 h-4" />
                     <span className="truncate max-w-[60px]">
                       {responseMode.collectionName || "ファイル"}
                     </span>
                   </>
                 )}
                 <ChevronDown
-                  className={`w-3 h-3 transition-transform ${
+                  className={`w-4 h-4 transition-transform ${
                     isDropdownOpen ? "rotate-180" : ""
                   }`}
                 />
