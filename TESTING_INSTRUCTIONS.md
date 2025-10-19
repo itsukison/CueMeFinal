@@ -2,7 +2,16 @@
 
 ## What Was Fixed
 
-Added comprehensive logging to the audio recording system to diagnose why recording doesn't work in production.
+### Issue 1: Missing Native Binary ✅ FIXED
+- Added Swift build step to create `SystemAudioCapture` binary
+
+### Issue 2: No Logging ✅ FIXED  
+- Added comprehensive logging to track audio recording flow
+
+### Issue 3: Race Condition in Audio Capture ✅ FIXED (THIS RELEASE)
+- **ROOT CAUSE:** `frontendListeningRef` was set to `true` AFTER AudioWorklet started receiving chunks
+- **RESULT:** All audio chunks were dropped because the flag check failed
+- **FIX:** Moved `frontendListeningRef.current = true` to BEFORE AudioWorklet connection
 
 ### Files Modified:
 1. `electron/AudioStreamProcessor.ts` - Added Logger import and logging to `startListening()` method

@@ -480,10 +480,39 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             "[QueueCommands] About to attempt AudioWorklet setup..."
           );
 
+          // CRITICAL: Set frontendListening to true BEFORE connecting AudioWorklet
+          // This prevents race condition where chunks arrive before flag is set
+          frontendListeningRef.current = true;
+          console.log("[QueueCommands] Set frontendListening to true (before AudioWorklet connection)");
+          window.electronAPI.invoke(
+            "debug-log",
+            "[QueueCommands] Set frontendListening to true (before AudioWorklet connection)"
+          );
+
+          console.log("[QueueCommands] Loading AudioWorklet module from /audio-worklet-processor.js");
+          window.electronAPI.invoke(
+            "debug-log",
+            "[QueueCommands] Loading AudioWorklet module..."
+          );
+          
           await ctx.audioWorklet.addModule("/audio-worklet-processor.js");
+          
+          console.log("[QueueCommands] ✅ AudioWorklet module loaded successfully");
+          window.electronAPI.invoke(
+            "debug-log",
+            "[QueueCommands] AudioWorklet module loaded successfully"
+          );
+          
+          console.log("[QueueCommands] Creating AudioWorkletNode...");
           const workletNode = new AudioWorkletNode(
             ctx,
             "audio-capture-processor"
+          );
+          
+          console.log("[QueueCommands] ✅ AudioWorkletNode created successfully");
+          window.electronAPI.invoke(
+            "debug-log",
+            "[QueueCommands] AudioWorkletNode created successfully"
           );
 
           let chunkCount = 0;
@@ -621,14 +650,6 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           setAudioContext(ctx);
           setProcessor(workletNode as any);
 
-          // Set the local listening flag
-          frontendListeningRef.current = true;
-          console.log("[QueueCommands] Set frontendListening to true");
-          window.electronAPI.invoke(
-            "debug-log",
-            "[QueueCommands] Set frontendListening to true"
-          );
-
           console.log("[QueueCommands] AudioWorklet setup completed");
           window.electronAPI.invoke(
             "debug-log",
@@ -646,14 +667,30 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             );
           }, 1000);
         } catch (workletError) {
-          console.warn(
-            "[QueueCommands] AudioWorklet failed, falling back to ScriptProcessor:",
+          console.error(
+            "[QueueCommands] ❌ AudioWorklet failed:",
             workletError
+          );
+          window.electronAPI.invoke(
+            "debug-log",
+            "[QueueCommands] AudioWorklet failed: " + (workletError instanceof Error ? workletError.message : String(workletError))
+          );
+          
+          console.warn(
+            "[QueueCommands] Falling back to ScriptProcessor (deprecated but more compatible)"
+          );
+          window.electronAPI.invoke(
+            "debug-log",
+            "[QueueCommands] Falling back to ScriptProcessor"
           );
 
           // Fallback to ScriptProcessorNode
           const scriptProcessor = ctx.createScriptProcessor(4096, 1, 1);
-          console.log("[QueueCommands] Script processor created as fallback");
+          console.log("[QueueCommands] ✅ ScriptProcessor created as fallback");
+          window.electronAPI.invoke(
+            "debug-log",
+            "[QueueCommands] ScriptProcessor created successfully"
+          );
 
           let chunkCount = 0;
           scriptProcessor.onaudioprocess = async (event) => {
