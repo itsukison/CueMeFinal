@@ -6,6 +6,7 @@ import { QuestionRefiner } from "./audio/QuestionRefiner";
 import { StreamingQuestionDetector } from "./audio/StreamingQuestionDetector";
 import { PermissionWatcher } from "./core/PermissionWatcher";
 import { ProcessSupervisor } from "./core/ProcessSupervisor";
+import { Logger } from "./utils/Logger";
 import {
   AudioChunk,
   AudioStreamState,
@@ -105,24 +106,34 @@ export class AudioStreamProcessor extends EventEmitter {
    * Start always-on audio listening with specified audio source
    */
   public async startListening(audioSourceId?: string): Promise<void> {
-    if (this.state.isListening) return;
+    Logger.info(`[AudioStreamProcessor] 🎙️  startListening called with sourceId: ${audioSourceId || 'microphone (default)'}`);
+    
+    if (this.state.isListening) {
+      Logger.info('[AudioStreamProcessor] Already listening, ignoring request');
+      return;
+    }
 
     try {
       // If audio source is specified and it's system audio, start system capture
       if (audioSourceId && audioSourceId !== 'microphone') {
+        Logger.info(`[AudioStreamProcessor] Starting system audio capture for source: ${audioSourceId}`);
         try {
           await this.systemAudioCapture.startCapture(audioSourceId);
           const captureState = this.systemAudioCapture.getState();
           this.state.currentAudioSource = captureState.currentSource;
+          Logger.info(`[AudioStreamProcessor] ✅ System audio capture started successfully:`, captureState.currentSource);
           
           // Register the current main process to track audio usage
           this.processSupervisor.registerAudioProcess(process.pid);
+          Logger.info(`[AudioStreamProcessor] Registered process ${process.pid} with supervisor`);
           
         } catch (systemError) {
+          Logger.error(`[AudioStreamProcessor] ❌ System audio capture failed:`, systemError);
           // Store the requested system audio source for automatic retry
           this.pendingSystemAudioSource = audioSourceId;
           
           // Enhanced fallback strategy
+          Logger.info('[AudioStreamProcessor] Attempting fallback to microphone...');
           let fallbackSucceeded = false;
           const fallbackAttempts = [
             {
@@ -134,6 +145,7 @@ export class AudioStreamProcessor extends EventEmitter {
           
           for (const fallback of fallbackAttempts) {
             try {
+              Logger.info(`[AudioStreamProcessor] Trying fallback: ${fallback.name}`);
               this.state.currentAudioSource = {
                 id: fallback.id,
                 name: fallback.name,
@@ -142,21 +154,25 @@ export class AudioStreamProcessor extends EventEmitter {
               };
               
               fallbackSucceeded = true;
+              Logger.info(`[AudioStreamProcessor] ✅ Fallback successful: ${fallback.name}`);
               break;
             } catch (fallbackError) {
-              // Silent fallback failure
+              Logger.error(`[AudioStreamProcessor] Fallback failed for ${fallback.name}:`, fallbackError);
             }
           }
           
           if (fallbackSucceeded) {
             const errorMessage = this.getSystemAudioErrorMessage(systemError as Error);
+            Logger.warn(`[AudioStreamProcessor] Using fallback due to: ${errorMessage}`);
             this.emit('error', new Error(errorMessage));
           } else {
+            Logger.error('[AudioStreamProcessor] ❌ All fallback attempts failed');
             throw new Error('All audio capture methods failed. Please check your audio permissions.');
           }
         }
       } else {
         // Default to microphone (existing behavior)
+        Logger.info('[AudioStreamProcessor] Using default microphone source');
         this.state.currentAudioSource = {
           id: 'microphone',
           name: 'Microphone',
@@ -167,12 +183,13 @@ export class AudioStreamProcessor extends EventEmitter {
 
       this.state.isListening = true;
       this.state.lastActivityTime = Date.now();
+      Logger.info(`[AudioStreamProcessor] ✅ Listening started successfully with source: ${this.state.currentAudioSource?.name}`);
       this.emit('state-changed', { ...this.state });
       
     } catch (error) {
       this.state.isListening = false;
       this.state.currentAudioSource = null;
-      console.error('[AudioStreamProcessor] Failed to start listening:', error);
+      Logger.error('[AudioStreamProcessor] ❌ Failed to start listening:', error);
       this.emit('error', error as Error);
       throw error;
     }

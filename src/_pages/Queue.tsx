@@ -858,10 +858,10 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
                   onClick={() =>
                     setIsProfileDropdownOpen(!isProfileDropdownOpen)
                   }
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border border-white/25 ${
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border border-white/25 ${
                     isProfileDropdownOpen
                       ? "bg-white/20 hover:bg-white/25"
-                      : "bg-black/80 hover:bg-white/15"
+                      : "bg-black/80 hover:bg-black/10"
                   }`}
                   type="button"
                   title="プロフィール"

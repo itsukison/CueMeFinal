@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import type { AppState } from "../core/AppState";
+import { Logger } from "../utils/Logger";
 
 /**
  * Audio processing and streaming IPC handlers
@@ -83,21 +84,25 @@ export function registerAudioHandlers(appState: AppState): void {
 
   // Audio Stream Processing handlers
   ipcMain.handle("audio-stream-start", async (event, audioSourceId?: string) => {
+    Logger.info(`[IPC audioHandlers] 🎙️  Received audio-stream-start request with sourceId: ${audioSourceId || 'default'}`);
     try {
       await appState.audioStreamProcessor.startListening(audioSourceId);
+      Logger.info('[IPC audioHandlers] ✅ Audio stream started successfully');
       return { success: true };
     } catch (error: any) {
-      console.error("Error starting audio stream:", error);
+      Logger.error("[IPC audioHandlers] ❌ Error starting audio stream:", error);
       return { success: false, error: error.message };
     }
   });
 
   ipcMain.handle("audio-stream-stop", async () => {
+    Logger.info('[IPC audioHandlers] 🛑 Received audio-stream-stop request');
     try {
       await appState.audioStreamProcessor.stopListening();
+      Logger.info('[IPC audioHandlers] ✅ Audio stream stopped successfully');
       return { success: true };
     } catch (error: any) {
-      console.error("Error stopping audio stream:", error);
+      Logger.error("[IPC audioHandlers] ❌ Error stopping audio stream:", error);
       return { success: false, error: error.message };
     }
   });
