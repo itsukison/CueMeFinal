@@ -91,12 +91,12 @@ export class SystemAudioCapture extends EventEmitter {
         available: true
       });
 
-      // Add system audio source (macOS 14.2+ only)
+      // Add system audio source - platform specific
       if (process.platform === 'darwin') {
+        // macOS: Core Audio Taps (14.2+)
         const osVersion = await this.getMacOSVersion();
         
         if (osVersion.major >= 14 && osVersion.minor >= 2) {
-          // macOS 14.2+ - Core Audio Taps available via audioteejs
           sources.push({
             id: 'system-audio',
             name: 'System Audio (Core Audio Taps)',
@@ -105,7 +105,6 @@ export class SystemAudioCapture extends EventEmitter {
           });
           console.log('[SystemAudioCapture] System audio available (Core Audio Taps via audioteejs)');
         } else {
-          // Older macOS - not supported
           sources.push({
             id: 'system-audio',
             name: `System Audio (Requires macOS 14.2+)`,
@@ -114,6 +113,15 @@ export class SystemAudioCapture extends EventEmitter {
           });
           console.log(`[SystemAudioCapture] System audio unavailable - macOS ${osVersion.major}.${osVersion.minor} detected, 14.2+ required`);
         }
+      } else if (process.platform === 'win32') {
+        // Windows: Native Electron Loopback (Electron 30.5.1+)
+        sources.push({
+          id: 'system-audio',
+          name: 'System Audio (Native Loopback)',
+          type: 'system',
+          available: true
+        });
+        console.log('[SystemAudioCapture] System audio available (Native Electron Loopback)');
       }
 
       console.log('[SystemAudioCapture] Available sources:', sources);
@@ -329,10 +337,25 @@ export class SystemAudioCapture extends EventEmitter {
   }
 
   /**
-   * Start system audio capture using audioteejs (Core Audio Taps)
+   * Start system audio capture - routes to platform-specific implementation
    */
   private async startSystemAudioCapture(): Promise<void> {
-    console.log('[SystemAudioCapture] Starting system audio capture with audioteejs...');
+    if (process.platform === 'darwin') {
+      // macOS: Use audioteejs
+      await this.startMacOSSystemAudioCapture();
+    } else if (process.platform === 'win32') {
+      // Windows: Use native loopback
+      await this.startWindowsSystemAudioCapture();
+    } else {
+      throw new Error(`System audio capture not supported on ${process.platform}`);
+    }
+  }
+
+  /**
+   * Start macOS system audio capture using audioteejs (Core Audio Taps)
+   */
+  private async startMacOSSystemAudioCapture(): Promise<void> {
+    console.log('[SystemAudioCapture] Starting macOS system audio capture with audioteejs...');
     
     try {
       const binaryPath = this.findAudioTeeBinary();
@@ -394,11 +417,52 @@ export class SystemAudioCapture extends EventEmitter {
         }
       });
 
-      console.log('[SystemAudioCapture] ✅ System audio capture started successfully');
+      console.log('[SystemAudioCapture] ✅ macOS system audio capture started successfully');
       
     } catch (error) {
-      console.error('[SystemAudioCapture] Failed to start system audio:', error);
+      console.error('[SystemAudioCapture] Failed to start macOS system audio:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Start Windows system audio capture using native Electron loopback
+   */
+  private async startWindowsSystemAudioCapture(): Promise<void> {
+    console.log('[SystemAudioCapture] Starting Windows system audio capture with native loopback...');
+    
+    try {
+      // Request display media with audio loopback
+      // The handler in main.ts will automatically grant access with loopback audio
+      this.mediaStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,  // Required for loopback to work (handler provides screen source)
+        audio: true   // This will use native loopback from setDisplayMediaRequestHandler
+      });
+      
+      // Verify we got audio tracks
+      const audioTracks = this.mediaStream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error('No audio track in native loopback stream');
+      }
+      
+      console.log('[SystemAudioCapture] Windows loopback audio tracks:', audioTracks.length);
+      audioTracks.forEach(track => {
+        console.log('[SystemAudioCapture] Audio track:', {
+          label: track.label,
+          enabled: track.enabled,
+          muted: track.muted,
+          readyState: track.readyState
+        });
+      });
+      
+      // Setup audio processing pipeline
+      await this.setupAudioProcessing();
+      
+      console.log('[SystemAudioCapture] ✅ Windows system audio capture started successfully');
+      
+    } catch (error) {
+      console.error('[SystemAudioCapture] Failed to start Windows system audio:', error);
+      throw new Error(`Windows system audio capture failed: ${(error as Error).message}`);
     }
   }
 
