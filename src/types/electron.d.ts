@@ -54,7 +54,7 @@ interface ElectronAPI {
   openLogFile: () => Promise<{ success: boolean; path?: string; error?: string }>
   getLogPath: () => Promise<{ success: boolean; path?: string; error?: string }>
   
-  // Audio Stream methods
+  // Audio Stream methods (legacy - using AudioStreamProcessor)
   audioStreamStart: (sourceId?: string) => Promise<{ success: boolean; error?: string }>
   audioStreamStop: () => Promise<{ success: boolean; error?: string }>
   audioStreamProcessChunk: (audioData: Buffer) => Promise<{ success: boolean; error?: string }>
@@ -62,6 +62,14 @@ interface ElectronAPI {
   audioStreamGetQuestions: () => Promise<DetectedQuestion[]>
   audioStreamClearQuestions: () => Promise<{ success: boolean; error?: string }>
   audioStreamAnswerQuestion: (questionText: string, collectionId?: string) => Promise<{ response: string; timestamp: number }>
+  
+  // Dual Audio methods (new - using Gemini Live API)
+  dualAudioStart: (systemAudioSourceId?: string) => Promise<{ success: boolean; error?: string }>
+  dualAudioStop: () => Promise<{ success: boolean; error?: string }>
+  dualAudioProcessMicrophoneChunk: (audioData: Float32Array) => Promise<{ success: boolean; error?: string }>
+  dualAudioGetState: () => Promise<{ isCapturing: boolean; geminiState: any }>
+  dualAudioGetQuestions: () => Promise<DetectedQuestion[]>
+  dualAudioClearQuestions: () => Promise<{ success: boolean; error?: string }>
   
   // System Audio methods
   audioGetSources: () => Promise<{ success: boolean; sources: AudioSource[]; error?: string }>

@@ -33,18 +33,8 @@ export const ProfileModeSelector: React.FC<ProfileModeSelectorProps> = ({
   const loadAvailableModes = async () => {
     try {
       const modes = await window.electronAPI.invoke('get-available-modes');
-      // Filter to show only the most common modes
-      const compactModes = [
-        'interview',
-        'meeting',
-        'sales',
-        'telesales',
-        'support',
-      ];
-      const filteredModes = modes.filter((mode: ModeOption) =>
-        compactModes.includes(mode.key)
-      );
-      setAvailableModes(filteredModes);
+      // Show all available modes
+      setAvailableModes(modes);
     } catch (error) {
       console.error('Failed to load available modes:', error);
     }
@@ -107,12 +97,12 @@ export const ProfileModeSelector: React.FC<ProfileModeSelectorProps> = ({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-[55]"
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Dropdown Content */}
-          <div className="absolute top-0 right-full mr-6 w-32 morphism-dropdown shadow-lg z-20 max-h-48 overflow-y-auto">
+          {/* Dropdown Content - Opens to the LEFT of the profile dropdown */}
+          <div className="absolute top-0 right-full mr-5 w-36 morphism-dropdown shadow-lg z-[60] max-h-64 overflow-y-auto">
             {availableModes.map((mode) => {
               const Icon = getModeIcon(mode.key);
               return (

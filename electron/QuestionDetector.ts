@@ -41,7 +41,8 @@ export class QuestionDetector {
         id: uuidv4(),
         text: text,
         timestamp: transcription.timestamp,
-        confidence: transcription.confidence
+        confidence: transcription.confidence,
+        source: 'user' // Legacy code - default to user source
       };
     }
 

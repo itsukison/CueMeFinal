@@ -8,6 +8,7 @@ import { QnAService } from "../QnAService";
 import { DocumentService } from "../DocumentService";
 import { UsageTracker } from "../UsageTracker";
 import { AudioStreamProcessor } from "../AudioStreamProcessor";
+import { DualAudioCaptureManager } from "../audio/DualAudioCaptureManager";
 import { PermissionStorage } from "../PermissionStorage";
 import { UniversalPermissionManager } from "./UniversalPermissionManager";
 import { AuthCallbackServer } from "./AuthCallbackServer";
@@ -28,6 +29,7 @@ export class AppState {
   public documentService: DocumentService;
   public usageTracker: UsageTracker;
   public audioStreamProcessor: AudioStreamProcessor;
+  public dualAudioManager: DualAudioCaptureManager | null = null;
   public permissionStorage: PermissionStorage;
   public universalPermissionManager: UniversalPermissionManager;
   private authCallbackServer: AuthCallbackServer;
@@ -124,6 +126,9 @@ export class AppState {
 
     // Initialize AudioStreamProcessor
     this.audioStreamProcessor = this.initializeAudioStreamProcessor();
+
+    // Initialize DualAudioCaptureManager (new Gemini Live approach)
+    this.dualAudioManager = this.initializeDualAudioManager();
 
     // Initialize ShortcutsHelper
     this.shortcutsHelper = new ShortcutsHelper(this);
@@ -243,6 +248,69 @@ export class AppState {
       on() { return this; },
       emit() { return false; }
     } as any;
+  }
+
+  /**
+   * Initialize DualAudioCaptureManager with Gemini Live (no Whisper needed)
+   */
+  private initializeDualAudioManager(): DualAudioCaptureManager | null {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    
+    console.log('[AppState] Gemini API Key status:', geminiApiKey ? 'Present' : 'Missing');
+
+    if (!geminiApiKey) {
+      console.warn('[AppState] GEMINI_API_KEY not found - dual audio capture will be disabled');
+      return null;
+    }
+
+    try {
+      // Only Gemini API key needed - direct audio streaming to Gemini Live
+      const manager = new DualAudioCaptureManager(geminiApiKey);
+      
+      // Setup event listeners for dual audio events
+      this.setupDualAudioEvents(manager);
+      
+      console.log('[AppState] DualAudioCaptureManager initialized successfully (Gemini Live)');
+      return manager;
+    } catch (error) {
+      console.error('[AppState] Failed to initialize DualAudioCaptureManager:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Setup event listeners for DualAudioCaptureManager events
+   */
+  private setupDualAudioEvents(manager: DualAudioCaptureManager): void {
+    const getMainWindow = () => this.getMainWindow();
+    
+    // Delay setup until window is available
+    const setupListeners = () => {
+      const mainWindow = getMainWindow();
+      if (!mainWindow) {
+        setTimeout(setupListeners, 1000);
+        return;
+      }
+
+      // Forward dual audio events to renderer process
+      manager.on('question-detected', (question) => {
+        console.log(`[AppState] Forwarding question to renderer: ${question.text} (${question.source})`);
+        mainWindow.webContents.send('audio-question-detected', question);
+      });
+
+      manager.on('state-changed', (state) => {
+        mainWindow.webContents.send('gemini-live-state-changed', state);
+      });
+
+      manager.on('error', (error) => {
+        console.error('[AppState] Dual audio error:', error);
+        mainWindow.webContents.send('audio-error', error);
+      });
+
+      console.log('[AppState] Dual audio event listeners setup complete');
+    };
+
+    setupListeners();
   }
 
   /**

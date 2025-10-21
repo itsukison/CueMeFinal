@@ -233,4 +233,95 @@ export function registerAudioHandlers(appState: AppState): void {
       return { supported: false };
     }
   });
+
+  // Dual Audio Capture with Gemini Live handlers
+  // AUTOMATIC: Both microphone and system audio are captured simultaneously
+  ipcMain.handle("dual-audio-start", async () => {
+    Logger.info(`[IPC audioHandlers] 🎙️  Received dual-audio-start request (AUTOMATIC dual capture)`);
+    try {
+      if (!appState.dualAudioManager) {
+        return { success: false, error: 'Dual audio manager not initialized. Check GEMINI_API_KEY.' };
+      }
+      // No sourceId needed - both sources start automatically
+      await appState.dualAudioManager.startCapture();
+      Logger.info('[IPC audioHandlers] ✅ Dual audio capture started successfully (microphone + system audio)');
+      return { success: true };
+    } catch (error: any) {
+      Logger.error("[IPC audioHandlers] ❌ Error starting dual audio capture:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("dual-audio-stop", async () => {
+    Logger.info('[IPC audioHandlers] 🛑 Received dual-audio-stop request');
+    try {
+      if (!appState.dualAudioManager) {
+        return { success: false, error: 'Dual audio manager not initialized' };
+      }
+      await appState.dualAudioManager.stopCapture();
+      Logger.info('[IPC audioHandlers] ✅ Dual audio capture stopped successfully');
+      return { success: true };
+    } catch (error: any) {
+      Logger.error("[IPC audioHandlers] ❌ Error stopping dual audio capture:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("dual-audio-process-microphone-chunk", async (event, audioData: Float32Array) => {
+    try {
+      if (!appState.dualAudioManager) {
+        return { success: false, error: 'Dual audio manager not initialized' };
+      }
+      
+      // Convert Float32Array to Buffer
+      const buffer = Buffer.alloc(audioData.length * 2);
+      for (let i = 0; i < audioData.length; i++) {
+        const sample = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
+        buffer.writeInt16LE(sample, i * 2);
+      }
+      
+      await appState.dualAudioManager.processMicrophoneAudio(buffer);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error processing microphone chunk:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("dual-audio-get-state", async () => {
+    try {
+      if (!appState.dualAudioManager) {
+        return { isCapturing: false, geminiState: null };
+      }
+      return appState.dualAudioManager.getState();
+    } catch (error: any) {
+      console.error("Error getting dual audio state:", error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle("dual-audio-get-questions", async () => {
+    try {
+      if (!appState.dualAudioManager) {
+        return [];
+      }
+      return appState.dualAudioManager.getQuestions();
+    } catch (error: any) {
+      console.error("Error getting dual audio questions:", error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle("dual-audio-clear-questions", async () => {
+    try {
+      if (!appState.dualAudioManager) {
+        return { success: false, error: 'Dual audio manager not initialized' };
+      }
+      appState.dualAudioManager.clearQuestions();
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error clearing dual audio questions:", error);
+      return { success: false, error: error.message };
+    }
+  });
 }

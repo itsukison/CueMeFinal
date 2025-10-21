@@ -386,16 +386,21 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
 
     /**
      * Start audio capture and streaming
+     * 
+     * NEW SYSTEM (Gemini Live):
+     * - Microphone audio: Captured here and sent to dualAudioProcessMicrophoneChunk
+     * - System audio: Captured by backend and sent directly to Gemini Live
+     * - Both streams go to separate Gemini Live sessions for real-time question detection
      */
     const startAudioCapture = async (): Promise<void> => {
       try {
-        console.log("[QueueCommands] Starting audio capture...");
+        console.log("[QueueCommands] Starting audio capture (Gemini Live system)...");
 
-        // System audio is handled by the backend native Swift binary
-        // No frontend audio capture needed for system audio
+        // System audio is handled by the backend DualAudioCaptureManager
+        // It captures system audio and streams directly to Gemini Live (opponent source)
         if (currentAudioSource?.type === "system") {
           console.log(
-            "[QueueCommands] System audio selected - backend will handle capture via native binary"
+            "[QueueCommands] System audio selected - backend will handle capture and stream to Gemini Live"
           );
           
           // Just set up the backend audio stream processing
@@ -528,109 +533,50 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             } = event.data;
 
             if (type === "log") {
-              console.log("[QueueCommands] AudioWorklet log:", message);
-              window.electronAPI.invoke(
-                "debug-log",
-                "[QueueCommands] AudioWorklet: " + message
-              );
+              console.log("[QueueCommands] AudioWorklet:", message);
               return;
             }
 
             if (type === "audio-chunk") {
               chunkCount++;
               const currentlyListening = frontendListeningRef.current;
-              console.log(
-                `[QueueCommands] Received audio chunk ${chunkCount}, frontendListening:`,
-                currentlyListening,
-                "reactIsListening:",
-                isListening,
-                "length:",
-                length,
-                "duration:",
-                durationMs + "ms",
-                "trigger:",
-                triggerReason
-              );
-              window.electronAPI.invoke(
-                "debug-log",
-                `[QueueCommands] Audio chunk ${chunkCount}, duration: ${durationMs}ms, trigger: ${triggerReason}, frontendListening: ${currentlyListening}`
-              );
+              
+              // Log only every 50 chunks to avoid spam (50 chunks = ~6.4 seconds)
+              if (chunkCount % 50 === 0) {
+                console.log(
+                  `[QueueCommands] Streaming: ${chunkCount} chunks sent (${(chunkCount * 128 / 1000).toFixed(1)}s)`
+                );
+              }
 
               if (!currentlyListening) {
-                console.log(
-                  "[QueueCommands] Not listening (frontendListening=false), dropping audio chunk"
-                );
-                window.electronAPI.invoke(
-                  "debug-log",
-                  "[QueueCommands] Dropping chunk - not listening"
-                );
+                // Only log first dropped chunk to avoid spam
+                if (chunkCount === 1) {
+                  console.log("[QueueCommands] Not listening, dropping chunks");
+                }
                 return;
               }
 
-              // Calculate audio level for visualization (still needed for internal monitoring)
-              if (inputData instanceof Float32Array) {
-                const rms = Math.sqrt(
-                  inputData.reduce((sum, sample) => sum + sample * sample, 0) /
-                    inputData.length
-                );
-                // Note: Audio level no longer displayed in UI but useful for debugging
-              }
-
-              // Send the complete audio chunk to the backend for transcription
+              // Send the audio chunk immediately to backend (no buffering!)
               try {
-                console.log(
-                  "[QueueCommands] Sending audio chunk to main process for transcription...",
-                  {
-                    dataType: inputData.constructor.name,
-                    length: inputData.length,
-                    isArray: Array.isArray(inputData),
-                    firstFewSamples: Array.from(inputData.slice(0, 5)),
-                  }
-                );
-                window.electronAPI.invoke(
-                  "debug-log",
-                  "[QueueCommands] About to send chunk to backend, length: " +
-                    inputData.length
-                );
-
-                // Ensure we have a valid Float32Array
+                // Validate Float32Array
                 if (!(inputData instanceof Float32Array)) {
                   console.error(
-                    "[QueueCommands] Invalid data type, expected Float32Array, got:",
+                    "[QueueCommands] Invalid data type:",
                     inputData.constructor.name
-                  );
-                  window.electronAPI.invoke(
-                    "debug-log",
-                    "[QueueCommands] Invalid data type: " +
-                      inputData.constructor.name
                   );
                   return;
                 }
 
-                const result =
-                  await window.electronAPI.audioStreamProcessChunk(inputData);
-
-                console.log(
-                  "[QueueCommands] Audio chunk sent successfully, result:",
-                  result
-                );
-                window.electronAPI.invoke(
-                  "debug-log",
-                  "[QueueCommands] Chunk sent successfully, result: " +
-                    JSON.stringify(result)
-                );
+                // Send microphone audio to Gemini Live (continuous streaming)
+                await window.electronAPI.dualAudioProcessMicrophoneChunk(inputData);
+                
+                // Success - no need to log every chunk (too spammy)
               } catch (error) {
                 console.error(
                   "[QueueCommands] Error sending audio chunk:",
                   error
                 );
-                window.electronAPI.invoke(
-                  "debug-log",
-                  "[QueueCommands] Error sending audio chunk: " + error
-                );
                 // Don't stop listening on individual chunk errors
-                // setIsListening(false);
-                // stopAudioCapture();
               }
             }
           };
@@ -871,12 +817,15 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           setIsListening(false);
           stopAudioCapture();
 
-          const result = await window.electronAPI.audioStreamStop();
+          // Stop dual audio capture (NEW SYSTEM)
+          const result = await window.electronAPI.dualAudioStop();
           if (!result.success) {
             console.error(
-              "[QueueCommands] Failed to stop audio stream:",
+              "[QueueCommands] Failed to stop dual audio:",
               result.error
             );
+          } else {
+            console.log("[QueueCommands] ✅ Dual audio stopped successfully");
           }
         } else {
           // Start listening
@@ -895,55 +844,25 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             await startAudioCapture();
             console.log("[QueueCommands] Audio capture initialized");
 
-            // Step 2: Start audio stream processor AFTER capture is ready with retry logic
-            const sourceId = currentAudioSource?.id || "microphone";
-            let retryCount = 0;
-            const maxRetries = 2;
-
-            while (retryCount <= maxRetries) {
-              try {
-                const result =
-                  await window.electronAPI.audioStreamStart(sourceId);
-                if (!result.success) {
-                  throw new Error(result.error || "Audio stream start failed");
-                }
-
-                console.log(
-                  "[QueueCommands] Audio listening started successfully"
-                );
-                window.electronAPI.invoke(
-                  "debug-log",
-                  "[QueueCommands] Audio listening started successfully"
-                );
-                break; // Success, exit retry loop
-              } catch (streamError) {
-                retryCount++;
-                console.warn(
-                  `[QueueCommands] Audio stream start attempt ${retryCount} failed:`,
-                  streamError
-                );
-
-                if (retryCount > maxRetries) {
-                  throw streamError; // Final failure
-                }
-
-                // Try fallback to microphone on retry
-                if (retryCount === 1 && sourceId !== "microphone") {
-                  console.log(
-                    "[QueueCommands] Retrying with microphone fallback..."
-                  );
-                  setCurrentAudioSource({
-                    id: "microphone",
-                    name: "Microphone (Fallback)",
-                    type: "microphone",
-                    available: true,
-                  });
-                }
-
-                // Wait before retry
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-              }
+            // Step 2: Start dual audio capture with Gemini Live (NEW SYSTEM)
+            // AUTOMATIC: Both microphone and system audio start automatically
+            // No source selection needed
+            console.log("[QueueCommands] Starting AUTOMATIC dual audio capture (microphone + system audio)...");
+            const result = await window.electronAPI.dualAudioStart();
+            
+            if (!result.success) {
+              throw new Error(result.error || "Dual audio start failed");
             }
+
+            console.log(
+              "[QueueCommands] ✅ Dual audio listening started successfully (Gemini Live)"
+            );
+            console.log("[QueueCommands] 🎤 Microphone → user source");
+            console.log("[QueueCommands] 🔊 System audio → opponent source");
+            window.electronAPI.invoke(
+              "debug-log",
+              "[QueueCommands] Dual audio listening started successfully"
+            );
           } catch (error) {
             const errorMsg =
               error instanceof Error

@@ -68,7 +68,8 @@ export class QuestionRefiner {
           id: uuidv4(),
           text: core.trim(),
           timestamp: detectedQuestion ? detectedQuestion.timestamp : transcription.timestamp,
-          confidence: detectedQuestion ? detectedQuestion.confidence : transcription.confidence
+          confidence: detectedQuestion ? detectedQuestion.confidence : transcription.confidence,
+          source: 'user' // Legacy code - default to user source
         };
 
         // Validate by either the detector's rules or our heuristic recognizer

@@ -43,6 +43,7 @@ export interface DetectedQuestion {
   text: string;
   timestamp: number;
   confidence: number;
+  source: 'user' | 'opponent'; // NEW - categorize by audio source
   // Optional fields populated during refinement and used by renderer UI
   isRefined?: boolean;
   refinedText?: string;
@@ -70,4 +71,21 @@ export interface AudioStreamEvents {
   'transcription-completed': (result: TranscriptionResult) => void;
   'question-detected': (question: DetectedQuestion) => void;
   'batch-processed': (batch: DetectedQuestion[]) => void;
+}
+
+// Gemini Live state interface
+export interface GeminiLiveState {
+  isListening: boolean;
+  userSessionActive: boolean;
+  opponentSessionActive: boolean;
+  questionBuffer: DetectedQuestion[];
+  lastActivityTime: number;
+}
+
+// Gemini Live session configuration
+export interface GeminiLiveConfig {
+  apiKey: string;
+  model: string; // 'gemini-2.0-flash-exp'
+  language: string; // 'ja-JP' or 'en-US'
+  systemPrompt: string;
 }

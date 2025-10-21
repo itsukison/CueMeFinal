@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { User, LogOut, Settings, Shield } from 'lucide-react';
-import { AudioSettings } from '../AudioSettings';
 import { ProfileModeSelector } from './ProfileModeSelector';
 
 interface ProfileDropdownProps {
   currentMode: string;
   onModeChange: (mode: string) => void;
-  currentAudioSource: any;
-  onAudioSourceChange: (sourceId: string) => void;
-  isListening: boolean;
-  audioError: string | null;
+  // Removed: currentAudioSource, onAudioSourceChange, audioError
+  // Dual audio capture is automatic - no user selection needed
   onLogout: () => Promise<void>;
   onSettings: () => void;
   onPermissionRequest: () => Promise<void>;
+  dropdownWidth?: string; // Configurable width, e.g., "w-36", "w-48", "w-64"
 }
 
 /**
@@ -21,13 +19,10 @@ interface ProfileDropdownProps {
 export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   currentMode,
   onModeChange,
-  currentAudioSource,
-  onAudioSourceChange,
-  isListening,
-  audioError,
   onLogout,
   onSettings,
   onPermissionRequest,
+  dropdownWidth = 'w-48',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -77,7 +72,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
         {/* Profile Dropdown Menu */}
         {isOpen && (
-          <div className="absolute right-0 mt-4 w-64 morphism-dropdown shadow-lg z-50 max-h-96 overflow-y-auto">
+          <div className={`absolute right-0 mt-4 ${dropdownWidth} morphism-dropdown shadow-lg z-50`}>
             <div className="py-1">
               {/* Answer Mode Section */}
               <div className="px-3 py-2 border-b border-white/10">
@@ -88,19 +83,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 />
               </div>
 
-              {/* Audio Settings Section */}
-              <div className="px-3 py-2 border-b border-white/10">
-                <div className="text-xs text-white/60 mb-2">
-                  オーディオ設定
-                </div>
-                <AudioSettings
-                  currentSource={currentAudioSource}
-                  onSourceChange={onAudioSourceChange}
-                  disabled={isListening}
-                  isListening={isListening}
-                  error={audioError}
-                />
-              </div>
+              {/* Audio Settings Section - REMOVED: Dual audio capture is automatic */}
+              {/* Both microphone and system audio are captured simultaneously */}
 
               <button
                 onClick={handlePermissionRequest}

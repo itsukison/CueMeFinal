@@ -4,18 +4,6 @@ import { useQuery } from "react-query";
 import {
   MessageCircle,
   Send,
-  LogOut,
-  User,
-  Settings,
-  Target,
-  FileText,
-  Briefcase,
-  Scale,
-  BookOpen,
-  Phone,
-  Wrench,
-  MessageSquare,
-  Shield,
 } from "lucide-react";
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue";
 import {
@@ -32,138 +20,8 @@ import QueueCommands, {
 import QuestionSidePanel from "../components/AudioListener/QuestionSidePanel";
 import { DetectedQuestion, AudioStreamState } from "../types/audio-stream";
 import { useVerticalResize } from "../hooks/useVerticalResize";
-import { ModeOption } from "../types/modes";
-import { AudioSettings } from "../components/AudioSettings";
-
-// Compact Mode Selector for Profile Dropdown
-const ProfileModeSelector: React.FC<{
-  currentMode: string;
-  onModeChange: (modeKey: string) => void;
-}> = ({ currentMode, onModeChange }) => {
-  const [availableModes, setAvailableModes] = useState<ModeOption[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    loadAvailableModes();
-  }, []);
-
-  const loadAvailableModes = async () => {
-    try {
-      const modes = await window.electronAPI.invoke("get-available-modes");
-      // Filter to show only the most common modes
-      const compactModes = [
-        "interview",
-        "meeting",
-        "sales",
-        "telesales",
-        "support",
-      ];
-      const filteredModes = modes.filter((mode: ModeOption) =>
-        compactModes.includes(mode.key)
-      );
-      setAvailableModes(filteredModes);
-    } catch (error) {
-      console.error("Failed to load available modes:", error);
-    }
-  };
-
-  const getModeIcon = (modeKey: string) => {
-    const iconMap: Record<string, React.ComponentType<any>> = {
-      interview: Target,
-      meeting: FileText,
-      sales: Briefcase,
-      debate: Scale,
-      class: BookOpen,
-      telesales: Phone,
-      support: Wrench,
-    };
-    return iconMap[modeKey] || MessageSquare;
-  };
-
-  const currentModeData = availableModes.find(
-    (mode) => mode.key === currentMode
-  );
-  const CurrentIcon = getModeIcon(currentMode);
-
-  return (
-    <div className="relative">
-      {/* Current Mode Display */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-2 py-1.5 text-left text-xs text-white/80 hover:text-white hover:bg-white/10 flex items-center justify-between transition-colors rounded-md"
-      >
-        <div className="flex items-center gap-2">
-          <CurrentIcon className="w-3 h-3" />
-          <span>
-            {currentModeData?.displayName
-              ?.replace("モード", "")
-              .replace("（候補者）", "")
-              .replace("（提案）", "")
-              .replace("（高応答）", "") || currentMode}
-          </span>
-        </div>
-        <svg
-          className={`w-3 h-3 transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-
-          {/* Dropdown Content */}
-          <div className="absolute top-0 right-full mr-6 w-32 morphism-dropdown shadow-lg z-20 max-h-48 overflow-y-auto">
-            {availableModes.map((mode) => {
-              const Icon = getModeIcon(mode.key);
-              return (
-                <button
-                  key={mode.key}
-                  onClick={() => {
-                    onModeChange(mode.key);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full px-3 py-2 text-left text-xs hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors flex items-center gap-2 ${
-                    mode.key === currentMode
-                      ? "text-white bg-white/10"
-                      : "text-white/80"
-                  }`}
-                >
-                  <Icon className="w-3 h-3" />
-                  <div>
-                    <div className="font-medium">
-                      {mode.displayName
-                        .replace("モード", "")
-                        .replace("（候補者）", "")
-                        .replace("（提案）", "")
-                        .replace("（高応答）", "")}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
+import { ProfileDropdown } from "../components/Queue/ProfileDropdown";
+// Removed AudioSettings import - dual audio capture is automatic
 
 interface ResponseMode {
   type: "plain" | "qna";
@@ -197,12 +55,11 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
   >([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isQuestionPanelOpen, setIsQuestionPanelOpen] = useState(true);
+  // Removed isQuestionPanelOpen - panel shows automatically when listening or has questions
   const chatInputRef = useRef<HTMLInputElement>(null);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
 
-  // Profile dropdown state
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
 
   // Response mode state
   const [responseMode, setResponseMode] = useState<ResponseMode>({
@@ -219,10 +76,8 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
   const [audioStreamState, setAudioStreamState] =
     useState<AudioStreamState | null>(null);
 
-  // Audio settings state (moved from QueueCommands)
-  const [currentAudioSource, setCurrentAudioSource] = useState<any>(null);
+  // Audio listening state (no source selection needed - dual capture is automatic)
   const [isListening, setIsListening] = useState(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
 
   // Ref to access QueueCommands methods
   const queueCommandsRef = useRef<QueueCommandsRef>(null);
@@ -496,31 +351,29 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       console.error("Logout error:", error);
       showToast("エラー", "ログアウトに失敗しました", "error");
     }
-    setIsProfileDropdownOpen(false);
   };
 
   // Settings handler
   const handleSettings = () => {
     window.electronAPI.invoke("open-external-url", "https://www.cueme.ink/");
-    setIsProfileDropdownOpen(false);
   };
 
   // Permission request handler
   const handlePermissionRequest = async () => {
     try {
       console.log('[Queue] Opening permission request dialog...');
-      
+
       // Check current permission status first
       const status = await window.electronAPI.invoke('permission-check-status');
       console.log('[Queue] Current permission status:', status);
-      
+
       let hasRequestedAny = false;
-      
+
       // Handle microphone permission
       if (status.microphone !== 'granted') {
         console.log('[Queue] Microphone permission not granted, requesting...');
         hasRequestedAny = true;
-        
+
         try {
           // First try to request programmatically
           const micResult = await window.electronAPI.invoke('permission-request-microphone');
@@ -531,8 +384,8 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
             console.log('[Queue] Microphone permission denied, opening system preferences...');
             await window.electronAPI.invoke('permission-open-system-preferences', 'microphone');
             showToast(
-              "マイクの設定", 
-              "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。", 
+              "マイクの設定",
+              "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。",
               "neutral"
             );
           }
@@ -541,26 +394,26 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
           // Fallback to opening system preferences
           await window.electronAPI.invoke('permission-open-system-preferences', 'microphone');
           showToast(
-            "マイクの設定", 
-            "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。", 
+            "マイクの設定",
+            "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。",
             "neutral"
           );
         }
       }
-      
+
       // Handle screen recording permission (cannot be requested programmatically)
       if (status.screenCapture !== 'granted') {
         console.log('[Queue] Screen recording permission not granted, opening system preferences...');
         hasRequestedAny = true;
-        
+
         await window.electronAPI.invoke('permission-open-system-preferences', 'screen');
         showToast(
-          "画面収録の設定", 
-          "システム環境設定が開きました。セキュリティとプライバシー → 画面収録でCueMeを有効にしてください。", 
+          "画面収録の設定",
+          "システム環境設定が開きました。セキュリティとプライバシー → 画面収録でCueMeを有効にしてください。",
           "neutral"
         );
       }
-      
+
       // If both permissions are already granted
       if (status.microphone === 'granted' && status.screenCapture === 'granted') {
         showToast("権限確認", "すべての権限が許可されています。", "success");
@@ -568,18 +421,17 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
         // Show additional guidance for users
         setTimeout(() => {
           showToast(
-            "再起動のお知らせ", 
-            "権限を変更した後は、アプリを再起動することをお勧めします。", 
+            "再起動のお知らせ",
+            "権限を変更した後は、アプリを再起動することをお勧めします。",
             "neutral"
           );
         }, 3000);
       }
-      
+
     } catch (error) {
       console.error('[Queue] Error requesting permissions:', error);
       showToast("エラー", "権限の確認に失敗しました", "error");
     }
-    setIsProfileDropdownOpen(false);
   };
 
   const handleResponseModeChange = (mode: ResponseMode) => {
@@ -600,47 +452,10 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     // Update listening state
     setIsListening(state.isListening || false);
 
-    // Update current audio source from state
-    if (state.currentAudioSource) {
-      setCurrentAudioSource(state.currentAudioSource);
-    }
+    // No audio source management needed - dual capture is automatic
   };
 
-  // Audio source change handler
-  const handleAudioSourceChange = async (sourceId: string) => {
-    try {
-      console.log("[Queue] Switching audio source to:", sourceId);
-
-      // Clear previous errors
-      setAudioError(null);
-
-      // Switch the audio source in the backend
-      const result = await window.electronAPI.audioSwitchSource(sourceId);
-      if (!result.success) {
-        const errorMsg = result.error || "Failed to switch audio source";
-        console.error("[Queue] Failed to switch audio source:", result.error);
-        setAudioError(errorMsg);
-        return;
-      }
-
-      console.log("[Queue] Audio source switched successfully");
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : "Error switching audio source";
-      console.error("[Queue] Error switching audio source:", error);
-      setAudioError(errorMsg);
-    }
-  };
-
-  // Auto-reopen question panel when recording starts
-  useEffect(() => {
-    if (audioStreamState?.isListening && !isQuestionPanelOpen) {
-      console.log(
-        "[Queue] Auto-reopening question panel for new recording session"
-      );
-      setIsQuestionPanelOpen(true);
-    }
-  }, [audioStreamState?.isListening, isQuestionPanelOpen]);
+  // Panel automatically shows when listening starts (no manual state needed)
 
   const answersCacheRef = useRef<
     Map<string, { response: string; timestamp: number }>
@@ -720,27 +535,15 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
           // Update listening state
           setIsListening(state.isListening || false);
 
-          // Update current audio source from state
-          if (state.currentAudioSource) {
-            setCurrentAudioSource(state.currentAudioSource);
-          }
+          // No audio source management needed - dual capture is automatic
         }
       ),
 
       window.electronAPI.onAudioStreamError((error: string) => {
         console.error("[Queue] Audio stream error:", error);
-        setAudioError(error);
 
-        // Check if this is a fallback scenario
-        const isAutoFallback =
-          error.toLowerCase().includes("fallback") ||
-          error.toLowerCase().includes("using microphone") ||
-          error.toLowerCase().includes("restored");
-
-        if (!isAutoFallback) {
-          // Only update listening state for actual failures, not fallbacks
-          setIsListening(false);
-        }
+        // For actual failures, stop listening
+        setIsListening(false);
       }),
     ];
 
@@ -788,7 +591,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       } catch (error) {
         console.log("IPC setup skipped:", error);
       }
-      return () => {};
+      return () => { };
     };
 
     const cleanup = setupIpcListeners();
@@ -805,22 +608,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     };
   }, []);
 
-  // Click outside handler for profile dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isProfileDropdownOpen &&
-        !(event.target as Element)?.closest(".profile-dropdown-container")
-      ) {
-        setIsProfileDropdownOpen(false);
-      }
-    };
 
-    document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, [isProfileDropdownOpen]);
 
   return (
     <div
@@ -851,79 +639,15 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
               />
             </div>
 
-            {/* Profile Icon with Dropdown - Fixed position relative to the main bar */}
-            <div className="absolute top-0 right-0 transform translate-x-full mt-1 pl-2">
-              <div className="relative profile-dropdown-container">
-                <button
-                  onClick={() =>
-                    setIsProfileDropdownOpen(!isProfileDropdownOpen)
-                  }
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border border-white/25 ${
-                    isProfileDropdownOpen
-                      ? "bg-white/20 hover:bg-white/25"
-                      : "bg-black/80 hover:bg-black/10"
-                  }`}
-                  type="button"
-                  title="プロフィール"
-                >
-                  <User className="w-5 h-5 text-emerald-800" />
-                </button>
-
-                {/* Profile Dropdown Menu */}
-                {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-4 w-64 morphism-dropdown shadow-lg z-50 max-h-96 overflow-y-auto">
-                    <div className="py-1">
-                      {/* Answer Mode Section */}
-                      <div className="px-3 py-2 border-b border-white/10">
-                        <div className="text-xs text-white/60 mb-2">
-                          回答モード
-                        </div>
-                        <ProfileModeSelector
-                          currentMode={currentMode}
-                          onModeChange={setCurrentMode}
-                        />
-                      </div>
-
-                      {/* Audio Settings Section */}
-                      <div className="px-3 py-2 border-b border-white/10">
-                        <div className="text-xs text-white/60 mb-2">
-                          オーディオ設定
-                        </div>
-                        <AudioSettings
-                          currentSource={currentAudioSource}
-                          onSourceChange={handleAudioSourceChange}
-                          disabled={isListening}
-                          isListening={isListening}
-                          error={audioError}
-                        />
-                      </div>
-
-                      <button
-                        onClick={handlePermissionRequest}
-                        className="w-full px-3 py-2 text-left text-xs text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors rounded-md"
-                      >
-                        <Shield className="w-3 h-3" />
-                        権限を許可
-                      </button>
-                      <button
-                        onClick={handleSettings}
-                        className="w-full px-3 py-2 text-left text-xs text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors rounded-md"
-                      >
-                        <Settings className="w-3 h-3" />
-                        設定
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full px-3 py-2 text-left text-xs text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors rounded-md"
-                      >
-                        <LogOut className="w-3 h-3" />
-                        ログアウト
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Profile Dropdown - Fixed position relative to the main bar */}
+            <ProfileDropdown
+              currentMode={currentMode}
+              onModeChange={setCurrentMode}
+              onLogout={handleLogout}
+              onSettings={handleSettings}
+              onPermissionRequest={handlePermissionRequest}
+              dropdownWidth="w-36"
+            />
           </div>
 
           {/* Permission and general toasts - positioned below the floating bar */}
@@ -1041,23 +765,21 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
                     </span>
                   </div>
                 ) : (
-                  <div 
+                  <div
                     ref={chatMessagesRef}
                     className="flex-1 overflow-y-auto mb-3"
                   >
                     {chatMessages.map((msg, idx) => (
                       <div
                         key={idx}
-                        className={`w-full flex ${
-                          msg.role === "user" ? "justify-end" : "justify-start"
-                        } mb-3`}
+                        className={`w-full flex ${msg.role === "user" ? "justify-end" : "justify-start"
+                          } mb-3`}
                       >
                         <div
-                          className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs border ${
-                            msg.role === "user"
-                              ? "bg-gray-800/60 backdrop-blur-md text-gray-100 ml-12 mr-8 border-gray-600/40"
-                              : "morphism-dropdown text-white/90 mr-12"
-                          }`}
+                          className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs border ${msg.role === "user"
+                            ? "bg-gray-800/60 backdrop-blur-md text-gray-100 ml-12 mr-8 border-gray-600/40"
+                            : "morphism-dropdown text-white/90 mr-12"
+                            }`}
                           style={{ wordBreak: "break-word", lineHeight: "1.4" }}
                         >
                           {msg.text}
@@ -1132,44 +854,43 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
           )}
 
           {/* Question Panel - Wider and centered relative to floating bar system */}
-          {isQuestionPanelOpen &&
-            (detectedQuestions.length > 0 || audioStreamState?.isListening) && (
-              <div
-                className="mt-4 w-full max-w-2xl relative"
-                style={{ height: `${questionResize.height}px` }}
-              >
-                <QuestionSidePanel
-                  questions={detectedQuestions}
-                  audioStreamState={audioStreamState}
-                  onAnswerQuestion={handleAnswerQuestion}
-                  responseMode={responseMode}
-                  className="w-full h-full"
-                  onClose={() => {
-                    // Stop listening session if active
-                    if (
-                      audioStreamState?.isListening &&
-                      queueCommandsRef.current?.stopListening
-                    ) {
-                      queueCommandsRef.current.stopListening();
-                    }
+          {/* Show panel when listening OR when there are questions (even if not listening) */}
+          {(audioStreamState?.isListening || detectedQuestions.length > 0) && (
+            <div
+              className="mt-4 w-full max-w-2xl relative"
+              style={{ height: `${questionResize.height}px` }}
+            >
+              <QuestionSidePanel
+                questions={detectedQuestions}
+                audioStreamState={audioStreamState}
+                onAnswerQuestion={handleAnswerQuestion}
+                responseMode={responseMode}
+                className="w-full h-full"
+                onClose={() => {
+                  // Stop listening session if active
+                  if (
+                    audioStreamState?.isListening &&
+                    queueCommandsRef.current?.stopListening
+                  ) {
+                    queueCommandsRef.current.stopListening();
+                  }
 
-                    // Clear questions via backend
-                    if (window.electronAPI?.audioStreamClearQuestions) {
-                      window.electronAPI.audioStreamClearQuestions();
-                    }
+                  // Clear questions via backend
+                  if (window.electronAPI?.audioStreamClearQuestions) {
+                    window.electronAPI.audioStreamClearQuestions();
+                  }
 
-                    // Clear frontend questions state
-                    setDetectedQuestions([]);
+                  // Clear frontend questions state
+                  setDetectedQuestions([]);
 
-                    // Close the panel
-                    setIsQuestionPanelOpen(false);
-                  }}
-                />
+                  // Panel will auto-hide when both listening stops AND questions are cleared
+                }}
+              />
 
-                {/* Resize Handle */}
-                <questionResize.ResizeHandle />
-              </div>
-            )}
+              {/* Resize Handle */}
+              <questionResize.ResizeHandle />
+            </div>
+          )}
         </div>
       </div>
 
