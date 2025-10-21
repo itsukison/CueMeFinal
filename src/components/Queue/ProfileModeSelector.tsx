@@ -76,9 +76,8 @@ export const ProfileModeSelector: React.FC<ProfileModeSelectorProps> = ({
           </span>
         </div>
         <svg
-          className={`w-3 h-3 transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''
+            }`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -112,11 +111,10 @@ export const ProfileModeSelector: React.FC<ProfileModeSelectorProps> = ({
                     onModeChange(mode.key);
                     setIsOpen(false);
                   }}
-                  className={`w-full px-3 py-2 text-left text-xs hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors flex items-center gap-2 ${
-                    mode.key === currentMode
-                      ? 'text-white bg-white/10'
-                      : 'text-white/80'
-                  }`}
+                  className={`w-full px-3 py-2 text-left text-xs hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors flex items-center gap-2 ${mode.key === currentMode
+                    ? 'text-white bg-white/10'
+                    : 'text-white/80'
+                    }`}
                 >
                   <Icon className="w-3 h-3" />
                   <div>

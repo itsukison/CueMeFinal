@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageSquare, HelpCircle } from 'lucide-react';
+import { HelpCircle, MessageSquare } from 'lucide-react';
 import { DetectedQuestion, AudioStreamState } from '../../types/audio-stream';
 
 interface QuestionSidePanelProps {
@@ -21,20 +21,6 @@ interface QuestionItemProps {
   onClick: () => void;
 }
 
-// Source badge component to differentiate User vs Opponent
-const SourceBadge: React.FC<{ source: 'user' | 'opponent' }> = ({ source }) => {
-  const isUser = source === 'user';
-  return (
-    <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
-      isUser 
-        ? 'bg-blue-600/20 text-blue-300' 
-        : 'bg-orange-600/20 text-orange-300'
-    }`}>
-      {isUser ? 'あなた' : '相手'}
-    </span>
-  );
-};
-
 const QuestionItem: React.FC<QuestionItemProps> = ({ 
   question, 
   isSelected,
@@ -44,29 +30,18 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
   const displayText = refined && refined.trim().length > 0 
     ? refined 
     : question.text;
-  
-  const isUser = question.source === 'user';
-  const sourceColor = isUser ? 'blue' : 'orange';
 
   return (
     <div 
-      className={`flex items-start gap-3 p-3 cursor-pointer transition-all rounded-lg ${
+      className={`flex items-start gap-3 p-3 cursor-pointer transition-all rounded-lg border-l-2 ${
         isSelected 
-          ? 'bg-green-600/10 border-l-2 border-green-600' 
-          : 'hover:bg-white/5'
-      } ${isUser ? 'border-l-2 border-blue-500/30' : 'border-l-2 border-orange-500/30'}`}
+          ? 'bg-green-600/10 border-green-600' 
+          : 'border-green-500/30 hover:bg-white/5'
+      }`}
       onClick={onClick}
     >
-      <HelpCircle className={`w-4 h-4 flex-shrink-0 ${
-        isUser ? 'text-blue-400' : 'text-orange-400'
-      }`} />
+      <HelpCircle className="w-4 h-4 flex-shrink-0 text-green-400" />
       <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
-          <SourceBadge source={question.source} />
-          <span className="text-[9px] text-white/30">
-            {new Date(question.timestamp).toLocaleTimeString('ja-JP')}
-          </span>
-        </div>
         <p className="text-xs text-white/90 leading-relaxed">
           {displayText}
         </p>

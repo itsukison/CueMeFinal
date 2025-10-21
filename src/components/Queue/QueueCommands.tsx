@@ -1132,7 +1132,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
               <div className="p-1 overflow-y-auto morphism-scrollbar h-full">
                 {/* Plain Mode Option */}
                 <button
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-md transition-colors ${
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-lg transition-colors ${
                     responseMode.type === "plain"
                       ? "bg-white/20 text-white"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -1161,7 +1161,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
                     collections.map((collection) => (
                       <button
                         key={collection.id}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-md transition-colors ${
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-lg transition-colors ${
                           responseMode.type === "qna" &&
                           responseMode.collectionId === collection.id
                             ? "bg-white/20 text-white"
