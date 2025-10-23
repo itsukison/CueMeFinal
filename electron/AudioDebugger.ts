@@ -62,14 +62,10 @@ export class AudioDebugger {
   private static async checkPermissions(): Promise<void> {
     Logger.info('📋 macOS Permissions:');
     
-    try {
-      // Test microphone permission via getUserMedia
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      Logger.info('  Microphone Permission: Granted');
-      stream.getTracks().forEach(track => track.stop());
-    } catch (error) {
-      Logger.warn('  Microphone Permission: Denied or Error:', (error as Error).message);
-    }
+    // NOTE: Microphone permission check removed because navigator.mediaDevices
+    // is only available in the renderer process, not the main process.
+    // Microphone permission is now checked in the renderer via MicrophoneCapture service.
+    Logger.info('  Microphone Permission: Check via renderer process (MicrophoneCapture service)');
     
     try {
       // Test screen capture permission via desktopCapturer

@@ -167,7 +167,10 @@ export class SystemAudioCapture extends EventEmitter {
       this.currentSource = targetSource;
       
       if (sourceId === 'microphone') {
-        await this.startMicrophoneCapture();
+        // Microphone capture is now handled in the renderer process
+        // The renderer will send audio chunks via IPC
+        console.log('[SystemAudioCapture] Microphone source selected - capture handled by renderer');
+        // Don't call startMicrophoneCapture() - it will throw an error
       } else if (sourceId === 'system-audio') {
         await this.startSystemAudioCapture();
       } else {
@@ -284,30 +287,20 @@ export class SystemAudioCapture extends EventEmitter {
   }
 
   /**
-   * Start microphone capture using getUserMedia
+   * Start microphone capture
+   * 
+   * NOTE: Microphone capture has been moved to the renderer process.
+   * This method is kept for backward compatibility but should not be used.
+   * Use the MicrophoneCapture service in the renderer process instead.
+   * 
+   * @deprecated Use MicrophoneCapture in renderer process
    */
   private async startMicrophoneCapture(): Promise<void> {
-    console.log('[SystemAudioCapture] Starting microphone capture...');
-    
-    try {
-      // Request microphone access
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: { ideal: this.config.sampleRate },
-          channelCount: { ideal: this.config.channelCount },
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-
-      await this.setupAudioProcessing();
-      console.log('[SystemAudioCapture] Microphone capture started successfully');
-      
-    } catch (error) {
-      console.error('[SystemAudioCapture] Microphone capture failed:', error);
-      throw new Error(`Microphone access failed: ${(error as Error).message}`);
-    }
+    throw new Error(
+      'Microphone capture must be initiated from the renderer process. ' +
+      'Use the MicrophoneCapture service (src/services/MicrophoneCapture.ts) instead. ' +
+      'This is required because navigator.mediaDevices is only available in the browser context.'
+    );
   }
 
 
@@ -427,33 +420,18 @@ export class SystemAudioCapture extends EventEmitter {
 
   /**
    * Start Windows system audio capture using native Electron loopback
+   * 
+   * NOTE: This method also needs to be moved to renderer process for Windows support.
+   * getDisplayMedia() is only available in the renderer process.
+   * 
+   * @deprecated Windows system audio capture needs renderer implementation
    */
   private async startWindowsSystemAudioCapture(): Promise<void> {
-    console.log('[SystemAudioCapture] Starting Windows system audio capture with native loopback...');
-    
-    try {
-      // Request display media with audio loopback
-      // The handler in main.ts will automatically grant access with loopback audio
-      this.mediaStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,  // Required for loopback to work (handler provides screen source)
-        audio: true   // This will use native loopback from setDisplayMediaRequestHandler
-      });
-      
-      // Verify we got audio tracks
-      const audioTracks = this.mediaStream.getAudioTracks();
-      if (audioTracks.length === 0) {
-        throw new Error('No audio track in native loopback stream');
-      }
-      
-      console.log('[SystemAudioCapture] Windows loopback audio tracks:', audioTracks.length);
-      audioTracks.forEach(track => {
-        console.log('[SystemAudioCapture] Audio track:', {
-          label: track.label,
-          enabled: track.enabled,
-          muted: track.muted,
-          readyState: track.readyState
-        });
-      });
+    throw new Error(
+      'Windows system audio capture must be initiated from the renderer process. ' +
+      'getDisplayMedia() is only available in the browser context. ' +
+      'This needs to be implemented similar to the microphone capture solution.'
+    );
       
       // Setup audio processing pipeline
       await this.setupAudioProcessing();

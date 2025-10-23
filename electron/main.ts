@@ -20,16 +20,17 @@ Logger.info('  Process info:', {
 });
 
 // Debug audio system in production builds
-import { AudioDebugger } from "./AudioDebugger";
-if (process.env.NODE_ENV === 'production' || !process.env.NODE_ENV) {
-  Logger.info('[Main] Running audio system diagnostics...');
-  // Run diagnostics after a short delay to ensure Electron is ready
-  setTimeout(() => {
-    AudioDebugger.diagnoseAudioSystem().catch(error => {
-      Logger.error('[Main] Audio diagnostics failed:', error);
-    });
-  }, 2000);
-}
+// DISABLED: AudioDebugger uses navigator.mediaDevices which is only available in renderer
+// Microphone permission checks are now handled in the renderer via MicrophoneCapture service
+// import { AudioDebugger } from "./AudioDebugger";
+// if (process.env.NODE_ENV === 'production' || !process.env.NODE_ENV) {
+//   Logger.info('[Main] Running audio system diagnostics...');
+//   setTimeout(() => {
+//     AudioDebugger.diagnoseAudioSystem().catch(error => {
+//       Logger.error('[Main] Audio diagnostics failed:', error);
+//     });
+//   }, 2000);
+// }
 import { initializeIpcHandlers } from "./ipc";
 import { AppState } from "./core/AppState";
 import { DeepLinkHandler } from "./core/DeepLinkHandler";

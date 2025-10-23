@@ -53,6 +53,9 @@ interface ElectronAPI {
   audioStreamClearQuestions: () => Promise<{ success: boolean; error?: string }>
   audioStreamAnswerQuestion: (questionText: string, collectionId?: string) => Promise<{ response: string; timestamp: number }>
   
+  // Microphone capture from renderer (new - MicrophoneCapture service)
+  audioProcessMicrophoneChunk: (audioData: Float32Array) => Promise<{ success: boolean; error?: string }>
+  
   // Dual Audio methods (new - Gemini Live)
   dualAudioStart: (systemAudioSourceId?: string) => Promise<{ success: boolean; error?: string }>
   dualAudioStop: () => Promise<{ success: boolean; error?: string }>
@@ -234,6 +237,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   audioStreamGetQuestions: () => ipcRenderer.invoke("audio-stream-get-questions") as Promise<Array<{ text: string; timestamp: number }>>,
   audioStreamClearQuestions: () => ipcRenderer.invoke("audio-stream-clear-questions"),
   audioStreamAnswerQuestion: (questionText: string, collectionId?: string) => ipcRenderer.invoke("audio-stream-answer-question", questionText, collectionId),
+  
+  // Microphone capture from renderer (new - MicrophoneCapture service)
+  audioProcessMicrophoneChunk: (audioData: Float32Array) => ipcRenderer.invoke("audio-process-microphone-chunk", audioData),
   
   // Dual Audio methods (new - Gemini Live)
   dualAudioStart: (systemAudioSourceId?: string) => ipcRenderer.invoke("dual-audio-start", systemAudioSourceId),

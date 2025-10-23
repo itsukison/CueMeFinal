@@ -126,6 +126,24 @@ export function registerAudioHandlers(appState: AppState): void {
     }
   });
 
+  // Process microphone audio chunk from renderer (new MicrophoneCapture service)
+  ipcMain.handle("audio-process-microphone-chunk", async (event, audioData: Float32Array) => {
+    try {
+      // Convert Float32Array to Buffer for AudioStreamProcessor
+      const buffer = Buffer.alloc(audioData.length * 2);
+      for (let i = 0; i < audioData.length; i++) {
+        const sample = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
+        buffer.writeInt16LE(sample, i * 2);
+      }
+      
+      await appState.audioStreamProcessor.processAudioChunk(buffer);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error processing microphone chunk:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle("audio-stream-get-state", async () => {
     try {
       return appState.audioStreamProcessor.getState();

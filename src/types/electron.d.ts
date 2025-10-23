@@ -63,6 +63,9 @@ interface ElectronAPI {
   audioStreamClearQuestions: () => Promise<{ success: boolean; error?: string }>
   audioStreamAnswerQuestion: (questionText: string, collectionId?: string) => Promise<{ response: string; timestamp: number }>
   
+  // Microphone capture from renderer (new - MicrophoneCapture service)
+  audioProcessMicrophoneChunk: (audioData: Float32Array) => Promise<{ success: boolean; error?: string }>
+  
   // Dual Audio methods (new - using Gemini Live API)
   dualAudioStart: (systemAudioSourceId?: string) => Promise<{ success: boolean; error?: string }>
   dualAudioStop: () => Promise<{ success: boolean; error?: string }>
