@@ -432,16 +432,6 @@ export class SystemAudioCapture extends EventEmitter {
       'getDisplayMedia() is only available in the browser context. ' +
       'This needs to be implemented similar to the microphone capture solution.'
     );
-      
-      // Setup audio processing pipeline
-      await this.setupAudioProcessing();
-      
-      console.log('[SystemAudioCapture] ✅ Windows system audio capture started successfully');
-      
-    } catch (error) {
-      console.error('[SystemAudioCapture] Failed to start Windows system audio:', error);
-      throw new Error(`Windows system audio capture failed: ${(error as Error).message}`);
-    }
   }
 
   /**
