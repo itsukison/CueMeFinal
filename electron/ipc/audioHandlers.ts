@@ -1,6 +1,9 @@
 import { ipcMain } from "electron";
 import type { AppState } from "../core/AppState";
 import { Logger } from "../utils/Logger";
+import { DiagnosticLogger } from "../utils/DiagnosticLogger";
+
+const diagLogger = new DiagnosticLogger('AudioHandlers');
 
 /**
  * Audio processing and streaming IPC handlers
@@ -84,24 +87,30 @@ export function registerAudioHandlers(appState: AppState): void {
 
   // Audio Stream Processing handlers
   ipcMain.handle("audio-stream-start", async (event, audioSourceId?: string) => {
+    diagLogger.info(`IPC: audio-stream-start called`, { audioSourceId: audioSourceId || 'default' });
     Logger.info(`[IPC audioHandlers] 🎙️  Received audio-stream-start request with sourceId: ${audioSourceId || 'default'}`);
     try {
       await appState.audioStreamProcessor.startListening(audioSourceId);
+      diagLogger.info('✅ Audio stream started successfully');
       Logger.info('[IPC audioHandlers] ✅ Audio stream started successfully');
       return { success: true };
     } catch (error: any) {
+      diagLogger.error("Error starting audio stream", error, { audioSourceId });
       Logger.error("[IPC audioHandlers] ❌ Error starting audio stream:", error);
       return { success: false, error: error.message };
     }
   });
 
   ipcMain.handle("audio-stream-stop", async () => {
+    diagLogger.info('IPC: audio-stream-stop called');
     Logger.info('[IPC audioHandlers] 🛑 Received audio-stream-stop request');
     try {
       await appState.audioStreamProcessor.stopListening();
+      diagLogger.info('✅ Audio stream stopped successfully');
       Logger.info('[IPC audioHandlers] ✅ Audio stream stopped successfully');
       return { success: true };
     } catch (error: any) {
+      diagLogger.error("Error stopping audio stream", error);
       Logger.error("[IPC audioHandlers] ❌ Error stopping audio stream:", error);
       return { success: false, error: error.message };
     }
@@ -127,8 +136,27 @@ export function registerAudioHandlers(appState: AppState): void {
   });
 
   // Process microphone audio chunk from renderer (new MicrophoneCapture service)
+  let micChunkCount = 0;
+  let lastMicLogTime = Date.now();
+  
   ipcMain.handle("audio-process-microphone-chunk", async (event, audioData: Float32Array) => {
     try {
+      micChunkCount++;
+      
+      // Log first chunk and then every 100 chunks
+      if (micChunkCount === 1) {
+        diagLogger.info('✅ First microphone chunk received from renderer', {
+          sampleCount: audioData.length,
+          sampleRate: '16000 (assumed)',
+          duration: `${(audioData.length / 16000).toFixed(3)}s`
+        });
+      } else if (micChunkCount % 100 === 0) {
+        const now = Date.now();
+        const elapsed = now - lastMicLogTime;
+        diagLogger.debug(`Microphone chunks: ${micChunkCount} total, ${elapsed}ms since last log`);
+        lastMicLogTime = now;
+      }
+      
       // Convert Float32Array to Buffer for AudioStreamProcessor
       const buffer = Buffer.alloc(audioData.length * 2);
       for (let i = 0; i < audioData.length; i++) {
@@ -139,7 +167,10 @@ export function registerAudioHandlers(appState: AppState): void {
       await appState.audioStreamProcessor.processAudioChunk(buffer);
       return { success: true };
     } catch (error: any) {
-      console.error("Error processing microphone chunk:", error);
+      diagLogger.error("Error processing microphone chunk", error, {
+        chunkNumber: micChunkCount,
+        sampleCount: audioData?.length
+      });
       return { success: false, error: error.message };
     }
   });

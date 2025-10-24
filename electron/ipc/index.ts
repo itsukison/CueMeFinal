@@ -7,6 +7,7 @@ import { registerAuthHandlers } from "./authHandlers";
 import { registerQnAHandlers } from "./qnaHandlers";
 import { registerPermissionHandlers } from "./permissionHandlers";
 import { registerUtilityHandlers } from "./utilityHandlers";
+import { registerDiagnosticsHandlers } from "./diagnosticsHandlers";
 
 /**
  * Initialize all IPC handlers
@@ -24,6 +25,7 @@ export function initializeIpcHandlers(appState: AppState): void {
   registerAuthHandlers(appState);         // Authentication
   registerQnAHandlers(appState);          // Q&A collections
   registerPermissionHandlers(appState);   // Permission management
+  registerDiagnosticsHandlers();          // System diagnostics (no appState needed)
   
   console.log('[IPC] ✅ All IPC handlers initialized successfully');
 }

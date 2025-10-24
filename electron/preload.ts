@@ -328,5 +328,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // System status and logging
   getSystemStatus: () => ipcRenderer.invoke("get-system-status") as Promise<{ success: boolean; status?: any; error?: string }>,
   openLogFile: () => ipcRenderer.invoke("open-log-file") as Promise<{ success: boolean; path?: string; error?: string }>,
-  getLogPath: () => ipcRenderer.invoke("get-log-path") as Promise<{ success: boolean; path?: string; error?: string }>
+  getLogPath: () => ipcRenderer.invoke("get-log-path") as Promise<{ success: boolean; path?: string; error?: string }>,
+  
+  // Diagnostics methods
+  diagnosticsTestIPC: () => ipcRenderer.invoke("diagnostics-test-ipc") as Promise<any>,
+  diagnosticsGetSystemInfo: () => ipcRenderer.invoke("diagnostics-get-system-info") as Promise<any>,
+  diagnosticsCheckPermissions: () => ipcRenderer.invoke("diagnostics-check-permissions") as Promise<any>,
+  diagnosticsRequestMicrophone: () => ipcRenderer.invoke("diagnostics-request-microphone") as Promise<{ success: boolean; granted?: boolean; error?: string }>,
+  diagnosticsRequestScreenCapture: () => ipcRenderer.invoke("diagnostics-request-screen-capture") as Promise<{ success: boolean; granted?: boolean; requiresRestart?: boolean; error?: string }>,
+  diagnosticsVerifyAudiotee: () => ipcRenderer.invoke("diagnostics-verify-audiotee") as Promise<any>,
+  diagnosticsGetLogPath: () => ipcRenderer.invoke("diagnostics-get-log-path") as Promise<{ success: boolean; path?: string }>,
+  diagnosticsOpenLogFile: () => ipcRenderer.invoke("diagnostics-open-log-file") as Promise<{ success: boolean; path?: string; error?: string }>,
+  diagnosticsOpenLogsFolder: () => ipcRenderer.invoke("diagnostics-open-logs-folder") as Promise<{ success: boolean; path?: string; error?: string }>
 } as ElectronAPI)

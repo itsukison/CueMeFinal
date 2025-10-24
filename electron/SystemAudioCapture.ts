@@ -2,6 +2,9 @@ import { EventEmitter } from "events";
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { DiagnosticLogger } from './utils/DiagnosticLogger';
+
+const logger = new DiagnosticLogger('SystemAudioCapture');
 
 export interface AudioSource {
   id: string;
@@ -44,13 +47,22 @@ export class SystemAudioCapture extends EventEmitter {
       ...config
     };
 
-    console.log('[SystemAudioCapture] Initialized with config:', this.config);
+    logger.info('Initialized with config', this.config);
+    logger.debug('Environment info', {
+      platform: process.platform,
+      arch: process.arch,
+      cwd: process.cwd(),
+      execPath: process.execPath,
+      resourcesPath: process.resourcesPath
+    });
   }
 
   /**
    * Get macOS version
    */
   private async getMacOSVersion(): Promise<{ major: number; minor: number; patch: number }> {
+    logger.methodEntry('getMacOSVersion');
+    
     return new Promise((resolve) => {
       const proc = spawn('sw_vers', ['-productVersion']);
       let output = '';
@@ -61,14 +73,17 @@ export class SystemAudioCapture extends EventEmitter {
       
       proc.on('close', () => {
         const parts = output.trim().split('.');
-        resolve({
+        const version = {
           major: parseInt(parts[0] || '0', 10),
           minor: parseInt(parts[1] || '0', 10),
           patch: parseInt(parts[2] || '0', 10)
-        });
+        };
+        logger.methodExit('getMacOSVersion', version);
+        resolve(version);
       });
       
-      proc.on('error', () => {
+      proc.on('error', (error) => {
+        logger.error('Failed to get macOS version', error);
         resolve({ major: 0, minor: 0, patch: 0 });
       });
     });
@@ -78,9 +93,9 @@ export class SystemAudioCapture extends EventEmitter {
    * Get available audio sources including system audio and microphone
    */
   public async getAvailableSources(): Promise<AudioSource[]> {
+    logger.methodEntry('getAvailableSources');
+    
     try {
-      console.log('[SystemAudioCapture] Enumerating available audio sources...');
-      
       const sources: AudioSource[] = [];
       
       // Add microphone as a source (always available)
@@ -103,7 +118,7 @@ export class SystemAudioCapture extends EventEmitter {
             type: 'system',
             available: true
           });
-          console.log('[SystemAudioCapture] System audio available (Core Audio Taps via audioteejs)');
+          logger.info('System audio available (Core Audio Taps via audiotee)', { osVersion });
         } else {
           sources.push({
             id: 'system-audio',
@@ -111,7 +126,7 @@ export class SystemAudioCapture extends EventEmitter {
             type: 'system',
             available: false
           });
-          console.log(`[SystemAudioCapture] System audio unavailable - macOS ${osVersion.major}.${osVersion.minor} detected, 14.2+ required`);
+          logger.warn(`System audio unavailable - macOS ${osVersion.major}.${osVersion.minor} detected, 14.2+ required`, { osVersion });
         }
       } else if (process.platform === 'win32') {
         // Windows: Native Electron Loopback (Electron 30.5.1+)
@@ -121,14 +136,14 @@ export class SystemAudioCapture extends EventEmitter {
           type: 'system',
           available: true
         });
-        console.log('[SystemAudioCapture] System audio available (Native Electron Loopback)');
+        logger.info('System audio available (Native Electron Loopback)');
       }
 
-      console.log('[SystemAudioCapture] Available sources:', sources);
+      logger.methodExit('getAvailableSources', sources);
       return sources;
       
     } catch (error) {
-      console.error('[SystemAudioCapture] Error enumerating sources:', error);
+      logger.error('Error enumerating sources', error);
       // Return at least microphone as fallback
       return [{
         id: 'microphone',
@@ -309,6 +324,8 @@ export class SystemAudioCapture extends EventEmitter {
    * Find the audiotee binary path
    */
   private findAudioTeeBinary(): string {
+    logger.methodEntry('findAudioTeeBinary');
+    
     // Try multiple possible locations
     const possiblePaths = [
       // Development: node_modules
@@ -319,14 +336,45 @@ export class SystemAudioCapture extends EventEmitter {
       path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'audiotee', 'bin', 'audiotee'),
     ];
 
+    logger.debug('Searching for audiotee binary in possible locations', {
+      __dirname,
+      'process.cwd()': process.cwd(),
+      'process.resourcesPath': process.resourcesPath,
+      possiblePaths
+    });
+
     for (const binaryPath of possiblePaths) {
-      if (fs.existsSync(binaryPath)) {
-        console.log('[SystemAudioCapture] Found audiotee binary at:', binaryPath);
-        return binaryPath;
+      const exists = fs.existsSync(binaryPath);
+      logger.debug(`Checking path: ${binaryPath}`, { exists });
+      
+      if (exists) {
+        // Check if executable
+        try {
+          const stats = fs.statSync(binaryPath);
+          const isExecutable = !!(stats.mode & fs.constants.S_IXUSR);
+          
+          logger.info('✅ Found audiotee binary', {
+            path: binaryPath,
+            size: stats.size,
+            mode: stats.mode.toString(8),
+            isExecutable,
+            isFile: stats.isFile()
+          });
+          
+          if (!isExecutable) {
+            logger.warn('Binary found but not executable! Attempting to use anyway...');
+          }
+          
+          return binaryPath;
+        } catch (statError) {
+          logger.error('Error checking binary stats', statError, { path: binaryPath });
+        }
       }
     }
 
-    throw new Error('audiotee binary not found. Tried paths: ' + possiblePaths.join(', '));
+    const error = new Error('audiotee binary not found. Tried paths: ' + possiblePaths.join(', '));
+    logger.error('❌ audiotee binary not found', error, { possiblePaths });
+    throw error;
   }
 
   /**
@@ -348,7 +396,7 @@ export class SystemAudioCapture extends EventEmitter {
    * Start macOS system audio capture using audioteejs (Core Audio Taps)
    */
   private async startMacOSSystemAudioCapture(): Promise<void> {
-    console.log('[SystemAudioCapture] Starting macOS system audio capture with audioteejs...');
+    logger.methodEntry('startMacOSSystemAudioCapture');
     
     try {
       const binaryPath = this.findAudioTeeBinary();
@@ -359,13 +407,35 @@ export class SystemAudioCapture extends EventEmitter {
         '--chunk-duration', '0.2'  // 200ms = 0.2 seconds
       ];
 
-      console.log('[SystemAudioCapture] Spawning audiotee:', binaryPath, args);
+      logger.info('Spawning audiotee process', {
+        binaryPath,
+        args,
+        cwd: process.cwd()
+      });
       
       // Spawn the audiotee process
       this.audioTeeProcess = spawn(binaryPath, args);
+      
+      logger.info('audiotee process spawned', {
+        pid: this.audioTeeProcess.pid,
+        killed: this.audioTeeProcess.killed
+      });
+
+      let audioDataCount = 0;
+      let lastAudioLogTime = Date.now();
 
       // Handle stdout (audio data)
       this.audioTeeProcess.stdout?.on('data', (data: Buffer) => {
+        audioDataCount++;
+        
+        // Log every 50 chunks (about every 10 seconds at 200ms chunks)
+        if (audioDataCount % 50 === 0) {
+          const now = Date.now();
+          const elapsed = now - lastAudioLogTime;
+          logger.debug(`Received audio data: ${audioDataCount} chunks, ${data.length} bytes, ${elapsed}ms since last log`);
+          lastAudioLogTime = now;
+        }
+        
         // Emit audio data directly - already in correct format (Int16, mono, 16kHz)!
         this.emit('audio-data', data);
       });
@@ -380,40 +450,45 @@ export class SystemAudioCapture extends EventEmitter {
             const logMessage = JSON.parse(line);
             
             if (logMessage.message_type === 'stream_start') {
-              console.log('[SystemAudioCapture] ✅ AudioTee capture started');
+              logger.info('✅ AudioTee capture started', logMessage.data);
             } else if (logMessage.message_type === 'stream_stop') {
-              console.log('[SystemAudioCapture] AudioTee capture stopped');
+              logger.info('AudioTee capture stopped', logMessage.data);
             } else if (logMessage.message_type === 'error') {
-              console.error('[SystemAudioCapture] AudioTee error:', logMessage.data);
+              logger.error('AudioTee error', null, logMessage.data);
               this.emit('error', new Error(logMessage.data.message));
             } else if (logMessage.message_type !== 'debug') {
-              console.log(`[SystemAudioCapture] [${logMessage.message_type}]`, logMessage.data);
+              logger.debug(`AudioTee [${logMessage.message_type}]`, logMessage.data);
             }
           } catch (parseError) {
             // Not JSON, just log it
-            console.log('[SystemAudioCapture] AudioTee:', line);
+            logger.debug('AudioTee output:', line);
           }
         }
       });
 
       // Handle process errors
       this.audioTeeProcess.on('error', (error) => {
-        console.error('[SystemAudioCapture] AudioTee process error:', error);
+        logger.error('AudioTee process error', error, {
+          pid: this.audioTeeProcess?.pid,
+          killed: this.audioTeeProcess?.killed
+        });
         this.emit('error', error);
       });
 
       // Handle process exit
       this.audioTeeProcess.on('exit', (code, signal) => {
-        console.log('[SystemAudioCapture] AudioTee process exited:', { code, signal });
+        logger.info('AudioTee process exited', { code, signal, audioDataCount });
         if (code !== 0 && code !== null) {
-          this.emit('error', new Error(`AudioTee process exited with code ${code}`));
+          const error = new Error(`AudioTee process exited with code ${code}`);
+          logger.error('AudioTee process exited with error', error, { code, signal });
+          this.emit('error', error);
         }
       });
 
-      console.log('[SystemAudioCapture] ✅ macOS system audio capture started successfully');
+      logger.info('✅ macOS system audio capture started successfully');
       
     } catch (error) {
-      console.error('[SystemAudioCapture] Failed to start macOS system audio:', error);
+      logger.error('❌ Failed to start macOS system audio', error);
       throw error;
     }
   }

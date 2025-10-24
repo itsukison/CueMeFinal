@@ -4,11 +4,26 @@ EnvLoader.load();
 
 import { app, session, desktopCapturer } from "electron";
 import { Logger } from "./utils/Logger";
+import { DiagnosticLogger } from "./utils/DiagnosticLogger";
 
 // Initialize Logger as early as possible
 Logger.initialize();
 
-// Log environment status with Logger
+// Initialize diagnostic logger
+const diagLogger = new DiagnosticLogger('Main');
+
+// Log system information for debugging
+diagLogger.info('=== CueMe Application Starting ===');
+diagLogger.info('Environment check', {
+  NODE_ENV: process.env.NODE_ENV,
+  isProduction: process.env.NODE_ENV === 'production',
+  hasOpenAI: !!process.env.OPENAI_API_KEY,
+  hasGemini: !!process.env.GEMINI_API_KEY,
+  hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+  hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+});
+
+// Log environment status with Logger (keep existing)
 Logger.info('🚨 [PRODUCTION DEBUG] Environment check:');
 Logger.info('  NODE_ENV:', process.env.NODE_ENV);
 Logger.info('  OPENAI_API_KEY present:', !!process.env.OPENAI_API_KEY);
