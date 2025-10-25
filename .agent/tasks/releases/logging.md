@@ -1,74 +1,43 @@
-
-
-[2025-10-25 14:28:09.604] [info]  [SystemInfo] {
-  "timestamp": "2025-10-25T05:28:09.599Z",
-  "platform": "darwin",
-  "arch": "arm64",
-  "nodeVersion": "20.18.0",
-  "electronVersion": "33.2.0",
-  "chromeVersion": "130.0.6723.118",
-  "appVersion": "1.0.75",
-  "isPackaged": true,
-  "execPath": "/Applications/CueMe.app/Contents/MacOS/CueMe",
-  "resourcesPath": "/Applications/CueMe.app/Contents/Resources",
-  "cwd": "/",
-  "env": {}
-}
-[2025-10-25 14:28:09.615] [info]  ================================================================================
-[2025-10-25 14:28:09.616] [info]  CueMe v1.0.75 - 2025-10-25T05:28:09.616Z
-[2025-10-25 14:28:09.616] [info]  Platform: darwin arm64
-[2025-10-25 14:28:09.616] [info]  Node: v20.18.0
-[2025-10-25 14:28:09.616] [info]  Electron: 33.2.0
-[2025-10-25 14:28:09.616] [info]  Packaged: true
-[2025-10-25 14:28:09.616] [info]  CWD: /
-[2025-10-25 14:28:09.616] [info]  Resources: /Applications/CueMe.app/Contents/Resources
-[2025-10-25 14:28:09.616] [info]  Log File: /Users/itsukison/Library/Logs/CueMe/main.log
-[2025-10-25 14:28:09.616] [info]  ================================================================================
-[2025-10-25 14:28:09.617] [info]  [Main] === CueMe Application Starting ===
-[2025-10-25 14:28:09.617] [info]  [Main] Environment check {
-  "isProduction": false,
-  "hasOpenAI": true,
-  "hasGemini": true,
-  "hasSupabaseUrl": true,
-  "hasSupabaseKey": true
-}
-[2025-10-25 14:28:09.617] [info]  🚨 [PRODUCTION DEBUG] Environment check:
-[2025-10-25 14:28:09.617] [info]    NODE_ENV: undefined
-[2025-10-25 14:28:09.617] [info]    OPENAI_API_KEY present: true
-[2025-10-25 14:28:09.617] [info]    GEMINI_API_KEY present: true
-[2025-10-25 14:28:09.617] [info]    Process info: {
+# TERMINAL
+[2025-10-25 15:54:32.307] [info]  🚨 [PRODUCTION DEBUG] Environment check:
+[2025-10-25 15:54:32.307] [info]    NODE_ENV: undefined
+[2025-10-25 15:54:32.307] [info]    OPENAI_API_KEY present: true
+[2025-10-25 15:54:32.307] [info]    GEMINI_API_KEY present: true
+[2025-10-25 15:54:32.307] [info]    Process info: {
   cwd: '/',
   resourcesPath: '/Applications/CueMe.app/Contents/Resources',
   platform: 'darwin'
 }
-[2025-10-25 14:28:09.738] [info]  [SystemAudioCapture] Initialized with config {
+[2025-10-25 15:54:32.405] [info]  [SystemAudioCapture] Initialized with config {
   "sampleRate": 16000,
   "channelCount": 1,
   "bufferSize": 4096
 }
-[2025-10-25 14:28:09.872] [info]  [SystemAudioCapture] Initialized with config {
+[2025-10-25 15:54:32.542] [info]  [SystemAudioCapture] Initialized with config {
   "sampleRate": 16000,
   "channelCount": 1,
   "bufferSize": 4096
 }
-[2025-10-25 14:28:09.873] [info]  [DiagnosticsHandlers] Registering diagnostics IPC handlers
-[2025-10-25 14:28:09.873] [info]  [DiagnosticsHandlers] ✅ Diagnostics IPC handlers registered
-[2025-10-25 14:28:13.314] [info]  [IPC audioHandlers] 🎙️  Received dual-audio-start request (AUTOMATIC dual capture)
-[2025-10-25 14:28:13.560] [info]  [SystemAudioCapture] System audio available (Core Audio Taps via audiotee) {
+[2025-10-25 15:54:32.543] [info]  [DiagnosticsHandlers] Registering diagnostics IPC handlers
+[2025-10-25 15:54:32.543] [info]  [DiagnosticsHandlers] ✅ Diagnostics IPC handlers registered
+[2025-10-25 15:54:37.452] [info]  [IPC audioHandlers] 🎙️  Received dual-audio-start request (AUTOMATIC dual capture)
+[2025-10-25 15:54:37.452] [info]  [AudioHandlers] IPC: dual-audio-start called
+[2025-10-25 15:54:37.701] [info]  [SystemAudioCapture] System audio available (Core Audio Taps via audiotee) {
   "osVersion": {
     "major": 15,
     "minor": 4,
     "patch": 1
   }
-:
-[2025-10-25 14:28:13.561] [info]  [SystemAudioCapture] ✅ Found audiotee binary {
+}
+
+[2025-10-25 15:54:37.701] [info]  [SystemAudioCapture] ✅ Found audiotee binary {
   "path": "/Applications/CueMe.app/Contents/Resources/app.asar.unpacked/node_modules/audiotee/bin/audiotee",
   "size": 657792,
   "mode": "100755",
   "isExecutable": true,
   "isFile": true
 }
-[2025-10-25 14:28:13.561] [info]  [SystemAudioCapture] Spawning audiotee process {
+[2025-10-25 15:54:37.701] [info]  [SystemAudioCapture] Spawning audiotee process {
   "binaryPath": "/Applications/CueMe.app/Contents/Resources/app.asar.unpacked/node_modules/audiotee/bin/audiotee",
   "args": [
     "--sample-rate",
@@ -78,20 +47,34 @@
   ],
   "cwd": "/"
 }
-[2025-10-25 14:28:13.563] [info]  [SystemAudioCapture] audiotee process spawned {
-  "pid": 54249,
+[2025-10-25 15:54:37.705] [info]  [SystemAudioCapture] audiotee process spawned {
+  "pid": 46242,
   "killed": false
 }
-[2025-10-25 14:28:13.563] [info]  [SystemAudioCapture] ✅ macOS system audio capture started successfully
-[2025-10-25 14:28:13.563] [info]  [IPC audioHandlers] ✅ Dual audio capture started successfully (microphone + system audio)
-[2025-10-25 14:28:13.661] [info]  [SystemAudioCapture] ✅ AudioTee capture started
-[2025-10-25 14:28:29.364] [info]  [IPC audioHandlers] 🛑 Received dual-audio-stop request
-[2025-10-25 14:28:29.366] [info]  [SystemAudioCapture] AudioTee capture stopped
-[2025-10-25 14:28:29.367] [info]  [AudioHandlers] IPC: audio-stream-stop called
-[2025-10-25 14:28:29.368] [info]  [IPC audioHandlers] 🛑 Received audio-stream-stop request
-:
+[2025-10-25 15:54:37.705] [info]  [SystemAudioCapture] ✅ macOS system audio capture started successfully
+[2025-10-25 15:54:37.705] [info]  [IPC audioHandlers] ✅ Dual audio capture started successfully (microphone + system audio)
+[2025-10-25 15:54:37.705] [info]  [AudioHandlers] ✅ Dual audio capture started successfully
+[2025-10-25 15:54:37.799] [info]  [SystemAudioCapture] ✅ AudioTee capture started
+[2025-10-25 15:54:46.846] [info]  [IPC audioHandlers] 🛑 Received dual-audio-stop request
+[2025-10-25 15:54:46.847] [info]  [AudioHandlers] IPC: audio-stream-stop called
+[2025-10-25 15:54:46.848] [info]  [IPC audioHandlers] 🛑 Received audio-stream-stop request
+[2025-10-25 15:54:46.848] [info]  [AudioHandlers] ✅ Audio stream stopped successfully
+[2025-10-25 15:54:46.848] [info]  [IPC audioHandlers] ✅ Audio stream stopped successfully
+[2025-10-25 15:54:46.849] [info]  [SystemAudioCapture] AudioTee capture stopped
+[2025-10-25 15:54:46.853] [info]  [SystemAudioCapture] AudioTee process exited {
+  "code": 0,
+  "signal": null,
+  "audioDataCount": 45
+}
+[2025-10-25 15:54:46.854] [info]  [IPC audioHandlers] ✅ Dual audio capture stopped successfully
+(END)
 
 
+
+
+
+
+# CONSOLE LOG
 [QueueCommands] Starting audio listening...
 index-DlktDSSt.js:254 [QueueCommands] Set isListening to true
 index-DlktDSSt.js:254 [QueueCommands] Starting audio capture (Gemini Live system)...
@@ -119,17 +102,9 @@ index-DlktDSSt.js:254 [QueueCommands] ✅ Dual audio listening started successfu
 index-DlktDSSt.js:254 [QueueCommands] 🎤 Microphone → user source
 index-DlktDSSt.js:254 [QueueCommands] 🔊 System audio → opponent source
 index-DlktDSSt.js:254 [QueueCommands] Audio process event 1, frontendListeningRef: true
-index-DlktDSSt.js:254 [QueueCommands] Audio chunk - samples: 4096 hasAudio: false
+index-DlktDSSt.js:254 [QueueCommands] Audio chunk - samples: 4096 hasAudio: true
+index-DlktDSSt.js:254 [QueueCommands] Sending audio chunk to main process...
+index-DlktDSSt.js:254 [QueueCommands] Audio chunk sent successfully
 index-DlktDSSt.js:254 [QueueCommands] Audio process event 2, frontendListeningRef: true
-index-DlktDSSt.js:254 [QueueCommands] Audio chunk - samples: 4096 hasAudio: false
-index-DlktDSSt.js:254 [QueueCommands] Audio process event 3, frontendListeningRef: true
 index-DlktDSSt.js:254 [QueueCommands] Audio chunk - samples: 4096 hasAudio: true
 index-DlktDSSt.js:254 [QueueCommands] Sending audio chunk to main process...
-index-DlktDSSt.js:254 [QueueCommands] Audio chunk sent successfully
-index-DlktDSSt.js:254 [QueueCommands] Testing ScriptProcessor after 1 second...
-index-DlktDSSt.js:254 [QueueCommands] Audio process event 4, frontendListeningRef: true
-index-DlktDSSt.js:254 [QueueCommands] Audio chunk - samples: 4096 hasAudio: true
-index-DlktDSSt.js:254 [QueueCommands] Sending audio chunk to main process...
-index-DlktDSSt.js:254 [QueueCommands] Audio chunk sent successfully
-index-DlktDSSt.js:254 [QueueCommands] Audio process event 5, frontendListeningRef: true
-index-DlktDSSt.js:254 [QueueCommands] Audio chunk - samples: 4096 hasAudio: true

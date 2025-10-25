@@ -5,9 +5,58 @@
 **Updated:** 2025-10-25  
 **Priority:** P0 - Blocks production usage
 
-## 🆕 LATEST UPDATE (2025-10-25) - Diagnostic Logging Added
+## 🎯 ROOT CAUSE FOUND & FIXED (2025-10-25)
 
-### Current Situation
+### The Problem - Audio Routing Mismatch
+
+**Issue:** AudioWorklet fails in production → Falls back to ScriptProcessor → ScriptProcessor sends audio to WRONG IPC handler
+
+**What was happening:**
+1. ✅ Microphone capture works
+2. ✅ System audio capture works (audiotee)
+3. ❌ AudioWorklet fails: `AbortError: The user aborted a request`
+4. ✅ Falls back to ScriptProcessor
+5. ❌ **ScriptProcessor sends to `audioStreamProcessChunk` (old system) instead of `dualAudioProcessMicrophoneChunk` (Gemini Live)**
+6. ❌ Audio goes to AudioStreamProcessor, NOT to DualAudioCaptureManager
+7. ❌ No Gemini Live processing, no question detection
+
+### The Fixes Applied
+
+**Fix 1: ScriptProcessor IPC Handler** ✅ FIXED
+- **File:** `src/components/Queue/QueueCommands.tsx` line ~685
+- **Changed:** `audioStreamProcessChunk` → `dualAudioProcessMicrophoneChunk`
+- **Impact:** ScriptProcessor fallback now sends audio to Gemini Live correctly
+
+**Fix 2: AudioWorklet Path Resolution** ✅ FIXED
+- **File:** `src/components/Queue/QueueCommands.tsx` line ~497
+- **Problem:** Hardcoded `/audio-worklet-processor.js` doesn't work in production
+- **Solution:** Use dynamic path based on environment:
+  - Dev: `/audio-worklet-processor.js` (Vite dev server)
+  - Production: `new URL("/audio-worklet-processor.js", window.location.href).href`
+- **Impact:** AudioWorklet should now load correctly in production builds
+
+### Why AudioWorklet Failed
+
+**Root Cause:** Path resolution issue in Electron production builds
+- Development: Vite dev server serves files from `http://localhost:5173/`
+- Production: Files loaded from `file://` protocol with different base path
+- Hardcoded `/audio-worklet-processor.js` doesn't resolve correctly in production
+- Browser throws `AbortError` when file can't be loaded
+
+### Expected Behavior After Fixes
+
+**v1.0.77 should:**
+1. ✅ AudioWorklet loads successfully in production (no more AbortError)
+2. ✅ If AudioWorklet still fails, ScriptProcessor sends to correct IPC handler
+3. ✅ Audio reaches DualAudioCaptureManager → GeminiLiveQuestionDetector
+4. ✅ Gemini Live sessions start
+5. ✅ Question detection works
+
+---
+
+## 🆕 PREVIOUS UPDATE (2025-10-25) - Diagnostic Logging Added
+
+### Current Situation (Before Root Cause Found)
 - ✅ Microphone capture works in production
 - ✅ System audio capture works in production (audiotee binary found and running)
 - ✅ Audio chunks being sent to main process
