@@ -5,6 +5,7 @@
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "vite",
+    "build:win": "npm run clean && tsc -p electron/tsconfig.json && vite build",
     "build:native": "bash scripts/build-native-binary.sh",
     "build": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
     "preview": "vite preview",
@@ -14,7 +15,7 @@
     "app:build": "npm run build && electron-builder",
     "app:build:all": "npm run build && electron-builder --mac --win --linux",
     "app:build:mac": "npm run build && electron-builder --mac",
-    "app:build:win": "npm run build && electron-builder --win",
+    "app:build:win": "npm run build:win && electron-builder --win",
     "app:build:linux": "npm run build && electron-builder --linux",
     "release": "npm run build && electron-builder --publish=always",
     "release:draft": "npm run build && electron-builder --publish=onTagOrDraft",
