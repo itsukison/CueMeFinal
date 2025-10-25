@@ -1,13 +1,13 @@
 {
   "name": "CueMe",
-  "version": "1.0.79",
+  "version": "1.0.80",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "vite",
     "build:win": "npm run clean && tsc -p electron/tsconfig.json && vite build",
     "build:native": "bash scripts/build-native-binary.sh",
-    "build": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
+    "build": "if [ \"$OSTYPE\" = \"msys\" ] || [ \"$OSTYPE\" = \"cygwin\" ] || [ \"$OSTYPE\" = \"win32\" ]; then npm run build:win; else npm run build:native; fi",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5181 && npm run electron:dev\"",
