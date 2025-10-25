@@ -1,12 +1,12 @@
 {
   "name": "CueMe",
-  "version": "1.0.82",
+  "version": "1.0.83",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "vite",
-    "build:win": "npm run clean && tsc -p electron/tsconfig.json && vite build",
-    "build:mac": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
+    "build:win": "sh -c 'npm run clean && tsc -p electron/tsconfig.json && vite build'",
+    "build:mac": "sh -c 'npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build'",
     "build:native": "bash scripts/build-native-binary.sh",
     "build": "sh -c 'if [ \"$OSTYPE\" = \"msys\" ] || [ \"$OSTYPE\" = \"cygwin\" ] || [ \"$OSTYPE\" = \"win32\" ]; then npm run build:win; else npm run build:mac; fi'",
     "preview": "vite preview",
