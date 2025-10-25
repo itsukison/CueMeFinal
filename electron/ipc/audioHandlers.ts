@@ -290,7 +290,7 @@ export function registerAudioHandlers(appState: AppState): void {
     diagLogger.info('IPC: dual-audio-start called');
     
     try {
-      console.log('[IPC audioHandlers] 🔍 Checking dualAudioManager:', {
+      diagLogger.info('🔍 Checking dualAudioManager', {
         exists: !!appState.dualAudioManager,
         type: typeof appState.dualAudioManager
       });
@@ -302,7 +302,7 @@ export function registerAudioHandlers(appState: AppState): void {
         return { success: false, error };
       }
       
-      console.log('[IPC audioHandlers] ✅ dualAudioManager exists, calling startCapture()...');
+      diagLogger.info('✅ dualAudioManager exists, calling startCapture()...');
       // No sourceId needed - both sources start automatically
       await appState.dualAudioManager.startCapture();
       Logger.info('[IPC audioHandlers] ✅ Dual audio capture started successfully (microphone + system audio)');
@@ -311,7 +311,6 @@ export function registerAudioHandlers(appState: AppState): void {
     } catch (error: any) {
       Logger.error("[IPC audioHandlers] ❌ Error starting dual audio capture:", error);
       diagLogger.error('Error starting dual audio capture', error);
-      console.error('[IPC audioHandlers] Error stack:', error.stack);
       return { success: false, error: error.message };
     }
   });

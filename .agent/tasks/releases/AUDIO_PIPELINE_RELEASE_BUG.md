@@ -5,6 +5,42 @@
 **Updated:** 2025-10-25  
 **Priority:** P0 - Blocks production usage
 
+## 🔧 LOGGING FIXED - Ready for v1.0.78 (2025-10-25)
+
+### Issue: console.log() Not Appearing in Production Logs
+
+**Problem:** Diagnostic logging used `console.log()` which doesn't appear in Electron log files in production.
+
+**Solution:** Replaced all `console.log()` with `DiagnosticLogger` in main process files.
+
+**Files Fixed:**
+- ✅ `electron/audio/DualAudioCaptureManager.ts` - Now uses `DiagnosticLogger`
+- ✅ `electron/audio/GeminiLiveQuestionDetector.ts` - Now uses `DiagnosticLogger`
+- ✅ `electron/ipc/audioHandlers.ts` - Now uses `DiagnosticLogger`
+- ⚠️ `electron/core/AppState.ts` - Still uses `console.log()` (runs during initialization, before logger setup)
+
+**Expected in v1.0.78 logs:**
+```
+[DualAudioCaptureManager] 🔍 Constructor called
+[DualAudioCaptureManager] 📦 Creating GeminiLiveQuestionDetector...
+[GeminiLiveQuestionDetector] 🔍 Constructor called
+[GeminiLiveQuestionDetector] 📦 Creating GoogleGenAI client...
+[GeminiLiveQuestionDetector] 🔍 Checking genAI.live availability
+[DualAudioCaptureManager] 🎙️ startCapture() called
+[GeminiLiveQuestionDetector] 🎙️ startListening() called
+[GeminiLiveQuestionDetector] 📞 Creating user session...
+[GeminiLiveQuestionDetector] 📞 Creating opponent session...
+```
+
+These logs will reveal:
+1. Whether DualAudioCaptureManager is being created
+2. Whether GeminiLiveQuestionDetector is being created
+3. Whether genAI.live API is available
+4. Whether Gemini Live sessions are starting
+5. Where exactly the system audio pipeline is breaking
+
+---
+
 ## 🎯 ROOT CAUSE FOUND & FIXED (2025-10-25)
 
 ### The Problem - Audio Routing Mismatch
