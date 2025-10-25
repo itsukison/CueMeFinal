@@ -5,6 +5,59 @@
 **Updated:** 2025-10-25  
 **Priority:** P0 - Blocks production usage
 
+## 🔍 COMPREHENSIVE LOGGING ADDED - Ready for v1.0.79 (2025-10-25)
+
+### System Audio Event Flow Tracking
+
+Added detailed logging to track the complete audio flow from audiotee → Gemini Live:
+
+**1. SystemAudioCapture (audiotee output)**
+```
+🎵 FIRST audio chunk from audiotee { bytes: X, listenerCount: N, hasListeners: true/false }
+🎵 Audio chunks from audiotee: 50 total, X bytes, Xms since last log
+```
+
+**2. DualAudioCaptureManager (event listener)**
+```
+🔗 Setting up event listeners on SystemAudioCapture instance
+✅ Event listeners attached to SystemAudioCapture { listenerCount: N }
+🔊 FIRST audio-data event received! { bufferSize: X, isCapturing: true/false }
+🔊 audio-data events: 50 total, Xms since last log
+```
+
+**3. GeminiLiveQuestionDetector (sending to API)**
+```
+📤 FIRST audio chunk sent to Gemini (opponent) { bufferSize: X, base64Length: X }
+📤 Audio chunks sent to Gemini (opponent): 50 total, Xms since last log
+```
+
+### What to Look For in v1.0.79 Logs
+
+**If system audio is working, you'll see:**
+```
+[SystemAudioCapture] 🎵 FIRST audio chunk from audiotee { listenerCount: 1 }
+[DualAudioCaptureManager] 🔊 FIRST audio-data event received! { isCapturing: true }
+[GeminiLiveQuestionDetector] 📤 FIRST audio chunk sent to Gemini (opponent)
+[DualAudioCaptureManager] Question detected (opponent): "..."
+```
+
+**If events are not reaching DualAudioCaptureManager:**
+```
+[SystemAudioCapture] 🎵 FIRST audio chunk from audiotee { listenerCount: 0 } ← NO LISTENERS!
+[DualAudioCaptureManager] 🔊 FIRST audio-data event received! ← MISSING!
+```
+
+**If events reach but audio not sent to Gemini:**
+```
+[SystemAudioCapture] 🎵 FIRST audio chunk from audiotee { listenerCount: 1 }
+[DualAudioCaptureManager] 🔊 FIRST audio-data event received! { isCapturing: false } ← WRONG STATE!
+[GeminiLiveQuestionDetector] 📤 FIRST audio chunk sent to Gemini (opponent) ← MISSING!
+```
+
+This will pinpoint exactly where the system audio pipeline breaks in production!
+
+---
+
 ## 🔧 LOGGING FIXED - Ready for v1.0.78 (2025-10-25)
 
 ### Issue: console.log() Not Appearing in Production Logs

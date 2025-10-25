@@ -431,15 +431,24 @@ export class SystemAudioCapture extends EventEmitter {
       this.audioTeeProcess.stdout?.on('data', (data: Buffer) => {
         audioDataCount++;
         
-        // Log every 50 chunks (about every 10 seconds at 200ms chunks)
-        if (audioDataCount % 50 === 0) {
+        // Log first chunk and every 50 chunks
+        if (audioDataCount === 1) {
+          logger.info('🎵 FIRST audio chunk from audiotee', {
+            bytes: data.length,
+            listenerCount: this.listenerCount('audio-data'),
+            hasListeners: this.listenerCount('audio-data') > 0
+          });
+        } else if (audioDataCount % 50 === 0) {
           const now = Date.now();
           const elapsed = now - lastAudioLogTime;
-          logger.debug(`Received audio data: ${audioDataCount} chunks, ${data.length} bytes, ${elapsed}ms since last log`);
+          logger.info(`🎵 Audio chunks from audiotee: ${audioDataCount} total, ${data.length} bytes, ${elapsed}ms since last log`, {
+            listenerCount: this.listenerCount('audio-data')
+          });
           lastAudioLogTime = now;
         }
         
         // Emit audio data directly - already in correct format (Int16, mono, 16kHz)!
+        logger.debug(`Emitting audio-data event (chunk ${audioDataCount})`);
         this.emit('audio-data', data);
       });
 
@@ -544,6 +553,7 @@ export class SystemAudioCapture extends EventEmitter {
       );
 
       // Setup audio processing callback
+      let scriptProcessorChunkCount = 0;
       this.processor.onaudioprocess = (event) => {
         try {
           const inputBuffer = event.inputBuffer;
@@ -553,6 +563,15 @@ export class SystemAudioCapture extends EventEmitter {
           const hasAudio = inputData.some(sample => Math.abs(sample) > 0.001);
           
           if (hasAudio) {
+            scriptProcessorChunkCount++;
+            
+            if (scriptProcessorChunkCount === 1) {
+              logger.info('🎵 FIRST audio chunk from ScriptProcessor (microphone)', {
+                samples: inputData.length,
+                listenerCount: this.listenerCount('audio-data')
+              });
+            }
+            
             // Convert Float32Array to Buffer for compatibility with existing AudioStreamProcessor
             const buffer = Buffer.alloc(inputData.length * 2);
             for (let i = 0; i < inputData.length; i++) {
@@ -563,7 +582,7 @@ export class SystemAudioCapture extends EventEmitter {
             this.emit('audio-data', buffer);
           }
         } catch (error) {
-          console.error('[SystemAudioCapture] Audio processing error:', error);
+          logger.error('Audio processing error in ScriptProcessor', error as Error);
           this.emit('error', error as Error);
         }
       };
