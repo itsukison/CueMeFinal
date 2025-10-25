@@ -220,6 +220,12 @@ export class GeminiLiveQuestionDetector {
 例: "えーと、それはどうやって実装するんですか？" → "それはどうやって実装するんですか？"`;
   }
 
+  // Track audio sending for logging
+  private userAudioCount = 0;
+  private opponentAudioCount = 0;
+  private lastUserLogTime = Date.now();
+  private lastOpponentLogTime = Date.now();
+
   /**
    * Send audio data directly to Gemini Live API (real-time streaming)
    * NO transcription step - audio goes directly to Gemini
@@ -228,8 +234,35 @@ export class GeminiLiveQuestionDetector {
     const session = source === 'user' ? this.userSession : this.opponentSession;
 
     if (!session) {
-      console.warn(`[GeminiLiveQuestionDetector] ${source} session not active`);
+      logger.warn(`${source} session not active, cannot send audio`);
       return;
+    }
+
+    // Track audio chunks
+    if (source === 'user') {
+      this.userAudioCount++;
+    } else {
+      this.opponentAudioCount++;
+    }
+
+    const count = source === 'user' ? this.userAudioCount : this.opponentAudioCount;
+    const lastLogTime = source === 'user' ? this.lastUserLogTime : this.lastOpponentLogTime;
+    const now = Date.now();
+
+    // Log first chunk and every 50 chunks
+    if (count === 1) {
+      logger.info(`📤 FIRST audio chunk sent to Gemini (${source})`, {
+        bufferSize: audioData.length,
+        base64Length: Math.ceil(audioData.length * 4 / 3)
+      });
+    } else if (count % 50 === 0) {
+      const elapsed = now - lastLogTime;
+      logger.info(`📤 Audio chunks sent to Gemini (${source}): ${count} total, ${elapsed}ms since last log`);
+      if (source === 'user') {
+        this.lastUserLogTime = now;
+      } else {
+        this.lastOpponentLogTime = now;
+      }
     }
 
     try {
@@ -248,7 +281,7 @@ export class GeminiLiveQuestionDetector {
       this.state.lastActivityTime = Date.now();
 
     } catch (error) {
-      console.error(`[GeminiLiveQuestionDetector] Error sending audio (${source}):`, error);
+      logger.error(`Error sending audio to Gemini (${source})`, error as Error);
       this.emitError({ source, error });
     }
   }

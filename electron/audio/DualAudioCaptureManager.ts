@@ -79,19 +79,51 @@ export class DualAudioCaptureManager extends EventEmitter {
   }
 
   private setupEventForwarding(): void {
+    logger.info('🔗 Setting up event listeners on SystemAudioCapture instance');
+    
+    let audioDataEventCount = 0;
+    let lastLogTime = Date.now();
+    
     // Handle system audio data - stream directly to Gemini Live
     this.systemAudioCapture.on('audio-data', (audioData: Buffer) => {
+      audioDataEventCount++;
+      const now = Date.now();
+      
+      // Log first event and then every 50 events to avoid spam
+      if (audioDataEventCount === 1) {
+        logger.info('🔊 FIRST audio-data event received!', {
+          bufferSize: audioData.length,
+          isCapturing: this.isCapturing,
+          timestamp: now
+        });
+      } else if (audioDataEventCount % 50 === 0) {
+        const elapsed = now - lastLogTime;
+        logger.info(`🔊 audio-data events: ${audioDataEventCount} total, ${elapsed}ms since last log`, {
+          bufferSize: audioData.length,
+          isCapturing: this.isCapturing
+        });
+        lastLogTime = now;
+      }
+      
       if (this.isCapturing) {
         // Send audio directly to Gemini Live (opponent source)
         this.geminiDetector.sendAudioData(audioData, 'opponent').catch(error => {
-          logger.error('Error sending system audio', error);
+          logger.error('Error sending system audio to Gemini', error);
         });
+      } else {
+        if (audioDataEventCount === 1) {
+          logger.warn('⚠️ Received audio-data but isCapturing is false, dropping chunk');
+        }
       }
     });
     
     this.systemAudioCapture.on('error', (error) => {
       logger.error('System audio error', error);
       this.emit('error', { source: 'opponent', error });
+    });
+    
+    logger.info('✅ Event listeners attached to SystemAudioCapture', {
+      listenerCount: this.systemAudioCapture.listenerCount('audio-data')
     });
   }
 
