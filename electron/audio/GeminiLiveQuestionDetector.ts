@@ -33,6 +33,13 @@ export class GeminiLiveQuestionDetector {
     onStateChanged?: (state: GeminiLiveState) => void;
     onError?: (error: any) => void;
   }) {
+    console.log('[GeminiLiveQuestionDetector] 🔍 Constructor called', {
+      apiKeyPresent: !!config.apiKey,
+      apiKeyLength: config.apiKey?.length,
+      model: config.model,
+      language: config.language
+    });
+
     this.config = {
       model: 'gemini-live-2.5-flash-preview', // Official Live API model
       language: 'ja-JP',
@@ -47,36 +54,61 @@ export class GeminiLiveQuestionDetector {
       lastActivityTime: 0
     };
 
-    // Initialize Gemini Live client
-    this.genAI = new GoogleGenAI({ apiKey: this.config.apiKey });
+    try {
+      console.log('[GeminiLiveQuestionDetector] 📦 Creating GoogleGenAI client...');
+      // Initialize Gemini Live client
+      this.genAI = new GoogleGenAI({ apiKey: this.config.apiKey });
+      console.log('[GeminiLiveQuestionDetector] ✅ GoogleGenAI client created');
+      
+      // Check if live API is available
+      console.log('[GeminiLiveQuestionDetector] 🔍 Checking genAI.live availability:', {
+        hasLive: !!this.genAI.live,
+        hasConnect: !!(this.genAI.live as any)?.connect,
+        liveType: typeof this.genAI.live
+      });
+    } catch (error) {
+      console.error('[GeminiLiveQuestionDetector] ❌ Failed to create GoogleGenAI client:', error);
+      throw error;
+    }
 
     // Store callbacks
     this.onQuestionDetected = callbacks?.onQuestionDetected;
     this.onStateChanged = callbacks?.onStateChanged;
     this.onError = callbacks?.onError;
 
-    console.log('[GeminiLiveQuestionDetector] Initialized with Gemini Live model:', this.config.model);
+    console.log('[GeminiLiveQuestionDetector] ✅ Initialized with Gemini Live model:', this.config.model);
   }
 
   /**
    * Start listening with dual audio sources using Gemini Live API
    */
   public async startListening(): Promise<void> {
+    console.log('[GeminiLiveQuestionDetector] 🎙️ startListening() called');
+    
     if (this.state.isListening) {
-      console.log('[GeminiLiveQuestionDetector] Already listening');
+      console.log('[GeminiLiveQuestionDetector] ⚠️ Already listening, skipping');
       return;
     }
 
     try {
-      console.log('[GeminiLiveQuestionDetector] Starting dual Gemini Live sessions...');
+      console.log('[GeminiLiveQuestionDetector] 🚀 Starting dual Gemini Live sessions...');
+      console.log('[GeminiLiveQuestionDetector] 🔍 genAI.live check:', {
+        hasLive: !!this.genAI.live,
+        hasConnect: !!(this.genAI.live as any)?.connect,
+        liveType: typeof this.genAI.live
+      });
 
       // Start user session (microphone) - direct audio streaming
+      console.log('[GeminiLiveQuestionDetector] 📞 Creating user session...');
       this.userSession = await this.createLiveSession('user');
       this.state.userSessionActive = true;
+      console.log('[GeminiLiveQuestionDetector] ✅ User session created');
 
       // Start opponent session (system audio) - direct audio streaming
+      console.log('[GeminiLiveQuestionDetector] 📞 Creating opponent session...');
       this.opponentSession = await this.createLiveSession('opponent');
       this.state.opponentSessionActive = true;
+      console.log('[GeminiLiveQuestionDetector] ✅ Opponent session created');
 
       this.state.isListening = true;
       this.state.lastActivityTime = Date.now();
@@ -85,7 +117,8 @@ export class GeminiLiveQuestionDetector {
       console.log('[GeminiLiveQuestionDetector] ✅ Both Live API sessions started successfully');
 
     } catch (error) {
-      console.error('[GeminiLiveQuestionDetector] Failed to start listening:', error);
+      console.error('[GeminiLiveQuestionDetector] ❌ Failed to start listening:', error);
+      console.error('[GeminiLiveQuestionDetector] Error stack:', (error as Error).stack);
       this.emitError(error as Error);
       throw error;
     }
@@ -95,16 +128,33 @@ export class GeminiLiveQuestionDetector {
    * Create a Gemini Live API session with CALLBACK pattern (not EventEmitter)
    */
   private async createLiveSession(source: 'user' | 'opponent'): Promise<any> {
+    console.log(`[GeminiLiveQuestionDetector] 🔧 createLiveSession(${source}) called`);
+    
     const systemPrompt = this.buildSystemPrompt(source);
     const responseQueue = source === 'user' ? this.userResponseQueue : this.opponentResponseQueue;
 
     try {
+      console.log(`[GeminiLiveQuestionDetector] 🔍 Checking genAI.live for ${source}:`, {
+        hasLive: !!this.genAI.live,
+        liveType: typeof this.genAI.live,
+        hasConnect: typeof (this.genAI.live as any)?.connect
+      });
+
+      if (!this.genAI.live) {
+        throw new Error('genAI.live is undefined - Gemini Live API not available');
+      }
+
+      if (typeof (this.genAI.live as any).connect !== 'function') {
+        throw new Error('genAI.live.connect is not a function - API version mismatch?');
+      }
+
+      console.log(`[GeminiLiveQuestionDetector] 📞 Calling genAI.live.connect for ${source}...`);
       // ✅ CORRECT: Pass callbacks during connection (not session.on!)
       const session = await this.genAI.live.connect({
         model: this.config.model,
         callbacks: {
           onopen: () => {
-            console.log(`[GeminiLiveQuestionDetector] ${source} session opened`);
+            console.log(`[GeminiLiveQuestionDetector] ✅ ${source} session opened`);
           },
           onmessage: (message: any) => {
             // Push to queue for async processing
@@ -113,11 +163,11 @@ export class GeminiLiveQuestionDetector {
             this.handleLiveMessage(message, source);
           },
           onerror: (error: any) => {
-            console.error(`[GeminiLiveQuestionDetector] ${source} session error:`, error);
+            console.error(`[GeminiLiveQuestionDetector] ❌ ${source} session error:`, error);
             this.emitError({ source, error });
           },
           onclose: (event: any) => {
-            console.log(`[GeminiLiveQuestionDetector] ${source} session closed:`, event.reason);
+            console.log(`[GeminiLiveQuestionDetector] 🔌 ${source} session closed:`, event.reason);
           }
         },
         config: {
@@ -135,11 +185,16 @@ export class GeminiLiveQuestionDetector {
         }
       });
 
-      console.log(`[GeminiLiveQuestionDetector] ✅ ${source} Live API session created`);
+      console.log(`[GeminiLiveQuestionDetector] ✅ ${source} Live API session created successfully`);
       return session;
 
     } catch (error) {
-      console.error(`[GeminiLiveQuestionDetector] Failed to create ${source} Live session:`, error);
+      console.error(`[GeminiLiveQuestionDetector] ❌ Failed to create ${source} Live session:`, error);
+      console.error(`[GeminiLiveQuestionDetector] Error details:`, {
+        name: (error as Error).name,
+        message: (error as Error).message,
+        stack: (error as Error).stack
+      });
       throw error;
     }
   }

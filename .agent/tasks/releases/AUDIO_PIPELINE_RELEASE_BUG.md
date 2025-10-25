@@ -1,9 +1,117 @@
 # Audio Pipeline Release Bug - Root Cause Analysis & Fix Plan
 
-**Status:** 🔍 ROOT CAUSE INVESTIGATION - Previous Fix Didn't Work  
+**Status:** 🔍 DIAGNOSTIC LOGGING ADDED - Ready for v1.0.76 Release  
 **Created:** 2025-10-23  
-**Updated:** 2025-10-24  
+**Updated:** 2025-10-25  
 **Priority:** P0 - Blocks production usage
+
+## 🆕 LATEST UPDATE (2025-10-25) - Diagnostic Logging Added
+
+### Current Situation
+- ✅ Microphone capture works in production
+- ✅ System audio capture works in production (audiotee binary found and running)
+- ✅ Audio chunks being sent to main process
+- ❌ **GeminiLiveQuestionDetector not logging anything** - No session creation, no question detection
+- ✅ Chat function using Gemini API works (so API key is loaded correctly)
+
+### Key Finding
+The logs show NO output from:
+- `GeminiLiveQuestionDetector` constructor
+- `GeminiLiveQuestionDetector.startListening()`
+- `GeminiLiveQuestionDetector.createLiveSession()`
+- `DualAudioCaptureManager` constructor
+
+This suggests either:
+1. `DualAudioCaptureManager` is not being instantiated
+2. It's failing silently during construction
+3. The Gemini SDK `@google/genai` has bundling issues with the Live API
+
+### Diagnostic Logging Added
+
+**Files Modified with Enhanced Logging:**
+
+1. **`electron/core/AppState.ts`** - `initializeDualAudioManager()`
+   - Log when initialization starts
+   - Log API key presence and length
+   - Log each step of manager creation
+   - Log event listener setup
+   - Log full error stack on failure
+
+2. **`electron/audio/DualAudioCaptureManager.ts`** - Constructor & `startCapture()`
+   - Log constructor entry with API key status
+   - Log GeminiLiveQuestionDetector creation
+   - Log SystemAudioCapture creation
+   - Log event forwarding setup
+   - Log each step of startCapture flow
+   - Log full error stacks
+
+3. **`electron/audio/GeminiLiveQuestionDetector.ts`** - Constructor, `startListening()`, `createLiveSession()`
+   - Log constructor entry with config details
+   - Log GoogleGenAI client creation
+   - **Log `genAI.live` availability check** (critical!)
+   - Log each session creation step
+   - Log `genAI.live.connect` availability
+   - Log full error details with stack traces
+
+4. **`electron/ipc/audioHandlers.ts`** - `dual-audio-start` handler
+   - Log dualAudioManager existence check
+   - Log type information
+   - Log before calling startCapture
+   - Log full error stacks
+
+### What to Look For in Next Release (v1.0.76)
+
+When you test the new build, check the logs for:
+
+1. **Initialization logs:**
+   ```
+   [AppState] 🔍 Starting DualAudioCaptureManager initialization...
+   [AppState] Gemini API Key status: Present (length: XX)
+   [AppState] 📦 Creating DualAudioCaptureManager instance...
+   [DualAudioCaptureManager] 🔍 Constructor called
+   [GeminiLiveQuestionDetector] 🔍 Constructor called
+   ```
+
+2. **Critical check - genAI.live availability:**
+   ```
+   [GeminiLiveQuestionDetector] 🔍 Checking genAI.live availability: {
+     hasLive: true/false,  ← KEY INDICATOR
+     hasConnect: true/false,  ← KEY INDICATOR
+     liveType: "object"/"undefined"
+   }
+   ```
+
+3. **Session creation logs:**
+   ```
+   [GeminiLiveQuestionDetector] 📞 Calling genAI.live.connect for user...
+   [GeminiLiveQuestionDetector] ✅ user Live API session created successfully
+   ```
+
+4. **Any error messages with full stack traces**
+
+### Expected Outcomes
+
+**If `genAI.live` is undefined:**
+- The Gemini SDK is not bundling the Live API correctly
+- Need to add `@google/genai` to externals or fix bundling
+
+**If `genAI.live.connect` is not a function:**
+- API version mismatch between code and SDK
+- May need to update SDK or change API usage
+
+**If constructor fails:**
+- Will see exact error with stack trace
+- Can identify if it's import issue, API issue, or config issue
+
+### Next Steps After v1.0.76 Release
+
+1. Build and release v1.0.76 with diagnostic logging
+2. Download and test the production build
+3. Collect logs from `~/Library/Logs/CueMe/main.log`
+4. Share logs to identify exact failure point
+5. Apply targeted fix based on diagnostic output
+
+---
 
 ## ⚠️ CRITICAL UPDATE (2025-10-24)
 

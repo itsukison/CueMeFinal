@@ -254,26 +254,32 @@ export class AppState {
    * Initialize DualAudioCaptureManager with Gemini Live (no Whisper needed)
    */
   private initializeDualAudioManager(): DualAudioCaptureManager | null {
+    console.log('[AppState] 🔍 Starting DualAudioCaptureManager initialization...');
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
-    console.log('[AppState] Gemini API Key status:', geminiApiKey ? 'Present' : 'Missing');
+    console.log('[AppState] Gemini API Key status:', geminiApiKey ? `Present (length: ${geminiApiKey.length})` : 'Missing');
 
     if (!geminiApiKey) {
-      console.warn('[AppState] GEMINI_API_KEY not found - dual audio capture will be disabled');
+      console.warn('[AppState] ❌ GEMINI_API_KEY not found - dual audio capture will be disabled');
       return null;
     }
 
     try {
+      console.log('[AppState] 📦 Creating DualAudioCaptureManager instance...');
       // Only Gemini API key needed - direct audio streaming to Gemini Live
       const manager = new DualAudioCaptureManager(geminiApiKey);
+      console.log('[AppState] ✅ DualAudioCaptureManager instance created');
       
       // Setup event listeners for dual audio events
+      console.log('[AppState] 🔗 Setting up dual audio event listeners...');
       this.setupDualAudioEvents(manager);
+      console.log('[AppState] ✅ Event listeners setup complete');
       
-      console.log('[AppState] DualAudioCaptureManager initialized successfully (Gemini Live)');
+      console.log('[AppState] ✅ DualAudioCaptureManager initialized successfully (Gemini Live)');
       return manager;
     } catch (error) {
-      console.error('[AppState] Failed to initialize DualAudioCaptureManager:', error);
+      console.error('[AppState] ❌ Failed to initialize DualAudioCaptureManager:', error);
+      console.error('[AppState] Error stack:', (error as Error).stack);
       return null;
     }
   }

@@ -287,16 +287,31 @@ export function registerAudioHandlers(appState: AppState): void {
   // AUTOMATIC: Both microphone and system audio are captured simultaneously
   ipcMain.handle("dual-audio-start", async () => {
     Logger.info(`[IPC audioHandlers] 🎙️  Received dual-audio-start request (AUTOMATIC dual capture)`);
+    diagLogger.info('IPC: dual-audio-start called');
+    
     try {
+      console.log('[IPC audioHandlers] 🔍 Checking dualAudioManager:', {
+        exists: !!appState.dualAudioManager,
+        type: typeof appState.dualAudioManager
+      });
+      
       if (!appState.dualAudioManager) {
-        return { success: false, error: 'Dual audio manager not initialized. Check GEMINI_API_KEY.' };
+        const error = 'Dual audio manager not initialized. Check GEMINI_API_KEY.';
+        Logger.error('[IPC audioHandlers] ❌', error);
+        diagLogger.error('Dual audio manager not initialized', new Error(error));
+        return { success: false, error };
       }
+      
+      console.log('[IPC audioHandlers] ✅ dualAudioManager exists, calling startCapture()...');
       // No sourceId needed - both sources start automatically
       await appState.dualAudioManager.startCapture();
       Logger.info('[IPC audioHandlers] ✅ Dual audio capture started successfully (microphone + system audio)');
+      diagLogger.info('✅ Dual audio capture started successfully');
       return { success: true };
     } catch (error: any) {
       Logger.error("[IPC audioHandlers] ❌ Error starting dual audio capture:", error);
+      diagLogger.error('Error starting dual audio capture', error);
+      console.error('[IPC audioHandlers] Error stack:', error.stack);
       return { success: false, error: error.message };
     }
   });
