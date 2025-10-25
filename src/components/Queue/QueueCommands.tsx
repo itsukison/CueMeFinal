@@ -494,13 +494,20 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             "[QueueCommands] Set frontendListening to true (before AudioWorklet connection)"
           );
 
-          console.log("[QueueCommands] Loading AudioWorklet module from /audio-worklet-processor.js");
+          // Construct the correct path for AudioWorklet processor
+          // In development: served by Vite dev server
+          // In production: needs to be relative to the current page location
+          const workletPath = import.meta.env.DEV 
+            ? "/audio-worklet-processor.js"
+            : new URL("/audio-worklet-processor.js", window.location.href).href;
+          
+          console.log("[QueueCommands] Loading AudioWorklet module from:", workletPath);
           window.electronAPI.invoke(
             "debug-log",
-            "[QueueCommands] Loading AudioWorklet module..."
+            `[QueueCommands] Loading AudioWorklet module from: ${workletPath}`
           );
           
-          await ctx.audioWorklet.addModule("/audio-worklet-processor.js");
+          await ctx.audioWorklet.addModule(workletPath);
           
           console.log("[QueueCommands] ✅ AudioWorklet module loaded successfully");
           window.electronAPI.invoke(
@@ -680,10 +687,11 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
               // Send Float32Array directly as expected by the preload API
               try {
                 console.log(
-                  "[QueueCommands] Sending audio chunk to main process..."
+                  "[QueueCommands] Sending audio chunk to main process (Gemini Live)..."
                 );
-                await window.electronAPI.audioStreamProcessChunk(inputData);
-                console.log("[QueueCommands] Audio chunk sent successfully");
+                // FIXED: Use dualAudioProcessMicrophoneChunk for Gemini Live (same as AudioWorklet path)
+                await window.electronAPI.dualAudioProcessMicrophoneChunk(inputData);
+                console.log("[QueueCommands] Audio chunk sent successfully to Gemini Live");
               } catch (error) {
                 console.error(
                   "[QueueCommands] Error sending audio chunk:",

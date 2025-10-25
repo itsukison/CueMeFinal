@@ -254,9 +254,9 @@ export class AppState {
    * Initialize DualAudioCaptureManager with Gemini Live (no Whisper needed)
    */
   private initializeDualAudioManager(): DualAudioCaptureManager | null {
-    console.log('[AppState] 🔍 Starting DualAudioCaptureManager initialization...');
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
+    console.log('[AppState] 🔍 Starting DualAudioCaptureManager initialization...');
     console.log('[AppState] Gemini API Key status:', geminiApiKey ? `Present (length: ${geminiApiKey.length})` : 'Missing');
 
     if (!geminiApiKey) {

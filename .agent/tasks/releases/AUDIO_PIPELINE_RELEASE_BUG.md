@@ -5,9 +5,94 @@
 **Updated:** 2025-10-25  
 **Priority:** P0 - Blocks production usage
 
-## 🆕 LATEST UPDATE (2025-10-25) - Diagnostic Logging Added
+## 🔧 LOGGING FIXED - Ready for v1.0.78 (2025-10-25)
 
-### Current Situation
+### Issue: console.log() Not Appearing in Production Logs
+
+**Problem:** Diagnostic logging used `console.log()` which doesn't appear in Electron log files in production.
+
+**Solution:** Replaced all `console.log()` with `DiagnosticLogger` in main process files.
+
+**Files Fixed:**
+- ✅ `electron/audio/DualAudioCaptureManager.ts` - Now uses `DiagnosticLogger`
+- ✅ `electron/audio/GeminiLiveQuestionDetector.ts` - Now uses `DiagnosticLogger`
+- ✅ `electron/ipc/audioHandlers.ts` - Now uses `DiagnosticLogger`
+- ⚠️ `electron/core/AppState.ts` - Still uses `console.log()` (runs during initialization, before logger setup)
+
+**Expected in v1.0.78 logs:**
+```
+[DualAudioCaptureManager] 🔍 Constructor called
+[DualAudioCaptureManager] 📦 Creating GeminiLiveQuestionDetector...
+[GeminiLiveQuestionDetector] 🔍 Constructor called
+[GeminiLiveQuestionDetector] 📦 Creating GoogleGenAI client...
+[GeminiLiveQuestionDetector] 🔍 Checking genAI.live availability
+[DualAudioCaptureManager] 🎙️ startCapture() called
+[GeminiLiveQuestionDetector] 🎙️ startListening() called
+[GeminiLiveQuestionDetector] 📞 Creating user session...
+[GeminiLiveQuestionDetector] 📞 Creating opponent session...
+```
+
+These logs will reveal:
+1. Whether DualAudioCaptureManager is being created
+2. Whether GeminiLiveQuestionDetector is being created
+3. Whether genAI.live API is available
+4. Whether Gemini Live sessions are starting
+5. Where exactly the system audio pipeline is breaking
+
+---
+
+## 🎯 ROOT CAUSE FOUND & FIXED (2025-10-25)
+
+### The Problem - Audio Routing Mismatch
+
+**Issue:** AudioWorklet fails in production → Falls back to ScriptProcessor → ScriptProcessor sends audio to WRONG IPC handler
+
+**What was happening:**
+1. ✅ Microphone capture works
+2. ✅ System audio capture works (audiotee)
+3. ❌ AudioWorklet fails: `AbortError: The user aborted a request`
+4. ✅ Falls back to ScriptProcessor
+5. ❌ **ScriptProcessor sends to `audioStreamProcessChunk` (old system) instead of `dualAudioProcessMicrophoneChunk` (Gemini Live)**
+6. ❌ Audio goes to AudioStreamProcessor, NOT to DualAudioCaptureManager
+7. ❌ No Gemini Live processing, no question detection
+
+### The Fixes Applied
+
+**Fix 1: ScriptProcessor IPC Handler** ✅ FIXED
+- **File:** `src/components/Queue/QueueCommands.tsx` line ~685
+- **Changed:** `audioStreamProcessChunk` → `dualAudioProcessMicrophoneChunk`
+- **Impact:** ScriptProcessor fallback now sends audio to Gemini Live correctly
+
+**Fix 2: AudioWorklet Path Resolution** ✅ FIXED
+- **File:** `src/components/Queue/QueueCommands.tsx` line ~497
+- **Problem:** Hardcoded `/audio-worklet-processor.js` doesn't work in production
+- **Solution:** Use dynamic path based on environment:
+  - Dev: `/audio-worklet-processor.js` (Vite dev server)
+  - Production: `new URL("/audio-worklet-processor.js", window.location.href).href`
+- **Impact:** AudioWorklet should now load correctly in production builds
+
+### Why AudioWorklet Failed
+
+**Root Cause:** Path resolution issue in Electron production builds
+- Development: Vite dev server serves files from `http://localhost:5173/`
+- Production: Files loaded from `file://` protocol with different base path
+- Hardcoded `/audio-worklet-processor.js` doesn't resolve correctly in production
+- Browser throws `AbortError` when file can't be loaded
+
+### Expected Behavior After Fixes
+
+**v1.0.77 should:**
+1. ✅ AudioWorklet loads successfully in production (no more AbortError)
+2. ✅ If AudioWorklet still fails, ScriptProcessor sends to correct IPC handler
+3. ✅ Audio reaches DualAudioCaptureManager → GeminiLiveQuestionDetector
+4. ✅ Gemini Live sessions start
+5. ✅ Question detection works
+
+---
+
+## 🆕 PREVIOUS UPDATE (2025-10-25) - Diagnostic Logging Added
+
+### Current Situation (Before Root Cause Found)
 - ✅ Microphone capture works in production
 - ✅ System audio capture works in production (audiotee binary found and running)
 - ✅ Audio chunks being sent to main process

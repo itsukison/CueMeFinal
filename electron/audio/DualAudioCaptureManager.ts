@@ -2,6 +2,9 @@ import { EventEmitter } from 'events';
 import { SystemAudioCapture } from '../SystemAudioCapture';
 import { GeminiLiveQuestionDetector } from './GeminiLiveQuestionDetector';
 import { DetectedQuestion } from '../../src/types/audio-stream';
+import { DiagnosticLogger } from '../utils/DiagnosticLogger';
+
+const logger = new DiagnosticLogger('DualAudioCaptureManager');
 
 /**
  * Manages dual audio capture (microphone + system audio)
@@ -17,7 +20,7 @@ export class DualAudioCaptureManager extends EventEmitter {
   constructor(geminiApiKey: string, sampleRate: number = 16000) {
     super();
     
-    console.log('[DualAudioCaptureManager] 🔍 Constructor called', {
+    logger.info('🔍 Constructor called', {
       apiKeyPresent: !!geminiApiKey,
       apiKeyLength: geminiApiKey?.length,
       sampleRate
@@ -26,7 +29,7 @@ export class DualAudioCaptureManager extends EventEmitter {
     this.sampleRate = sampleRate;
     
     try {
-      console.log('[DualAudioCaptureManager] 📦 Creating GeminiLiveQuestionDetector...');
+      logger.info('📦 Creating GeminiLiveQuestionDetector...');
       // Initialize Gemini Live detector with callbacks (not EventEmitter)
       this.geminiDetector = new GeminiLiveQuestionDetector(
         {
@@ -38,41 +41,41 @@ export class DualAudioCaptureManager extends EventEmitter {
         {
           // Callback-based event handling
           onQuestionDetected: (question: DetectedQuestion) => {
-            console.log(`[DualAudioCaptureManager] Question detected (${question.source}): "${question.text}"`);
+            logger.info(`Question detected (${question.source}): "${question.text}"`);
             this.emit('question-detected', question);
           },
           onStateChanged: (state) => {
             this.emit('state-changed', state);
           },
           onError: (error) => {
-            console.error('[DualAudioCaptureManager] Gemini error:', error);
+            logger.error('Gemini error', error);
             this.emit('error', error);
           }
         }
       );
-      console.log('[DualAudioCaptureManager] ✅ GeminiLiveQuestionDetector created');
+      logger.info('✅ GeminiLiveQuestionDetector created');
     } catch (error) {
-      console.error('[DualAudioCaptureManager] ❌ Failed to create GeminiLiveQuestionDetector:', error);
+      logger.error('❌ Failed to create GeminiLiveQuestionDetector', error as Error);
       throw error;
     }
     
     try {
-      console.log('[DualAudioCaptureManager] 📦 Creating SystemAudioCapture...');
+      logger.info('📦 Creating SystemAudioCapture...');
       // Initialize system audio capture
       this.systemAudioCapture = new SystemAudioCapture({
         sampleRate: sampleRate,
         channelCount: 1,
         bufferSize: 4096
       });
-      console.log('[DualAudioCaptureManager] ✅ SystemAudioCapture created');
+      logger.info('✅ SystemAudioCapture created');
     } catch (error) {
-      console.error('[DualAudioCaptureManager] ❌ Failed to create SystemAudioCapture:', error);
+      logger.error('❌ Failed to create SystemAudioCapture', error as Error);
       throw error;
     }
     
-    console.log('[DualAudioCaptureManager] 🔗 Setting up event forwarding...');
+    logger.info('🔗 Setting up event forwarding...');
     this.setupEventForwarding();
-    console.log('[DualAudioCaptureManager] ✅ Constructor completed successfully');
+    logger.info('✅ Constructor completed successfully');
   }
 
   private setupEventForwarding(): void {
@@ -81,13 +84,13 @@ export class DualAudioCaptureManager extends EventEmitter {
       if (this.isCapturing) {
         // Send audio directly to Gemini Live (opponent source)
         this.geminiDetector.sendAudioData(audioData, 'opponent').catch(error => {
-          console.error('[DualAudioCaptureManager] Error sending system audio:', error);
+          logger.error('Error sending system audio', error);
         });
       }
     });
     
     this.systemAudioCapture.on('error', (error) => {
-      console.error('[DualAudioCaptureManager] System audio error:', error);
+      logger.error('System audio error', error);
       this.emit('error', { source: 'opponent', error });
     });
   }
@@ -103,7 +106,7 @@ export class DualAudioCaptureManager extends EventEmitter {
       // Send audio directly to Gemini Live (user source)
       await this.geminiDetector.sendAudioData(audioData, 'user');
     } catch (error) {
-      console.error('[DualAudioCaptureManager] Error processing microphone audio:', error);
+      logger.error('Error processing microphone audio', error as Error);
     }
   }
 
@@ -113,41 +116,40 @@ export class DualAudioCaptureManager extends EventEmitter {
    * No user selection needed - dual capture is the default behavior
    */
   public async startCapture(): Promise<void> {
-    console.log('[DualAudioCaptureManager] 🎙️ startCapture() called');
+    logger.info('🎙️ startCapture() called');
     
     if (this.isCapturing) {
-      console.log('[DualAudioCaptureManager] ⚠️ Already capturing, skipping');
+      logger.info('⚠️ Already capturing, skipping');
       return;
     }
 
     try {
-      console.log('[DualAudioCaptureManager] 🚀 Starting AUTOMATIC dual audio capture (microphone + system audio)...');
+      logger.info('🚀 Starting AUTOMATIC dual audio capture (microphone + system audio)...');
       
       // Start Gemini Live sessions (opens WebSocket connections for both sources)
-      console.log('[DualAudioCaptureManager] 📞 Starting Gemini Live sessions...');
+      logger.info('📞 Starting Gemini Live sessions...');
       await this.geminiDetector.startListening();
-      console.log('[DualAudioCaptureManager] ✅ Gemini Live sessions started');
+      logger.info('✅ Gemini Live sessions started');
       
       // AUTOMATIC: Always try to start system audio capture
       // Use default system audio source (will auto-detect best available)
       try {
-        console.log('[DualAudioCaptureManager] 🔊 Starting system audio capture...');
+        logger.info('🔊 Starting system audio capture...');
         await this.systemAudioCapture.startCapture('system-audio');
-        console.log('[DualAudioCaptureManager] ✅ System audio capture started (opponent source)');
+        logger.info('✅ System audio capture started (opponent source)');
       } catch (systemAudioError) {
-        console.warn('[DualAudioCaptureManager] ⚠️ System audio not available, continuing with microphone only:', systemAudioError);
+        logger.warn('⚠️ System audio not available, continuing with microphone only', systemAudioError as Error);
         // Continue with microphone only - don't fail the entire capture
       }
       
       this.isCapturing = true;
       
-      console.log('[DualAudioCaptureManager] ✅ Dual audio capture started - streaming to Gemini Live');
-      console.log('[DualAudioCaptureManager] 🎤 Microphone → user source');
-      console.log('[DualAudioCaptureManager] 🔊 System audio → opponent source');
+      logger.info('✅ Dual audio capture started - streaming to Gemini Live');
+      logger.info('🎤 Microphone → user source');
+      logger.info('🔊 System audio → opponent source');
       
     } catch (error) {
-      console.error('[DualAudioCaptureManager] ❌ Failed to start capture:', error);
-      console.error('[DualAudioCaptureManager] Error stack:', (error as Error).stack);
+      logger.error('❌ Failed to start capture', error as Error);
       this.emit('error', error as Error);
       throw error;
     }
@@ -160,7 +162,7 @@ export class DualAudioCaptureManager extends EventEmitter {
     if (!this.isCapturing) return;
 
     try {
-      console.log('[DualAudioCaptureManager] Stopping dual audio capture...');
+      logger.info('Stopping dual audio capture...');
       
       // Stop Gemini Live sessions (closes WebSocket connections)
       await this.geminiDetector.stopListening();
@@ -169,10 +171,10 @@ export class DualAudioCaptureManager extends EventEmitter {
       await this.systemAudioCapture.stopCapture();
       
       this.isCapturing = false;
-      console.log('[DualAudioCaptureManager] ✅ Dual audio capture stopped');
+      logger.info('✅ Dual audio capture stopped');
       
     } catch (error) {
-      console.error('[DualAudioCaptureManager] Error stopping capture:', error);
+      logger.error('Error stopping capture', error as Error);
       this.emit('error', error as Error);
     }
   }
