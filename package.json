@@ -1,14 +1,14 @@
 {
   "name": "CueMe",
-  "version": "1.0.83",
+  "version": "1.0.84",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "vite",
-    "build:win": "sh -c 'npm run clean && tsc -p electron/tsconfig.json && vite build'",
-    "build:mac": "sh -c 'npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build'",
+    "build:win": "npm run clean && tsc -p electron/tsconfig.json && vite build",
+    "build:mac": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
     "build:native": "bash scripts/build-native-binary.sh",
-    "build": "sh -c 'if [ \"$OSTYPE\" = \"msys\" ] || [ \"$OSTYPE\" = \"cygwin\" ] || [ \"$OSTYPE\" = \"win32\" ]; then npm run build:win; else npm run build:mac; fi'",
+    "build": "cross-env PLATFORM=$PLATFORM node -e \"if (process.env.PLATFORM === 'win') { require('child_process').execSync('npm run build:win', {stdio: 'inherit'}); } else { require('child_process').execSync('npm run build:mac', {stdio: 'inherit'}); }\"",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5181 && npm run electron:dev\"",
@@ -206,6 +206,7 @@
     "sharp": "^0.33.5",
     "tailwind-merge": "^2.5.4",
     "tesseract.js": "^5.0.5",
-    "uuid": "^11.0.3"
+    "uuid": "^11.0.3",
+    "cross-env": "^7.0.3"
   }
 }
