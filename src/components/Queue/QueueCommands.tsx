@@ -642,11 +642,13 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           scriptProcessor.onaudioprocess = async (event) => {
             chunkCount++;
             console.log(
-              `[QueueCommands] Audio process event ${chunkCount}, isListening:`,
-              isListening
+              `[QueueCommands] Audio process event ${chunkCount}, frontendListeningRef:`,
+              frontendListeningRef.current
             );
 
-            if (!isListening) {
+            // CRITICAL: Use frontendListeningRef.current instead of isListening
+            // to avoid stale closure issues with React state
+            if (!frontendListeningRef.current) {
               console.log(
                 "[QueueCommands] Not listening, dropping audio chunk"
               );

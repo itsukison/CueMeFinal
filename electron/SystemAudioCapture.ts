@@ -327,13 +327,16 @@ export class SystemAudioCapture extends EventEmitter {
     logger.methodEntry('findAudioTeeBinary');
     
     // Try multiple possible locations
+    // IMPORTANT: Check app.asar.unpacked FIRST because binaries cannot be executed from inside app.asar
     const possiblePaths = [
-      // Development: node_modules
-      path.join(__dirname, '..', 'node_modules', 'audiotee', 'bin', 'audiotee'),
-      path.join(process.cwd(), 'node_modules', 'audiotee', 'bin', 'audiotee'),
-      // Production: bundled with app
-      path.join(process.resourcesPath, 'node_modules', 'audiotee', 'bin', 'audiotee'),
+      // Production: app.asar.unpacked (MUST BE FIRST - binaries can't run from inside asar)
       path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'audiotee', 'bin', 'audiotee'),
+      // Production: direct in resources (fallback)
+      path.join(process.resourcesPath, 'node_modules', 'audiotee', 'bin', 'audiotee'),
+      // Development: node_modules relative to electron code
+      path.join(__dirname, '..', 'node_modules', 'audiotee', 'bin', 'audiotee'),
+      // Development: node_modules in cwd
+      path.join(process.cwd(), 'node_modules', 'audiotee', 'bin', 'audiotee'),
     ];
 
     logger.debug('Searching for audiotee binary in possible locations', {

@@ -668,18 +668,84 @@ Then verify:
 
 ---
 
-## 🎯 What's Next
+## 🔍 ROOT CAUSE IDENTIFIED (2025-10-25)
 
-1. ✅ **Phase 1: Add comprehensive logging** - COMPLETE
-2. ⏭️ **Build and test locally** - `npm run build && npm run app:build:mac`
-3. ⏭️ **Analyze logs** - Check `~/Library/Logs/CueMe/main.log`
-4. ⏭️ **Identify root cause** - Based on log analysis
-5. ⏭️ **Implement targeted fix** - Fix the actual problem
-6. ⏭️ **Test fix** - Verify in production build
-7. ⏭️ **Deploy** - Create GitHub release
+### System Audio Issue ✅ CONFIRMED
+
+**Error:** `spawn ENOTDIR` when trying to start audiotee binary
+
+**Root Cause:**
+The audiotee binary is packaged INSIDE `app.asar` (read-only archive):
+```
+/Applications/CueMe.app/Contents/Resources/app.asar/node_modules/audiotee/bin/audiotee
+```
+
+**Problem:** Node.js cannot execute binaries from inside asar files. The binary must be in `app.asar.unpacked`.
+
+**Evidence from logs:**
+```
+[SystemAudioCapture] ✅ Found audiotee binary
+  "path": ".../app.asar/node_modules/audiotee/bin/audiotee"
+  "isExecutable": false
+[SystemAudioCapture] ❌ Failed to start macOS system audio
+  Error: spawn ENOTDIR
+```
+
+**Fix Applied:** ✅
+1. ✅ Added `asarUnpack` to package.json to exclude audiotee from asar
+2. ✅ Updated binary path search to check unpacked location first
 
 ---
 
-**Last Updated:** 2025-10-24  
-**Status:** Phase 1 complete - Comprehensive logging implemented  
-**Next Step:** Build and test to capture logs
+### Microphone Issue ✅ CONFIRMED
+
+**Error:** Audio chunks being dropped due to stale closure
+
+**Root Cause:**
+React closure issue in QueueCommands.tsx - the ScriptProcessor's `onaudioprocess` callback was checking `isListening` (React state) instead of `frontendListeningRef.current` (ref).
+
+**Evidence from DevTools console:**
+```
+[QueueCommands] Set isListening to true
+[QueueCommands] Set frontendListening to true
+[QueueCommands] Audio process event 1, isListening: false  ← Stale closure!
+[QueueCommands] Not listening, dropping audio chunk
+```
+
+**Problem:**
+1. getUserMedia() works ✅
+2. Audio capture starts ✅
+3. BUT: Callback has stale `isListening` value (false) due to closure
+4. All audio chunks dropped ❌
+
+**Why it happens:**
+- The callback is created with a closure over the current `isListening` state
+- React state updates don't affect already-created closures
+- The code has `frontendListeningRef` to avoid this, but wasn't using it in the check
+
+**Fix Applied:** ✅
+Changed line 649 in QueueCommands.tsx:
+```typescript
+// Before: if (!isListening) { ... }
+// After:  if (!frontendListeningRef.current) { ... }
+```
+
+---
+
+## 🎯 What's Next
+
+1. ✅ **Phase 1: Add comprehensive logging** - COMPLETE
+2. ✅ **Build and test locally** - COMPLETE
+3. ✅ **Analyze logs** - COMPLETE
+4. ✅ **Identify root cause** - SYSTEM AUDIO CONFIRMED, MICROPHONE NEEDS DEVTOOLS
+5. ✅ **Fix system audio** - Added asarUnpack config and updated path search
+6. ✅ **Diagnose microphone** - Identified React closure issue from DevTools logs
+7. ✅ **Fix microphone** - Changed to use frontendListeningRef.current
+8. ⏭️ **Test fixes** - Rebuild and verify both fixes in production build
+9. ⏭️ **Deploy** - Create GitHub release
+
+---
+
+**Last Updated:** 2025-10-25  
+**Status:** Both root causes identified and fixed!  
+**Next Step:** Rebuild and test: `npm run clean && npm run build && npm run app:build:mac`
