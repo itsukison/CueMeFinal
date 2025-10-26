@@ -447,9 +447,16 @@ export class SystemAudioCapture extends EventEmitter {
           lastAudioLogTime = now;
         }
         
+        // ✅ CRITICAL FIX: Copy buffer before emitting!
+        // audiotee reuses the same buffer for performance, so we must copy it
+        // before passing to async handlers. Otherwise, by the time the handler
+        // processes the buffer, audiotee has already overwritten it with new data
+        // (or zeros), resulting in corrupted/silent audio.
+        const bufferCopy = Buffer.from(data);
+        
         // Emit audio data directly - already in correct format (Int16, mono, 16kHz)!
         logger.debug(`Emitting audio-data event (chunk ${audioDataCount})`);
-        this.emit('audio-data', data);
+        this.emit('audio-data', bufferCopy);
       });
 
       // Handle stderr (logs and events)

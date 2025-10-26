@@ -1,9 +1,45 @@
 # Audio Pipeline Release Bug - Root Cause Analysis & Fix Plan
 
-**Status:** 🔍 DIAGNOSTIC LOGGING ADDED - Ready for v1.0.76 Release  
+**Status:** ✅ ROOT CAUSE FOUND & FIXED - v1.0.92 Ready for Testing  
 **Created:** 2025-10-23  
-**Updated:** 2025-10-25  
+**Updated:** 2025-10-26  
 **Priority:** P0 - Blocks production usage
+
+## ✅ ROOT CAUSE FOUND & FIXED - v1.0.92 (2025-10-26)
+
+### The Problem: Buffer Reuse Without Copying
+
+**Root Cause:** The audiotee binary reuses the same buffer for performance. When `SystemAudioCapture` emits the buffer via `this.emit('audio-data', data)`, it passes the buffer **by reference**. By the time the async `sendAudioData()` function processes the buffer, audiotee has already overwritten it with new data or zeros.
+
+**Evidence from Logs:**
+```
+[SystemAudioCapture] 🎵 FIRST audio chunk from audiotee { "bytes": 6400 } ✅
+[GeminiLiveQuestionDetector] 🔬 First audio chunk { "isAllZeros": true } ❌
+```
+
+The buffer has 6400 bytes when emitted, but is all zeros when processed!
+
+**The Fix:**
+```typescript
+// Before (BROKEN):
+this.emit('audio-data', data);  // Passes buffer by reference
+
+// After (FIXED):
+const bufferCopy = Buffer.from(data);  // Create independent copy
+this.emit('audio-data', bufferCopy);   // Pass the copy
+```
+
+**Why This Works:**
+- `Buffer.from(data)` creates a new buffer with a copy of the data
+- The copy is independent of audiotee's internal buffer
+- Even if audiotee overwrites its buffer, our copy remains intact
+- Async processing can take as long as needed without corruption
+
+**File Changed:** `CueMeFinal/electron/SystemAudioCapture.ts:485-495`
+
+**See:** `ROOT_CAUSE_ANALYSIS.md` for detailed line-by-line log analysis
+
+---
 
 ## 🔬 DEEP DIAGNOSTICS ADDED - v1.0.81 (2025-10-26)
 
