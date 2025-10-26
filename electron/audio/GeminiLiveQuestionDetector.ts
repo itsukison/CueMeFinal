@@ -445,7 +445,6 @@ export class GeminiLiveQuestionDetector {
         } else {
           logger.warn(`⚠️ Turn complete but buffer is empty (${source})`);
         }
-        }
 
         // Clear buffer for next turn
         this[buffer] = '';
