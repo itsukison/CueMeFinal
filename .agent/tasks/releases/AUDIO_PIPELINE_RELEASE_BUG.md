@@ -71,7 +71,43 @@ This will pinpoint EXACTLY why system audio questions aren't being detected!
 
 ---
 
-## 🔧 BUILD FIX - Electron 33 Compatibility - v1.0.82 (2025-10-26)
+## ⏪ REVERTED - Permission Changes Causing Build Issues - v1.0.82 (2025-10-26)
+
+### Issue: Build Still Failing
+
+The PermissionManager changes (v1.0.80-v1.0.82) were causing build failures on GitHub Actions.
+
+**Changes Reverted:**
+1. ❌ Deleted `electron/utils/PermissionManager.ts`
+2. ❌ Reverted `main.ts` to use original `requestMicAccess()` function
+3. ❌ Removed all Screen Recording permission request code
+
+**Current State:**
+- Back to v1.0.79 functionality (comprehensive logging only)
+- No automatic permission requests
+- Build should succeed ✅
+
+**Why System Audio Still Won't Work:**
+The original hypothesis was correct - Screen Recording permission IS needed for system audio.
+However, the implementation caused build issues.
+
+**Manual Workaround for Users:**
+1. Go to System Settings > Privacy & Security > Screen Recording
+2. Manually add CueMe to the allowed apps
+3. Restart CueMe
+4. System audio should work
+
+**Future Fix:**
+Need to find a way to request Screen Recording permission that:
+- Works with Electron 33+
+- Doesn't break the build
+- Properly triggers the permission dialog
+
+For now, v1.0.82 focuses on the comprehensive logging (v1.0.81) which will help diagnose issues.
+
+---
+
+## 🔧 BUILD FIX - Electron 33 Compatibility - v1.0.82 (2025-10-26) [REVERTED]
 
 ### Issue: Code Signing Error on GitHub Actions
 
