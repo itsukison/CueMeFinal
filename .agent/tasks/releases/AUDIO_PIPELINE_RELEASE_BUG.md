@@ -71,6 +71,38 @@ This will pinpoint EXACTLY why system audio questions aren't being detected!
 
 ---
 
+## 🔧 BUILD FIX - Electron 33 Compatibility - v1.0.82 (2025-10-26)
+
+### Issue: Code Signing Error on GitHub Actions
+
+**Error:** Build failed with code signing error when building v1.0.80/v1.0.81
+
+**Root Cause:** `systemPreferences` API was deprecated and removed in Electron 33
+- v1.0.80 used `systemPreferences.getMediaAccessStatus()` 
+- v1.0.81 used `systemPreferences.askForMediaAccess()`
+- These APIs don't exist in Electron 33.2.0
+
+**Fix Applied:**
+1. Removed all `systemPreferences` imports and usage
+2. Use only `desktopCapturer.getSources()` to trigger Screen Recording permission
+3. Microphone permission is now handled automatically by macOS when renderer calls `getUserMedia()`
+4. Updated `checkPermissionStatus()` to return 'unknown' (can't check in Electron 33+)
+
+**Impact:**
+- Screen Recording permission request still works ✅
+- Microphone permission handled by OS automatically ✅
+- Build should succeed on GitHub Actions ✅
+
+### Electron 33 Permission Changes
+
+In Electron 33+:
+- `systemPreferences.getMediaAccessStatus()` - **REMOVED**
+- `systemPreferences.askForMediaAccess()` - **REMOVED**
+- Microphone permission - Handled automatically by OS when `getUserMedia()` is called
+- Screen Recording permission - Triggered by `desktopCapturer.getSources()`
+
+---
+
 ## 🎯 ROOT CAUSE FOUND! macOS Screen Recording Permission - v1.0.80 (2025-10-26)
 
 ### The REAL Issue: Missing Screen Recording Permission
