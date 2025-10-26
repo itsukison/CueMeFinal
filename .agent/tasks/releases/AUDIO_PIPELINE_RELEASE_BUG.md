@@ -5,7 +5,133 @@
 **Updated:** 2025-10-25  
 **Priority:** P0 - Blocks production usage
 
-## 🔍 COMPREHENSIVE LOGGING ADDED - Ready for v1.0.79 (2025-10-25)
+## 🔬 DEEP DIAGNOSTICS ADDED - v1.0.81 (2025-10-26)
+
+### Comprehensive Gemini Live API Logging
+
+Added extensive logging to diagnose why system audio isn't detecting questions even though audio is reaching Gemini:
+
+**Phase 1: Message Tracking**
+- Log EVERY message from Gemini with type, structure, and preview
+- Track message count per session
+- Log connection establishment time
+- Enhanced error logging with full error details
+- Log close events with codes and reasons
+
+**Phase 2: Audio Quality Validation**
+- Calculate RMS audio level for each chunk
+- Log first chunk's raw bytes (hex preview)
+- Detect silent or very quiet audio
+- Validate buffer length matches expected format
+- Check if buffer is all zeros
+- Measure audio send latency
+
+**Phase 3: Turn Buffer Tracking**
+- Log when text is accumulated in buffer
+- Log when turn completes (with or without text)
+- Log question validation results
+- Log rejected text with reason
+
+### What to Look For in v1.0.81 Logs
+
+**If Gemini IS responding but not detecting questions:**
+```
+📨 Gemini message received (opponent) #1 { messageType: 'modelTurn', hasParts: true }
+📝 Accumulating text in opponent buffer { addedText: "..." }
+🏁 Turn complete for opponent { text: "some text", isEmpty: false }
+🔍 Question validation for opponent { isQuestion: false } ← REJECTED!
+❌ Text rejected - not a question (opponent)
+```
+
+**If Gemini is NOT responding at all:**
+```
+📤 FIRST audio chunk sent to Gemini (opponent) ✅
+🎚️ Audio level (opponent) { normalizedRMS: 0.15, isSilent: false } ✅
+📤 Audio chunks sent to Gemini (opponent): 50 total ✅
+📨 Gemini message received (opponent) ← MISSING! ❌
+```
+
+**If audio is silent/bad quality:**
+```
+🔬 First audio chunk analysis (opponent) { isAllZeros: true } ← PROBLEM!
+🎚️ Audio level (opponent) { normalizedRMS: 0.001, isSilent: true } ← PROBLEM!
+⚠️ First audio chunk is very quiet or silent (opponent)
+```
+
+**If audio format is wrong:**
+```
+🔬 First audio chunk analysis (opponent) {
+  bufferLength: 3200,  ← Should be 6400!
+  expectedLength: 6400,
+  hexPreview: "00 00 00 00..." ← All zeros = bad!
+}
+```
+
+This will pinpoint EXACTLY why system audio questions aren't being detected!
+
+---
+
+## 🎯 ROOT CAUSE FOUND! macOS Screen Recording Permission - v1.0.80 (2025-10-26)
+
+### The REAL Issue: Missing Screen Recording Permission
+
+**Discovery:** System audio works in Kiro but not in CueMe or Cursor because Kiro has Screen Recording permission granted, but CueMe doesn't actively request it!
+
+**Why Screen Recording Permission?**
+- On macOS, capturing system audio requires **Screen Recording** permission
+- This is because system audio capture uses Core Audio Taps, which Apple considers privacy-sensitive
+- Even though we're only capturing audio (not video), it's grouped under "Screen Recording"
+
+**What Was Missing:**
+1. ✅ Entitlements were correct (`com.apple.security.device.screen-capture`)
+2. ✅ Usage description was present (`NSScreenCaptureDescription`)
+3. ❌ **No code to actively trigger the permission dialog!**
+
+### The Fix
+
+**Created `PermissionManager.ts`:**
+- `requestScreenRecordingPermission()` - Triggers Screen Recording permission dialog
+- `requestMicrophonePermission()` - Requests microphone permission
+- `requestAllAudioPermissions()` - Requests both permissions on startup
+- Uses `desktopCapturer.getSources()` to trigger the Screen Recording dialog
+
+**Updated `main.ts`:**
+- Calls `PermissionManager.requestAllAudioPermissions()` on app startup
+- Shows clear console messages about permission status
+- Guides users to System Settings if permission denied
+
+### What Happens Now
+
+**On First Launch:**
+1. App requests Microphone permission → Dialog appears
+2. App requests Screen Recording permission → Dialog appears
+3. User grants both permissions
+4. System audio capture works! ✅
+
+**If Permission Denied:**
+- Clear console message with instructions
+- Tells user to go to System Settings > Privacy & Security > Screen Recording
+- Explains that restart is needed after granting permission
+
+### Testing v1.0.80
+
+After installing v1.0.80:
+1. Launch the app
+2. You'll see TWO permission dialogs:
+   - Microphone permission
+   - Screen Recording permission
+3. Grant both
+4. Test system audio - it should work!
+
+If you already denied permission:
+1. Go to System Settings > Privacy & Security > Screen Recording
+2. Enable CueMe
+3. Restart the app
+4. System audio should work!
+
+---
+
+## 🔍 COMPREHENSIVE LOGGING ADDED - v1.0.79 (2025-10-25)
 
 ### System Audio Event Flow Tracking
 

@@ -48,28 +48,51 @@ Logger.info('  Process info:', {
 // }
 import { initializeIpcHandlers } from "./ipc";
 import { AppState } from "./core/AppState";
+import { PermissionManager } from "./utils/PermissionManager";
 import { DeepLinkHandler } from "./core/DeepLinkHandler";
 
 /**
- * Request microphone access on app startup
+ * Request all audio permissions on app startup
+ * This includes microphone AND screen recording (for system audio)
  */
-async function requestMicAccess(appState: AppState): Promise<void> {
+async function requestAudioPermissions(appState: AppState): Promise<void> {
   if (process.platform !== 'darwin') {
-    console.log('[Permission] Microphone permission request only available on macOS');
+    console.log('[Permission] Audio permission requests only available on macOS');
     return;
   }
   
   try {
-    console.log('[Permission] Requesting microphone permission...');
-    const granted = await appState.permissionStorage.requestMicrophonePermission();
+    console.log('[Permission] ========================================');
+    console.log('[Permission] Requesting all audio permissions...');
+    console.log('[Permission] ========================================');
     
-    if (granted) {
-      console.log('[Permission] ✅ Microphone access granted');
-    } else {
-      console.log('[Permission] ❌ Microphone access denied');
+    // Request all permissions using the new PermissionManager
+    const result = await PermissionManager.requestAllAudioPermissions();
+    
+    console.log('[Permission] Permission results:');
+    console.log('[Permission]   Microphone:', result.microphone ? '✅ Granted' : '❌ Denied');
+    console.log('[Permission]   Screen Recording (for system audio):', result.screenRecording ? '✅ Granted' : '❌ Denied');
+    
+    if (result.errors.length > 0) {
+      console.log('[Permission] ⚠️ Errors:', result.errors);
     }
+    
+    if (!result.screenRecording) {
+      console.log('[Permission] ========================================');
+      console.log('[Permission] ⚠️ IMPORTANT: Screen Recording permission is required for system audio capture!');
+      console.log('[Permission] Please grant permission in:');
+      console.log('[Permission] System Settings > Privacy & Security > Screen Recording');
+      console.log('[Permission] Then restart the app.');
+      console.log('[Permission] ========================================');
+    }
+    
+    // Also use the old permission storage for backward compatibility
+    if (result.microphone) {
+      await appState.permissionStorage.requestMicrophonePermission();
+    }
+    
   } catch (error) {
-    console.error('[Permission] Error requesting microphone permission:', error);
+    console.error('[Permission] Error requesting audio permissions:', error);
   }
 }
 
@@ -153,9 +176,9 @@ async function initializeApp() {
     console.log('[App Init] Registering global shortcuts...');
     appState.shortcutsHelper.registerGlobalShortcuts();
     
-    // Request microphone permission on startup
-    console.log('[App Init] Requesting microphone permission...');
-    await requestMicAccess(appState);
+    // Request all audio permissions on startup (microphone + screen recording for system audio)
+    console.log('[App Init] Requesting audio permissions...');
+    await requestAudioPermissions(appState);
     
     console.log('[App Init] ✅ App initialization completed successfully!');
   });
