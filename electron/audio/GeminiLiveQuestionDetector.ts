@@ -152,24 +152,60 @@ export class GeminiLiveQuestionDetector {
 
       logger.info(`📞 Calling genAI.live.connect for ${source}...`);
       // ✅ CORRECT: Pass callbacks during connection (not session.on!)
+      // Track messages for diagnostics
+      let messageCount = 0;
+      const connectionStartTime = Date.now();
+
       const session = await this.genAI.live.connect({
         model: this.config.model,
         callbacks: {
           onopen: () => {
-            logger.info(`✅ ${source} session opened`);
+            const connectionTime = Date.now() - connectionStartTime;
+            logger.info(`✅ ${source} session opened`, {
+              connectionTimeMs: connectionTime,
+              timestamp: Date.now()
+            });
           },
           onmessage: (message: any) => {
+            messageCount++;
+            
+            // Log every message for diagnostics
+            const messageStr = JSON.stringify(message);
+            const preview = messageStr.length > 200 ? messageStr.substring(0, 200) + '...' : messageStr;
+            
+            logger.info(`📨 Gemini message received (${source}) #${messageCount}`, {
+              messageType: message.serverContent?.modelTurn ? 'modelTurn' : 
+                          message.serverContent?.turnComplete ? 'turnComplete' :
+                          message.serverContent?.interrupted ? 'interrupted' : 'other',
+              hasParts: !!message.serverContent?.modelTurn?.parts,
+              partCount: message.serverContent?.modelTurn?.parts?.length || 0,
+              turnComplete: !!message.serverContent?.turnComplete,
+              interrupted: !!message.serverContent?.interrupted,
+              preview: preview
+            });
+            
             // Push to queue for async processing
             responseQueue.push(message);
             // Process immediately for real-time detection
             this.handleLiveMessage(message, source);
           },
           onerror: (error: any) => {
-            logger.error(`❌ ${source} session error`, error);
+            logger.error(`❌ ${source} session error`, error, {
+              errorType: typeof error,
+              errorCode: (error as any)?.code,
+              errorMessage: (error as any)?.message,
+              messageCount: messageCount
+            });
             this.emitError({ source, error });
           },
           onclose: (event: any) => {
-            logger.info(`🔌 ${source} session closed: ${event.reason}`);
+            logger.info(`🔌 ${source} session closed`, {
+              reason: event.reason || 'No reason provided',
+              code: event.code,
+              wasClean: event.wasClean,
+              messageCount: messageCount,
+              unexpected: !event.wasClean
+            });
           }
         },
         config: {
@@ -266,22 +302,72 @@ export class GeminiLiveQuestionDetector {
     }
 
     try {
+      // Validate audio quality before sending
+      if (count === 1) {
+        // Log first chunk's raw bytes for debugging
+        const hexPreview = audioData.slice(0, 32).toString('hex');
+        logger.info(`🔬 First audio chunk analysis (${source})`, {
+          bufferLength: audioData.length,
+          expectedLength: 6400, // 200ms at 16kHz, 16-bit = 16000 * 0.2 * 2 = 6400 bytes
+          hexPreview: hexPreview,
+          isAllZeros: audioData.every(byte => byte === 0)
+        });
+      }
+      
+      // Calculate audio level (RMS) to detect silence
+      const samples = new Int16Array(audioData.buffer, audioData.byteOffset, audioData.length / 2);
+      let sumSquares = 0;
+      for (let i = 0; i < samples.length; i++) {
+        sumSquares += samples[i] * samples[i];
+      }
+      const rms = Math.sqrt(sumSquares / samples.length);
+      const normalizedRMS = rms / 32768; // Normalize to 0-1 range
+      
+      // Log audio level for first chunk and every 50 chunks
+      if (count === 1 || count % 50 === 0) {
+        logger.info(`🎚️ Audio level (${source})`, {
+          rms: rms.toFixed(2),
+          normalizedRMS: normalizedRMS.toFixed(4),
+          isSilent: normalizedRMS < 0.01,
+          isQuiet: normalizedRMS < 0.05,
+          sampleCount: samples.length
+        });
+      }
+      
+      // Warn if audio is suspiciously quiet
+      if (count === 1 && normalizedRMS < 0.01) {
+        logger.warn(`⚠️ First audio chunk is very quiet or silent (${source})`, {
+          normalizedRMS: normalizedRMS.toFixed(4),
+          suggestion: 'Check if audio source is active and volume is sufficient'
+        });
+      }
+
       // Convert Buffer to base64 for Gemini Live API
       const base64Audio = audioData.toString('base64');
 
       // Send audio directly to Gemini Live API
       // Audio format: 16-bit PCM, 16kHz, mono
+      const sendStartTime = Date.now();
       await session.sendRealtimeInput({
         audio: {
           data: base64Audio,
           mimeType: 'audio/pcm;rate=16000'
         }
       });
+      const sendDuration = Date.now() - sendStartTime;
+      
+      if (count === 1) {
+        logger.info(`⏱️ First audio send latency (${source}): ${sendDuration}ms`);
+      }
 
       this.state.lastActivityTime = Date.now();
 
     } catch (error) {
-      logger.error(`Error sending audio to Gemini (${source})`, error as Error);
+      logger.error(`Error sending audio to Gemini (${source})`, error as Error, {
+        errorType: (error as any)?.constructor?.name,
+        errorMessage: (error as any)?.message,
+        chunkNumber: count
+      });
       this.emitError({ source, error });
     }
   }
@@ -296,10 +382,20 @@ export class GeminiLiveQuestionDetector {
 
       // Accumulate text parts in buffer
       if (message.serverContent?.modelTurn?.parts) {
+        let addedText = '';
         for (const part of message.serverContent.modelTurn.parts) {
           if (part.text) {
             this[buffer] += part.text;
+            addedText += part.text;
           }
+        }
+        
+        if (addedText) {
+          logger.info(`📝 Accumulating text in ${source} buffer`, {
+            addedLength: addedText.length,
+            addedText: addedText.substring(0, 100),
+            totalBufferLength: this[buffer].length
+          });
         }
       }
 
@@ -307,9 +403,23 @@ export class GeminiLiveQuestionDetector {
       if (message.serverContent?.turnComplete) {
         const completeText = this[buffer].trim();
 
+        logger.info(`🏁 Turn complete for ${source}`, {
+          bufferLength: completeText.length,
+          text: completeText.substring(0, 200),
+          isEmpty: !completeText
+        });
+
         if (completeText) {
           // Validate the COMPLETE question
-          if (this.looksLikeQuestion(completeText)) {
+          const isQuestion = this.looksLikeQuestion(completeText);
+          
+          logger.info(`🔍 Question validation for ${source}`, {
+            text: completeText,
+            isQuestion: isQuestion,
+            length: completeText.length
+          });
+          
+          if (isQuestion) {
             const question: DetectedQuestion = {
               id: uuidv4(),
               text: completeText,
@@ -320,14 +430,20 @@ export class GeminiLiveQuestionDetector {
               refinedText: completeText
             };
 
-            console.log(`[GeminiLiveQuestionDetector] ❓ Question detected (${source}): "${completeText}"`);
+            logger.info(`❓ Question detected (${source}): "${completeText}"`);
 
             this.state.questionBuffer.push(question);
             this.state.lastActivityTime = Date.now();
 
             this.emitQuestionDetected(question);
             this.emitStateChanged();
+          } else {
+            logger.info(`❌ Text rejected - not a question (${source})`, {
+              text: completeText
+            });
           }
+        } else {
+          logger.warn(`⚠️ Turn complete but buffer is empty (${source})`);
         }
 
         // Clear buffer for next turn
@@ -336,12 +452,15 @@ export class GeminiLiveQuestionDetector {
 
       // Check for interruption (VAD detected user speaking)
       if (message.serverContent?.interrupted) {
-        console.log(`[GeminiLiveQuestionDetector] Generation interrupted for ${source} (VAD) - clearing buffer`);
+        logger.info(`⚡ Generation interrupted for ${source} (VAD) - clearing buffer`, {
+          bufferLength: this[buffer].length,
+          bufferContent: this[buffer].substring(0, 100)
+        });
         this[buffer] = ''; // Clear buffer on interruption
       }
 
     } catch (error) {
-      console.error(`[GeminiLiveQuestionDetector] Error handling message (${source}):`, error);
+      logger.error(`Error handling message (${source})`, error as Error);
     }
   }
 
