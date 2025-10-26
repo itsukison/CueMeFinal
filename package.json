@@ -7,7 +7,7 @@
     "dev": "vite",
     "build:win": "npm run clean && tsc -p electron/tsconfig.json && vite build",
     "build:native": "bash scripts/build-native-binary.sh",
-    "build": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
+    "build": "if [ \"$OSTYPE\" = \"msys\" ] || [ \"$OSTYPE\" = \"cygwin\" ] || [ \"$OSTYPE\" = \"win32\" ]; then npm run build:win; else npm run build:native; fi",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5181 && npm run electron:dev\"",
@@ -187,7 +187,6 @@
     "@supabase/supabase-js": "^2.56.0",
     "audiotee": "^0.0.6",
     "axios": "^1.7.7",
-    "bufferutil": "^4.0.9",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "diff": "^7.0.0",
@@ -206,7 +205,6 @@
     "sharp": "^0.33.5",
     "tailwind-merge": "^2.5.4",
     "tesseract.js": "^5.0.5",
-    "utf-8-validate": "^6.0.5",
     "uuid": "^11.0.3"
   }
 }
