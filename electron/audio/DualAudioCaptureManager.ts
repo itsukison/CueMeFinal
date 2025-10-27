@@ -91,11 +91,33 @@ export class DualAudioCaptureManager extends EventEmitter {
       
       // Log first event and then every 50 events to avoid spam
       if (audioDataEventCount === 1) {
-        logger.info('🔊 FIRST audio-data event received!', {
+        // 🔬 VERIFY: Check buffer state when received by DualAudioCaptureManager
+        const hexPreview = audioData.slice(0, 32).toString('hex');
+        const isAllZeros = audioData.every(byte => byte === 0);
+        
+        // Calculate RMS
+        const samples = new Int16Array(audioData.buffer, audioData.byteOffset, audioData.length / 2);
+        let sumSquares = 0;
+        for (let i = 0; i < samples.length; i++) {
+          sumSquares += samples[i] * samples[i];
+        }
+        const rms = Math.sqrt(sumSquares / samples.length);
+        
+        logger.info('🔊 FIRST audio-data event received (DualAudioCaptureManager)', {
           bufferSize: audioData.length,
+          hexPreview: hexPreview,
+          isAllZeros: isAllZeros,
+          rms: rms.toFixed(2),
           isCapturing: this.isCapturing,
           timestamp: now
         });
+        
+        if (isAllZeros) {
+          logger.error('❌ Buffer is ALL ZEROS when received by DualAudioCaptureManager!', {
+            message: 'Buffer became zeros between SystemAudioCapture emit and DualAudioCaptureManager receive',
+            implication: 'This indicates buffer was overwritten during async event handling'
+          });
+        }
       } else if (audioDataEventCount % 50 === 0) {
         const elapsed = now - lastLogTime;
         logger.info(`🔊 audio-data events: ${audioDataEventCount} total, ${elapsed}ms since last log`, {

@@ -485,11 +485,41 @@ export class SystemAudioCapture extends EventEmitter {
 
         // Log first chunk and every 50 chunks
         if (audioDataCount === 1) {
-          logger.info("🎵 FIRST audio chunk from audiotee", {
+          // 🔬 DETAILED ANALYSIS: Check if buffer is all zeros AT SOURCE
+          const hexPreview = data.slice(0, 32).toString('hex');
+          const isAllZeros = data.every(byte => byte === 0);
+          
+          // Calculate RMS of original buffer
+          const samples = new Int16Array(data.buffer, data.byteOffset, data.length / 2);
+          let sumSquares = 0;
+          for (let i = 0; i < samples.length; i++) {
+            sumSquares += samples[i] * samples[i];
+          }
+          const rms = Math.sqrt(sumSquares / samples.length);
+          const normalizedRMS = rms / 32768;
+          
+          logger.info("🎵 FIRST audio chunk from audiotee (RAW BUFFER ANALYSIS)", {
             bytes: data.length,
+            hexPreview: hexPreview,
+            isAllZeros: isAllZeros,
+            rms: rms.toFixed(2),
+            normalizedRMS: normalizedRMS.toFixed(4),
+            isSilent: normalizedRMS < 0.01,
             listenerCount: this.listenerCount("audio-data"),
             hasListeners: this.listenerCount("audio-data") > 0,
           });
+          
+          if (isAllZeros) {
+            logger.error("❌ CRITICAL: audiotee produced ALL-ZERO buffer!", {
+              message: "The binary is running but producing silent audio",
+              possibleCauses: [
+                "1. macOS Screen Recording permission conflict",
+                "2. Core Audio Taps access denied",
+                "3. Binary lacks proper entitlements",
+                "4. No audio playing on system"
+              ]
+            });
+          }
         } else if (audioDataCount % 50 === 0) {
           const now = Date.now();
           const elapsed = now - lastAudioLogTime;
@@ -509,6 +539,19 @@ export class SystemAudioCapture extends EventEmitter {
         // processes the buffer, audiotee has already overwritten it with new data
         // (or zeros), resulting in corrupted/silent audio.
         const bufferCopy = Buffer.from(data);
+        
+        // 🔬 VERIFY: Check if copy operation preserved data
+        if (audioDataCount === 1) {
+          const copyHexPreview = bufferCopy.slice(0, 32).toString('hex');
+          const copyIsAllZeros = bufferCopy.every(byte => byte === 0);
+          logger.info("📋 Buffer copy verification", {
+            originalLength: data.length,
+            copyLength: bufferCopy.length,
+            copyHexPreview: copyHexPreview,
+            copyIsAllZeros: copyIsAllZeros,
+            copiedSuccessfully: data.length === bufferCopy.length
+          });
+        }
         
         // Emit audio data directly - already in correct format (Int16, mono, 16kHz)!
         logger.debug(`Emitting audio-data event (chunk ${audioDataCount})`);
@@ -531,15 +574,21 @@ export class SystemAudioCapture extends EventEmitter {
             } else if (logMessage.message_type === "error") {
               logger.error("AudioTee error", null, logMessage.data);
               this.emit("error", new Error(logMessage.data.message));
+            } else if (logMessage.message_type === "info") {
+              // 🔬 LOG ALL INFO MESSAGES (not just stream_start)
+              logger.info(`AudioTee [${logMessage.message_type}]`, logMessage.data);
             } else if (logMessage.message_type !== "debug") {
-              logger.debug(
-                `AudioTee [${logMessage.message_type}]`,
-                logMessage.data
-              );
+              // 🔬 LOG ALL NON-DEBUG MESSAGES
+              logger.info(`AudioTee [${logMessage.message_type}]`, logMessage.data);
+            } else {
+              // Even debug messages - log first 10 for diagnostics
+              if (audioDataCount < 10) {
+                logger.debug(`AudioTee [debug]`, logMessage.data);
+              }
             }
           } catch (parseError) {
-            // Not JSON, just log it
-            logger.debug("AudioTee output:", line);
+            // Not JSON, just log it (could be raw output)
+            logger.info("AudioTee raw output:", line);
           }
         }
       });

@@ -242,18 +242,29 @@ export class GeminiLiveQuestionDetector {
   private buildSystemPrompt(source: 'user' | 'opponent'): string {
     const sourceLabel = source === 'user' ? 'ユーザー' : '相手';
 
-    return `${sourceLabel}の音声から完全な質問のみを検出してください。
+    return `あなたは質問検出専用のAIです。${sourceLabel}の音声を聞いて、質問が発せられたら、その質問文だけを出力してください。
 
-ルール:
+**重要な制約:**
+- 質問に対する回答は絶対にしない
+- 会話をしない
+- 自分の意見を述べない
+- 質問でない文には何も出力しない
+- 質問が聞こえたら、その質問文のみを出力する
+
+**出力ルール:**
 - 質問が完全に終わるまで待つ
 - フィラーワード（えー、あー、うーん）を除去
 - 自然な日本語で返す（スペースなし）
-- 質問でない文は無視
 - 一度に一つの完全な質問のみ返す
 
-質問形式: 〜ですか、〜ますか、〜ください、〜もらえますか、どう/何/なぜ/誰/いつ/どこで始まる文
+**質問形式:** 〜ですか、〜ますか、〜ください、〜もらえますか、どう/何/なぜ/誰/いつ/どこで始まる文
 
-例: "えーと、それはどうやって実装するんですか？" → "それはどうやって実装するんですか？"`;
+**例:**
+入力: "えーと、それはどうやって実装するんですか？"
+出力: "それはどうやって実装するんですか？"
+
+入力: "今日はいい天気ですね"
+出力: (何も出力しない - 質問ではないため)`;
   }
 
   // Track audio sending for logging
@@ -466,9 +477,27 @@ export class GeminiLiveQuestionDetector {
 
   /**
    * Validate that text is a complete, well-formed question
-   * SIMPLIFIED - only essential checks
+   * ENHANCED - rejects auto-generated responses from Gemini
    */
   private looksLikeQuestion(text: string): boolean {
+    // Reject if looks like a response/answer (common response patterns)
+    const responsePatterns = [
+      /^はい[、。]/,                    // "はい、" (Yes,)
+      /^いいえ[、。]/,                  // "いいえ、" (No,)
+      /^えっと[、。]/,                  // "えっと、" (Um,)
+      /^そうですね[、。]/,              // "そうですね、" (Well,)
+      /私の|私は/,                     // "私の" "私は" (my/I) - likely a personal response
+      /成功体験|経験|思います|考えます/,  // Common answer keywords
+      /でした[。、]?$/,                // Ends with past tense statement
+      /です[。、]?$/,                   // Ends with statement (not question)
+      /ました[。、]?$/,                 // Past tense statement ending
+    ];
+
+    if (responsePatterns.some(pattern => pattern.test(text))) {
+      logger.info(`❌ Rejected: Looks like a response/answer, not a question: "${text}"`);
+      return false;
+    }
+
     // Reject if ends with incomplete markers (particles/connectors)
     const incompleteEndings = [
       /、$/,              // Ends with comma
@@ -479,14 +508,14 @@ export class GeminiLiveQuestionDetector {
     ];
 
     if (incompleteEndings.some(pattern => pattern.test(text))) {
-      console.log(`[GeminiLiveQuestionDetector] Rejected: Incomplete ending: "${text}"`);
+      logger.info(`❌ Rejected: Incomplete ending: "${text}"`);
       return false;
     }
 
     // Reject if excessive spaces (poor transcription)
     const spaceRatio = (text.match(/ /g) || []).length / text.replace(/ /g, '').length;
     if (spaceRatio > 0.3) {
-      console.log(`[GeminiLiveQuestionDetector] Rejected: Too many spaces: "${text}"`);
+      logger.info(`❌ Rejected: Too many spaces: "${text}"`);
       return false;
     }
 
@@ -504,7 +533,7 @@ export class GeminiLiveQuestionDetector {
     const isQuestion = questionPatterns.some(pattern => pattern.test(text));
 
     if (!isQuestion) {
-      console.log(`[GeminiLiveQuestionDetector] Rejected: Not a question: "${text}"`);
+      logger.info(`❌ Rejected: Not a question: "${text}"`);
     }
 
     return isQuestion;
