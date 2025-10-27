@@ -441,6 +441,7 @@ npm run app:build
 - [Code Restructure Plan](.agent/tasks/CODE_RESTRUCTURE.md)
 - [Persistent Authentication](.agent/tasks/PERSISTENT_AUTH.md) - ✅ Completed
 - [Question Detection Speed Optimization](.agent/tasks/QUESTION_DETECTION_SPEED_OPTIMIZATION.md) - ✅ Phase 1 & 2A Completed
+- [Live Detection Pricing & Usage Limits](.agent/tasks/LIVE_DETECTION_PRICING.md) - 📋 Ready for Implementation
 - [Agent Rules](.agent/rule.MD)
 
 ---
@@ -457,7 +458,7 @@ For issues, questions, or contributions, please refer to the project repository.
 
 ---
 
-**Last Updated:** 2025/10/11
+**Last Updated:** 2025/10/27
 **Version:** 1.0.52
 **Status:** Active Development
 
@@ -466,3 +467,4 @@ For issues, questions, or contributions, please refer to the project repository.
 - ✅ Background noise filtering implemented
 - ✅ Expanded question pattern matching (35+ patterns)
 - ✅ Streaming detection interval reduced to 200ms
+- 📋 Live detection usage limits planned (Free: 30min, Basic: 300min, Premium: 1500min)

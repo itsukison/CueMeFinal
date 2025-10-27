@@ -356,9 +356,15 @@ export class SystemAudioCapture extends EventEmitter {
     logger.methodEntry("findAudioTeeBinary");
 
     // Try multiple possible locations
-    // IMPORTANT: Check app.asar.unpacked FIRST because binaries cannot be executed from inside app.asar
+    // PRIORITY ORDER:
+    // 1. Custom-built binary with embedded Info.plist (HIGHEST PRIORITY)
+    // 2. app.asar.unpacked (production)
+    // 3. Development locations
     const possiblePaths = [
-      // Production: app.asar.unpacked (MUST BE FIRST - binaries can't run from inside asar)
+      // 🔥 CUSTOM BINARY: Built with embedded Info.plist for macOS 14.2+ support
+      path.join(process.resourcesPath, "custom-binaries", "audiotee"),
+      
+      // Production: app.asar.unpacked (binaries cannot be executed from inside app.asar)
       path.join(
         process.resourcesPath,
         "app.asar.unpacked",
@@ -367,6 +373,7 @@ export class SystemAudioCapture extends EventEmitter {
         "bin",
         "audiotee"
       ),
+      
       // Production: direct in resources (fallback)
       path.join(
         process.resourcesPath,
@@ -375,8 +382,13 @@ export class SystemAudioCapture extends EventEmitter {
         "bin",
         "audiotee"
       ),
+      
+      // Development: custom-binaries in project root
+      path.join(process.cwd(), "custom-binaries", "audiotee"),
+      
       // Development: node_modules relative to electron code
       path.join(__dirname, "..", "node_modules", "audiotee", "bin", "audiotee"),
+      
       // Development: node_modules in cwd
       path.join(process.cwd(), "node_modules", "audiotee", "bin", "audiotee"),
     ];
@@ -398,13 +410,35 @@ export class SystemAudioCapture extends EventEmitter {
           const stats = fs.statSync(binaryPath);
           const isExecutable = !!(stats.mode & fs.constants.S_IXUSR);
 
+          // 🔬 Check if this binary has embedded Info.plist (CRITICAL for macOS 14.2+)
+          let hasInfoPlist = false;
+          try {
+            const { execSync } = require('child_process');
+            const otoolOutput = execSync(`otool -l "${binaryPath}" | grep -c __info_plist || echo 0`, {
+              encoding: 'utf8',
+              timeout: 5000
+            }).trim();
+            hasInfoPlist = parseInt(otoolOutput) > 0;
+          } catch (otoolError) {
+            logger.warn('Could not check Info.plist embedding', otoolError);
+          }
+
           logger.info("✅ Found audiotee binary", {
             path: binaryPath,
             size: stats.size,
             mode: stats.mode.toString(8),
             isExecutable,
             isFile: stats.isFile(),
+            hasInfoPlist: hasInfoPlist,
+            macOS14Support: hasInfoPlist ? '✅ YES (Info.plist embedded)' : '⚠️  NO (may fail on macOS 14.2+)'
           });
+          
+          if (hasInfoPlist) {
+            logger.info('🎉 Using binary with embedded Info.plist - full macOS 14.2+ support!');
+          } else {
+            logger.warn('⚠️  Binary lacks embedded Info.plist - may fail on macOS 14.2+');
+            logger.warn('   Consider rebuilding with custom-audiotee/build.sh');
+          }
 
           if (!isExecutable) {
             logger.warn(
