@@ -24,9 +24,9 @@ function processAudioteeBinary(binaryPath) {
     // CRITICAL: Remove quarantine attribute to allow Core Audio Taps access
     console.log("🧹 Removing quarantine attribute...");
     try {
-      execSync(`xattr -d com.apple.quarantine "${binaryPath}"`, { 
+      execSync(`xattr -d com.apple.quarantine "${binaryPath}"`, {
         stdio: "pipe",
-        timeout: 5000 
+        timeout: 5000,
       });
       console.log("✅ Quarantine removed - binary can access Core Audio Taps");
     } catch (xattrError) {
@@ -169,8 +169,19 @@ module.exports = async function (context) {
   const appPath = path.join(appOutDir, `${appName}.app`);
   const resourcesPath = path.join(appPath, "Contents", "Resources");
 
-  // UPDATED: Sign the audiotee binary (not SystemAudioCapture)
-  const binaryPath = path.join(
+  console.log(`📦 App path: ${appPath}`);
+  console.log(`📂 Resources path: ${resourcesPath}`);
+
+  // PRIORITY: Process custom binary FIRST (has Info.plist)
+  const customBinaryPath = path.join(
+    resourcesPath,
+    "app.asar.unpacked",
+    "custom-binaries",
+    "audiotee"
+  );
+
+  // Fallback: npm package binary (no Info.plist)
+  const npmBinaryPath = path.join(
     resourcesPath,
     "app.asar.unpacked",
     "node_modules",
@@ -179,43 +190,51 @@ module.exports = async function (context) {
     "audiotee"
   );
 
-  console.log(`📦 App path: ${appPath}`);
-  console.log(`📂 Resources path: ${resourcesPath}`);
-  console.log(`🔨 Audiotee binary path: ${binaryPath}`);
-
-  // Check if binary exists
-  if (!fs.existsSync(binaryPath)) {
-    console.warn(`⚠️  Audiotee binary not found at: ${binaryPath}`);
-    console.warn("   Checking alternative location...");
-
-    // Check if custom binary exists
-    const customBinaryPath = path.join(
-      resourcesPath,
-      "custom-binaries",
-      "audiotee"
+  // Check custom binary FIRST
+  if (fs.existsSync(customBinaryPath)) {
+    console.log(
+      `✅ Found custom audiotee binary (with Info.plist): ${customBinaryPath}`
     );
-    if (fs.existsSync(customBinaryPath)) {
-      console.log(`✅ Found custom audiotee binary at: ${customBinaryPath}`);
-      // Continue with custom binary path
-      return processAudioteeBinary(customBinaryPath);
+    try {
+      const success = processAudioteeBinary(customBinaryPath);
+      if (!success) {
+        console.warn(
+          "⚠️  Failed to process custom binary, but continuing build..."
+        );
+      }
+    } catch (error) {
+      console.error("\n❌ afterPack hook failed:", error);
+      console.error("   Audio capture may not work in production!\n");
     }
-
-    console.warn("   System audio capture may not work in production!");
     return;
   }
 
-  try {
-    // Process the audiotee binary
-    const success = processAudioteeBinary(binaryPath);
-
-    if (!success) {
-      console.warn(
-        "⚠️  Failed to process audiotee binary, but continuing build..."
-      );
+  // Fallback to npm binary if custom not found
+  if (fs.existsSync(npmBinaryPath)) {
+    console.warn(
+      `⚠️  Custom binary not found, using npm package binary: ${npmBinaryPath}`
+    );
+    console.warn(
+      "   NOTE: npm binary lacks Info.plist - may fail on macOS 14.2+"
+    );
+    try {
+      const success = processAudioteeBinary(npmBinaryPath);
+      if (!success) {
+        console.warn(
+          "⚠️  Failed to process npm binary, but continuing build..."
+        );
+      }
+    } catch (error) {
+      console.error("\n❌ afterPack hook failed:", error);
+      console.error("   Audio capture may not work in production!\n");
     }
-  } catch (error) {
-    console.error("\n❌ afterPack hook failed:", error);
-    console.error("   Audio capture may not work in production!\n");
-    // Don't throw - allow build to continue
+    return;
   }
+
+  // No binary found
+  console.error("❌ No audiotee binary found!");
+  console.error(`   Checked paths:`);
+  console.error(`   - ${customBinaryPath}`);
+  console.error(`   - ${npmBinaryPath}`);
+  console.warn("   System audio capture will not work in production!");
 };
