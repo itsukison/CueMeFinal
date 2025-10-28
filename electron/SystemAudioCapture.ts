@@ -362,9 +362,13 @@ export class SystemAudioCapture extends EventEmitter {
     // 3. Development locations
     const possiblePaths = [
       // 🔥 CUSTOM BINARY: Built with embedded Info.plist for macOS 14.2+ support
+      // CRITICAL: In production, custom-binaries is inside app.asar.unpacked!
+      path.join(process.resourcesPath, "app.asar.unpacked", "custom-binaries", "audiotee"),
+      
+      // Fallback: Development location (custom-binaries at root level)
       path.join(process.resourcesPath, "custom-binaries", "audiotee"),
       
-      // Production: app.asar.unpacked (binaries cannot be executed from inside app.asar)
+      // Production: npm audiotee package (NO Info.plist - will fail on macOS 14.2+)
       path.join(
         process.resourcesPath,
         "app.asar.unpacked",
