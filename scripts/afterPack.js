@@ -21,6 +21,18 @@ function processAudioteeBinary(binaryPath) {
     fs.chmodSync(binaryPath, 0o755);
     console.log("✅ Execute permissions set (755)");
 
+    // CRITICAL: Remove quarantine attribute to allow Core Audio Taps access
+    console.log("🧹 Removing quarantine attribute...");
+    try {
+      execSync(`xattr -d com.apple.quarantine "${binaryPath}"`, { 
+        stdio: "pipe",
+        timeout: 5000 
+      });
+      console.log("✅ Quarantine removed - binary can access Core Audio Taps");
+    } catch (xattrError) {
+      console.log("ℹ️  No quarantine attribute (already clean)");
+    }
+
     // Step 2: Get signing identity
     const identity =
       process.env.APPLE_IDENTITY ||
