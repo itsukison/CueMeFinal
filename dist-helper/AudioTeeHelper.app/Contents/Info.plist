@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Helper App Identity -->
+    <key>CFBundleIdentifier</key>
+    <string>com.cueme.audiotee-helper</string>
+
+    <key>CFBundleName</key>
+    <string>AudioTee Helper</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>CueMe Audio Capture Helper</string>
+
+    <key>CFBundleExecutable</key>
+    <string>audiotee</string>
+
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <!-- CRITICAL: System Audio Permission -->
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>CueMe Audio Helper captures system audio for real-time interview question detection and coding assistance. This helper app is part of CueMe and only runs when you enable system audio capture.</string>
+
+    <!-- Background Helper -->
+    <key>LSBackgroundOnly</key>
+    <string>1</string>
+
+    <!-- Agent (no dock icon) -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <!-- Minimum macOS Version -->
+    <key>LSMinimumSystemVersion</key>
+    <string>14.2</string>
+</dict>
+</plist>

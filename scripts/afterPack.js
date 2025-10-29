@@ -10,6 +10,55 @@ const path = require("path");
 const { execSync } = require("child_process");
 
 /**
+ * Process and sign the helper app
+ */
+function processHelperApp(appPath) {
+  console.log("\n🔧 Processing helper app...");
+
+  const helperPath = path.join(
+    appPath,
+    "Contents",
+    "Library",
+    "LoginItems",
+    "AudioTeeHelper.app"
+  );
+
+  if (!fs.existsSync(helperPath)) {
+    console.error("❌ Helper app not found at:", helperPath);
+    return false;
+  }
+
+  console.log("✅ Found helper app:", helperPath);
+
+  try {
+    // Verify helper app signature
+    const verifyCommand = `codesign --verify --deep --strict --verbose=2 "${helperPath}"`;
+    execSync(verifyCommand, { stdio: "inherit", timeout: 10000 });
+    console.log("✅ Helper app signature verified");
+
+    // Check Info.plist
+    const infoPlistPath = path.join(helperPath, "Contents", "Info.plist");
+    if (fs.existsSync(infoPlistPath)) {
+      console.log("✅ Helper app Info.plist found");
+
+      // Verify bundle identifier
+      const bundleIdCommand = `defaults read "${infoPlistPath}" CFBundleIdentifier`;
+      const bundleId = execSync(bundleIdCommand, { encoding: "utf8" }).trim();
+      console.log("   Bundle ID:", bundleId);
+
+      if (bundleId !== "com.cueme.audiotee-helper") {
+        console.warn("⚠️  Unexpected bundle ID:", bundleId);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error("❌ Helper app processing failed:", error.message);
+    return false;
+  }
+}
+
+/**
  * Process and sign the audiotee binary with proper entitlements
  */
 function processAudioteeBinary(binaryPath) {
@@ -171,6 +220,13 @@ module.exports = async function (context) {
 
   console.log(`📦 App path: ${appPath}`);
   console.log(`📂 Resources path: ${resourcesPath}`);
+
+  // Process helper app
+  console.log("\n📦 Processing helper app...");
+  const helperSuccess = processHelperApp(appPath);
+  if (!helperSuccess) {
+    console.warn("⚠️  Helper app processing failed, but continuing build...");
+  }
 
   // PRIORITY: Process custom binary FIRST (has Info.plist)
   const customBinaryPath = path.join(
