@@ -358,10 +358,9 @@ export class SystemAudioCapture extends EventEmitter {
 
     // Try multiple possible locations for the helper app
     const possiblePaths = [
-      // Production: Inside main app bundle
+      // Production: Inside Resources (electron-builder extraResources location)
       path.join(
         process.resourcesPath,
-        "..",
         "Library",
         "LoginItems",
         "AudioTeeHelper.app",
@@ -370,10 +369,9 @@ export class SystemAudioCapture extends EventEmitter {
         "audiotee"
       ),
 
-      // Alternative production path
+      // Alternative: Direct in Contents/Library (if manually placed)
       path.join(
-        app.getAppPath(),
-        "..",
+        process.resourcesPath,
         "..",
         "Library",
         "LoginItems",
