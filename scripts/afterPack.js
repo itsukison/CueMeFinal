@@ -10,10 +10,10 @@ const path = require("path");
 const { execSync } = require("child_process");
 
 /**
- * Process and sign the helper app
+ * Process and verify the helper app (DO NOT re-sign - already signed correctly)
  */
 function processHelperApp(appPath) {
-  console.log("\n🔧 Processing helper app...");
+  console.log("\n🔧 Verifying helper app...");
 
   const helperPath = path.join(
     appPath,
@@ -31,7 +31,8 @@ function processHelperApp(appPath) {
   console.log("✅ Found helper app:", helperPath);
 
   try {
-    // Verify helper app signature
+    // Verify helper app signature (but do NOT re-sign it!)
+    // The helper was already signed correctly by build-helper-app.sh
     const verifyCommand = `codesign --verify --deep --strict --verbose=2 "${helperPath}"`;
     execSync(verifyCommand, { stdio: "inherit", timeout: 10000 });
     console.log("✅ Helper app signature verified");
@@ -51,9 +52,44 @@ function processHelperApp(appPath) {
       }
     }
 
+    // CRITICAL: Verify entitlements are correct
+    console.log("\n🔍 Verifying helper app entitlements...");
+    const entitlementsCommand = `codesign -d --entitlements - "${helperPath}" 2>&1`;
+    const entitlementsOutput = execSync(entitlementsCommand, {
+      encoding: "utf8",
+      timeout: 10000,
+    });
+
+    // Check for critical entitlements
+    const hasScreenCapture = entitlementsOutput.includes(
+      "com.apple.security.device.screen-capture"
+    );
+    const hasSandboxFalse =
+      entitlementsOutput.includes("com.apple.security.app-sandbox") &&
+      entitlementsOutput.match(
+        /com\.apple\.security\.app-sandbox[\s\S]*?\[Bool\]\s*false/i
+      );
+
+    if (hasScreenCapture) {
+      console.log("✅ Helper has screen-capture entitlement");
+    } else {
+      console.error("❌ CRITICAL: Helper missing screen-capture entitlement!");
+      console.error("   System audio capture will NOT work!");
+      return false;
+    }
+
+    if (hasSandboxFalse) {
+      console.log("✅ Helper has app-sandbox disabled");
+    } else {
+      console.warn(
+        "⚠️  Helper may have app-sandbox enabled (could prevent Core Audio Taps)"
+      );
+    }
+
+    console.log("\n✅ Helper app verification complete");
     return true;
   } catch (error) {
-    console.error("❌ Helper app processing failed:", error.message);
+    console.error("❌ Helper app verification failed:", error.message);
     return false;
   }
 }
