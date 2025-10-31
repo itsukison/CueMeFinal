@@ -10,11 +10,11 @@ const path = require("path");
 const { execSync } = require("child_process");
 
 /**
- * Sign and verify the helper app with correct entitlements
- * This is where the ACTUAL signing happens (not in build-helper-app.sh)
+ * Verify the helper app exists and has correct structure
+ * Actual signing happens in afterAllArtifactBuild.js
  */
 function processHelperApp(appPath) {
-  console.log("\n🔧 Signing and verifying helper app...");
+  console.log("\n🔧 Verifying helper app structure...");
 
   const helperPath = path.join(
     appPath,
@@ -31,124 +31,24 @@ function processHelperApp(appPath) {
 
   console.log("✅ Found helper app:", helperPath);
 
-  try {
-    // Get signing identity from environment (set by electron-builder)
-    const identity =
-      process.env.CSC_NAME ||
-      process.env.APPLE_IDENTITY ||
-      process.env.CSC_IDENTITY_AUTO_DISCOVERY;
+  // Check Info.plist
+  const infoPlistPath = path.join(helperPath, "Contents", "Info.plist");
+  if (fs.existsSync(infoPlistPath)) {
+    console.log("✅ Helper app Info.plist found");
 
-    if (!identity || identity === "-") {
-      console.warn(
-        "⚠️  No signing identity found - helper app will remain unsigned"
-      );
-      console.warn(
-        "   This is OK for development, but REQUIRED for production!"
-      );
-      return true; // Don't fail the build in development
+    // Verify bundle identifier
+    const bundleIdCommand = `defaults read "${infoPlistPath}" CFBundleIdentifier`;
+    const bundleId = execSync(bundleIdCommand, { encoding: "utf8" }).trim();
+    console.log("   Bundle ID:", bundleId);
+
+    if (bundleId !== "com.cueme.audiotee-helper") {
+      console.warn("⚠️  Unexpected bundle ID:", bundleId);
     }
-
-    console.log("🔐 Using signing identity:", identity);
-
-    // Path to helper-specific entitlements
-    const helperEntitlementsPath = path.join(
-      process.cwd(),
-      "helper-apps",
-      "AudioTeeHelper",
-      "entitlements.plist"
-    );
-
-    if (!fs.existsSync(helperEntitlementsPath)) {
-      console.error(
-        "❌ Helper entitlements not found at:",
-        helperEntitlementsPath
-      );
-      return false;
-    }
-
-    console.log("📜 Using helper entitlements:", helperEntitlementsPath);
-
-    // Sign the binary first
-    const binaryPath = path.join(helperPath, "Contents", "MacOS", "audiotee");
-    console.log("🔏 Signing helper binary...");
-
-    const signBinaryCommand = `codesign --force --sign "${identity}" --options runtime --entitlements "${helperEntitlementsPath}" --timestamp "${binaryPath}"`;
-    execSync(signBinaryCommand, { stdio: "inherit", timeout: 30000 });
-    console.log("✅ Helper binary signed");
-
-    // Sign the app bundle
-    console.log("🔏 Signing helper app bundle...");
-    const signAppCommand = `codesign --force --sign "${identity}" --options runtime --entitlements "${helperEntitlementsPath}" --timestamp "${helperPath}"`;
-    execSync(signAppCommand, { stdio: "inherit", timeout: 30000 });
-    console.log("✅ Helper app bundle signed");
-
-    // Verify signature
-    console.log("🔍 Verifying helper app signature...");
-    const verifyCommand = `codesign --verify --deep --strict --verbose=2 "${helperPath}"`;
-    execSync(verifyCommand, { stdio: "inherit", timeout: 10000 });
-    console.log("✅ Helper app signature verified");
-
-    // Check Info.plist
-    const infoPlistPath = path.join(helperPath, "Contents", "Info.plist");
-    if (fs.existsSync(infoPlistPath)) {
-      console.log("✅ Helper app Info.plist found");
-
-      // Verify bundle identifier
-      const bundleIdCommand = `defaults read "${infoPlistPath}" CFBundleIdentifier`;
-      const bundleId = execSync(bundleIdCommand, { encoding: "utf8" }).trim();
-      console.log("   Bundle ID:", bundleId);
-
-      if (bundleId !== "com.cueme.audiotee-helper") {
-        console.warn("⚠️  Unexpected bundle ID:", bundleId);
-      }
-    }
-
-    // CRITICAL: Verify entitlements are correct
-    console.log("\n🔍 Verifying helper app entitlements...");
-    const entitlementsCommand = `codesign -d --entitlements - "${helperPath}" 2>&1`;
-    const entitlementsOutput = execSync(entitlementsCommand, {
-      encoding: "utf8",
-      timeout: 10000,
-    });
-
-    // Check for critical entitlements
-    const hasScreenCapture = entitlementsOutput.includes(
-      "com.apple.security.device.screen-capture"
-    );
-    const hasSandboxFalse =
-      entitlementsOutput.includes("com.apple.security.app-sandbox") &&
-      entitlementsOutput.match(
-        /com\.apple\.security\.app-sandbox[\s\S]*?\[Bool\]\s*false/i
-      );
-
-    if (hasScreenCapture) {
-      console.log("✅ Helper has screen-capture entitlement");
-    } else {
-      console.error("❌ CRITICAL: Helper missing screen-capture entitlement!");
-      console.error("   System audio capture will NOT work!");
-      console.error("   Entitlements output:", entitlementsOutput);
-      return false;
-    }
-
-    if (hasSandboxFalse) {
-      console.log("✅ Helper has app-sandbox disabled");
-    } else if (entitlementsOutput.includes("com.apple.security.app-sandbox")) {
-      console.error(
-        "❌ CRITICAL: Helper has app-sandbox ENABLED (should be false)!"
-      );
-      console.error("   Core Audio Taps will be blocked!");
-      return false;
-    } else {
-      console.log("✅ Helper has no app-sandbox (defaults to disabled)");
-    }
-
-    console.log("\n✅ Helper app signing and verification complete");
-    return true;
-  } catch (error) {
-    console.error("❌ Helper app processing failed:", error.message);
-    console.error("   This will cause system audio capture to fail!");
-    return false;
   }
+
+  console.log("\n✅ Helper app structure verified");
+  console.log("   (Signing will happen in afterAllArtifactBuild hook)");
+  return true;
 }
 
 /**
