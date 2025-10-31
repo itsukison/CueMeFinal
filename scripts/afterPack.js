@@ -10,10 +10,11 @@ const path = require("path");
 const { execSync } = require("child_process");
 
 /**
- * Process and verify the helper app (DO NOT re-sign - already signed correctly)
+ * Sign and verify the helper app with correct entitlements
+ * This is where the ACTUAL signing happens (not in build-helper-app.sh)
  */
 function processHelperApp(appPath) {
-  console.log("\n🔧 Verifying helper app...");
+  console.log("\n🔧 Signing and verifying helper app...");
 
   const helperPath = path.join(
     appPath,
@@ -31,8 +32,58 @@ function processHelperApp(appPath) {
   console.log("✅ Found helper app:", helperPath);
 
   try {
-    // Verify helper app signature (but do NOT re-sign it!)
-    // The helper was already signed correctly by build-helper-app.sh
+    // Get signing identity from environment (set by electron-builder)
+    const identity =
+      process.env.CSC_NAME ||
+      process.env.APPLE_IDENTITY ||
+      process.env.CSC_IDENTITY_AUTO_DISCOVERY;
+
+    if (!identity || identity === "-") {
+      console.warn(
+        "⚠️  No signing identity found - helper app will remain unsigned"
+      );
+      console.warn(
+        "   This is OK for development, but REQUIRED for production!"
+      );
+      return true; // Don't fail the build in development
+    }
+
+    console.log("🔐 Using signing identity:", identity);
+
+    // Path to helper-specific entitlements
+    const helperEntitlementsPath = path.join(
+      process.cwd(),
+      "helper-apps",
+      "AudioTeeHelper",
+      "entitlements.plist"
+    );
+
+    if (!fs.existsSync(helperEntitlementsPath)) {
+      console.error(
+        "❌ Helper entitlements not found at:",
+        helperEntitlementsPath
+      );
+      return false;
+    }
+
+    console.log("📜 Using helper entitlements:", helperEntitlementsPath);
+
+    // Sign the binary first
+    const binaryPath = path.join(helperPath, "Contents", "MacOS", "audiotee");
+    console.log("🔏 Signing helper binary...");
+
+    const signBinaryCommand = `codesign --force --sign "${identity}" --options runtime --entitlements "${helperEntitlementsPath}" --timestamp "${binaryPath}"`;
+    execSync(signBinaryCommand, { stdio: "inherit", timeout: 30000 });
+    console.log("✅ Helper binary signed");
+
+    // Sign the app bundle
+    console.log("🔏 Signing helper app bundle...");
+    const signAppCommand = `codesign --force --sign "${identity}" --options runtime --entitlements "${helperEntitlementsPath}" --timestamp "${helperPath}"`;
+    execSync(signAppCommand, { stdio: "inherit", timeout: 30000 });
+    console.log("✅ Helper app bundle signed");
+
+    // Verify signature
+    console.log("🔍 Verifying helper app signature...");
     const verifyCommand = `codesign --verify --deep --strict --verbose=2 "${helperPath}"`;
     execSync(verifyCommand, { stdio: "inherit", timeout: 10000 });
     console.log("✅ Helper app signature verified");
@@ -75,21 +126,27 @@ function processHelperApp(appPath) {
     } else {
       console.error("❌ CRITICAL: Helper missing screen-capture entitlement!");
       console.error("   System audio capture will NOT work!");
+      console.error("   Entitlements output:", entitlementsOutput);
       return false;
     }
 
     if (hasSandboxFalse) {
       console.log("✅ Helper has app-sandbox disabled");
-    } else {
-      console.warn(
-        "⚠️  Helper may have app-sandbox enabled (could prevent Core Audio Taps)"
+    } else if (entitlementsOutput.includes("com.apple.security.app-sandbox")) {
+      console.error(
+        "❌ CRITICAL: Helper has app-sandbox ENABLED (should be false)!"
       );
+      console.error("   Core Audio Taps will be blocked!");
+      return false;
+    } else {
+      console.log("✅ Helper has no app-sandbox (defaults to disabled)");
     }
 
-    console.log("\n✅ Helper app verification complete");
+    console.log("\n✅ Helper app signing and verification complete");
     return true;
   } catch (error) {
-    console.error("❌ Helper app verification failed:", error.message);
+    console.error("❌ Helper app processing failed:", error.message);
+    console.error("   This will cause system audio capture to fail!");
     return false;
   }
 }

@@ -61,94 +61,17 @@ if [ ! -f "$ENTITLEMENTS" ]; then
     exit 1
 fi
 
-# Check if we have a valid signing identity
-if [ -z "$IDENTITY" ]; then
-    # Try to find a valid Developer ID
-    IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk -F'"' '{print $2}')
-fi
+# NOTE: Code signing is intentionally SKIPPED here!
+# Reason: In GitHub Actions, CSC_NAME is not available during the build phase.
+# electron-builder extracts the signing certificate later, so we sign in afterPack.js instead.
+# This ensures the helper app gets signed with the CORRECT entitlements.
 
-if [ -z "$IDENTITY" ] || [ "$IDENTITY" = "Developer ID Application" ]; then
-    echo -e "${YELLOW}⚠️  No valid signing identity found - using ad-hoc signing${NC}"
-    echo "   This is OK for development, but production builds need proper signing"
-    IDENTITY="-"
-    
-    # Ad-hoc sign the binary with deep option to prevent re-signing
-    codesign --force --deep --sign "$IDENTITY" \
-        --entitlements "$ENTITLEMENTS" \
-        "$HELPER_APP/Contents/MacOS/audiotee"
-    
-    # Ad-hoc sign the app bundle
-    codesign --force --deep --sign "$IDENTITY" \
-        --entitlements "$ENTITLEMENTS" \
-        "$HELPER_APP"
-else
-    echo -e "${GREEN}✅ Using signing identity: $IDENTITY${NC}"
-    
-    # CRITICAL: Sign with deep option and preserve entitlements
-    # This prevents electron-builder from re-signing with wrong entitlements
-    
-    # Sign the binary first with full options
-    codesign --force --deep --sign "$IDENTITY" \
-        --options runtime \
-        --entitlements "$ENTITLEMENTS" \
-        --timestamp \
-        "$HELPER_APP/Contents/MacOS/audiotee"
-    
-    # Then sign the app bundle with the same entitlements
-    codesign --force --deep --sign "$IDENTITY" \
-        --options runtime \
-        --entitlements "$ENTITLEMENTS" \
-        --timestamp \
-        "$HELPER_APP"
-fi
-
-# Verify signature
-echo "🔍 Verifying signature..."
-codesign --verify --deep --strict --verbose=2 "$HELPER_APP"
-
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Signature verification failed${NC}"
-    exit 1
-fi
-
-# CRITICAL: Verify entitlements are correct
-echo "🔍 Verifying entitlements..."
-codesign -d --entitlements - "$HELPER_APP" 2>&1 > /tmp/helper-entitlements.txt
-
-if grep -q "com.apple.security.device.screen-capture" /tmp/helper-entitlements.txt; then
-    echo -e "${GREEN}✅ screen-capture entitlement present${NC}"
-else
-    echo -e "${RED}❌ CRITICAL: screen-capture entitlement MISSING!${NC}"
-    echo "   Helper will not be able to capture system audio"
-    exit 1
-fi
-
-if grep -q "com.apple.security.app-sandbox" /tmp/helper-entitlements.txt; then
-    # Check if it's set to false
-    if grep -A 2 "com.apple.security.app-sandbox" /tmp/helper-entitlements.txt | grep -q "false"; then
-        echo -e "${GREEN}✅ app-sandbox disabled (required for Core Audio Taps)${NC}"
-    else
-        echo -e "${RED}❌ CRITICAL: app-sandbox is enabled (should be false)!${NC}"
-        exit 1
-    fi
-else
-    echo -e "${YELLOW}⚠️  app-sandbox entitlement not found (may default to false)${NC}"
-fi
-
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Helper app signed successfully${NC}"
-else
-    echo -e "${RED}❌ Signature verification failed${NC}"
-    exit 1
-fi
-
-# Display info
 echo ""
-echo "📊 Helper App Information:"
+echo "📦 Helper app bundle created successfully (unsigned)"
 echo "   Location: $HELPER_APP"
 echo "   Size: $(du -sh "$HELPER_APP" | awk '{print $1}')"
 echo ""
-codesign -dv "$HELPER_APP" 2>&1 | head -10
-
+echo "⚠️  Note: Helper app will be signed in afterPack.js with correct entitlements"
+echo "   Entitlements file: $ENTITLEMENTS"
 echo ""
-echo -e "${GREEN}✅ AudioTeeHelper.app built successfully!${NC}"
+echo -e "${GREEN}✅ AudioTeeHelper.app built successfully (will be signed during packaging)!${NC}"
