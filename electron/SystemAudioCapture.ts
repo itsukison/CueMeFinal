@@ -351,94 +351,41 @@ export class SystemAudioCapture extends EventEmitter {
   }
 
   /**
-   * Find the AudioTeeHelper.app path
+   * Get the audiotee binary path (following article's approach)
+   * https://stronglytyped.uk/articles/packaging-shipping-electron-apps-audiotee
    */
-  private findHelperApp(): string {
-    logger.methodEntry("findHelperApp");
+  private getAudioteeBinaryPath(): string | undefined {
+    logger.methodEntry("getAudioteeBinaryPath");
 
-    // Try multiple possible locations for the helper app
-    const possiblePaths = [
-      // Production: Inside Resources (electron-builder extraResources location)
-      path.join(
-        process.resourcesPath,
-        "Library",
-        "LoginItems",
-        "AudioTeeHelper.app",
-        "Contents",
-        "MacOS",
-        "audiotee"
-      ),
-
-      // Alternative: Direct in Contents/Library (if manually placed)
-      path.join(
-        process.resourcesPath,
-        "..",
-        "Library",
-        "LoginItems",
-        "AudioTeeHelper.app",
-        "Contents",
-        "MacOS",
-        "audiotee"
-      ),
-
-      // Development: dist-helper
-      path.join(
-        process.cwd(),
-        "dist-helper",
-        "AudioTeeHelper.app",
-        "Contents",
-        "MacOS",
-        "audiotee"
-      ),
-
-      // Fallback: Old custom binary location (for testing)
-      path.join(process.resourcesPath, "app.asar.unpacked", "custom-binaries", "audiotee"),
-    ];
-
-    logger.debug("Searching for AudioTeeHelper in possible locations", {
-      possiblePaths,
-    });
-
-    for (const helperPath of possiblePaths) {
-      const exists = fs.existsSync(helperPath);
-      logger.debug(`Checking path: ${helperPath}`, { exists });
-
-      if (exists) {
-        try {
-          const stats = fs.statSync(helperPath);
-          const isExecutable = !!(stats.mode & fs.constants.S_IXUSR);
-
-          logger.info("✅ Found AudioTeeHelper", {
-            path: helperPath,
-            size: stats.size,
-            isExecutable,
-          });
-
-          // Verify it's part of a helper app bundle
-          const helperAppPath = helperPath.replace(/\/Contents\/MacOS\/audiotee$/, '');
-          const infoPlistPath = path.join(helperAppPath, 'Contents', 'Info.plist');
-
-          if (fs.existsSync(infoPlistPath)) {
-            logger.info('🎉 Using AudioTeeHelper.app - proper macOS helper application!');
-            logger.info('   This helper can request its own TCC permissions');
-          } else {
-            logger.warn('⚠️  Binary not in helper app bundle - may have permission issues');
-          }
-
-          return helperPath;
-        } catch (statError) {
-          logger.error("Error checking helper stats", statError, {
-            path: helperPath,
-          });
-        }
+    // Production: Binary is directly in Resources/ (via extraResources)
+    if (process.resourcesPath) {
+      const productionPath = path.join(process.resourcesPath, "audiotee");
+      logger.debug("Checking production path", { productionPath });
+      
+      if (fs.existsSync(productionPath)) {
+        logger.info("✅ Found audiotee binary (production)", { path: productionPath });
+        return productionPath;
       }
     }
 
-    const error = new Error(
-      "AudioTeeHelper.app not found. Tried paths: " + possiblePaths.join(", ")
-    );
-    logger.error("❌ AudioTeeHelper not found", error, { possiblePaths });
-    throw error;
+    // Development: Use custom binary
+    if (!app.isPackaged) {
+      const devPath = path.join(process.cwd(), "custom-binaries", "audiotee");
+      logger.debug("Checking dev path", { devPath });
+      
+      if (fs.existsSync(devPath)) {
+        logger.info("✅ Found audiotee binary (development)", { path: devPath });
+        return devPath;
+      }
+    }
+
+    logger.error("❌ audiotee binary not found", null, {
+      resourcesPath: process.resourcesPath,
+      cwd: process.cwd(),
+      isPackaged: app.isPackaged,
+    });
+
+    return undefined;
   }
 
   /**
@@ -465,11 +412,17 @@ export class SystemAudioCapture extends EventEmitter {
     logger.methodEntry("startMacOSSystemAudioCapture");
 
     try {
-      const helperBinaryPath = this.findHelperApp();
+      const binaryPath = this.getAudioteeBinaryPath();
 
-      logger.info("Using AudioTeeHelper", {
-        path: helperBinaryPath,
-        isHelperApp: helperBinaryPath.includes("AudioTeeHelper.app"),
+      if (!binaryPath || !fs.existsSync(binaryPath)) {
+        throw new Error(
+          `audiotee binary not found. Checked: ${binaryPath || "no path resolved"}`
+        );
+      }
+
+      logger.info("Using audiotee binary", {
+        path: binaryPath,
+        size: fs.statSync(binaryPath).size,
       });
 
       // Build arguments for audiotee binary
@@ -480,21 +433,19 @@ export class SystemAudioCapture extends EventEmitter {
         "0.2", // 200ms = 0.2 seconds
       ];
 
-      logger.info("Spawning AudioTeeHelper process", {
-        binaryPath: helperBinaryPath,
+      logger.info("Spawning audiotee process", {
+        binaryPath,
         args,
         cwd: process.cwd(),
       });
 
-      // Spawn the helper app's audiotee binary
-      this.audioTeeProcess = spawn(helperBinaryPath, args, {
-        // Let the helper app handle stdio (it's background-only)
+      // Spawn the audiotee binary (following article's approach)
+      this.audioTeeProcess = spawn(binaryPath, args, {
+        // Standard stdio for binary output
         stdio: ["ignore", "pipe", "pipe"],
 
-        // Detached so it can request permissions independently
+        // Not detached - part of main app process tree
         detached: false,
-
-        // No special environment needed - helper has own identity
         env: process.env,
       });
 

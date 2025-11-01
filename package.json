@@ -1,14 +1,13 @@
 {
   "name": "CueMe",
-  "version": "1.0.105",
+  "version": "1.0.107",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
     "dev": "vite",
     "build:win": "npm run clean && tsc -p electron/tsconfig.json && vite build",
     "build:native": "bash scripts/build-native-binary.sh",
-    "build:helper": "bash scripts/build-helper-app.sh",
-    "build": "npm run clean && npm run build:native && npm run build:helper && tsc -p electron/tsconfig.json && vite build",
+    "build": "npm run clean && npm run build:native && tsc -p electron/tsconfig.json && vite build",
     "preview": "vite preview",
     "electron:dev": "tsc -p electron/tsconfig.json && electron .",
     "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5181 && npm run electron:dev\"",
@@ -41,9 +40,7 @@
       "custom-binaries/**/*",
       "package.json"
     ],
-    "asarUnpack": [
-      "custom-binaries/**"
-    ],
+
     "directories": {
       "output": "release"
     },
@@ -78,6 +75,7 @@
       },
       "extendInfo": {
         "NSMicrophoneUsageDescription": "CueMe needs microphone access to listen for interview questions and provide real-time coding assistance.",
+        "NSAudioCaptureUsageDescription": "CueMe needs system audio access to capture audio from video calls (Zoom, Teams, etc.) for better interview question detection.",
         "NSScreenCaptureDescription": "CueMe uses screen recording to capture system audio from video calls (Zoom, Teams, etc.) for better interview question detection. No visual recording is performed - only audio is captured."
       }
     },
@@ -127,15 +125,8 @@
     "extraResources": [
       ".env",
       {
-        "from": "dist-native/",
-        "to": "dist-native/",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "dist-helper/AudioTeeHelper.app",
-        "to": "Library/LoginItems/AudioTeeHelper.app"
+        "from": "custom-binaries/audiotee",
+        "to": "audiotee"
       }
     ],
     "publish": [

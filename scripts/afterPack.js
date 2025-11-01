@@ -2,54 +2,13 @@
 
 /**
  * afterPack hook for electron-builder
- * Ensures native binaries have correct permissions and are code-signed
+ * Signs the audiotee binary with correct entitlements
+ * Following: https://stronglytyped.uk/articles/packaging-shipping-electron-apps-audiotee
  */
 
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
-
-/**
- * Verify the helper app exists and has correct structure
- * Actual signing happens in afterAllArtifactBuild.js
- */
-function processHelperApp(appPath) {
-  console.log("\n🔧 Verifying helper app structure...");
-
-  const helperPath = path.join(
-    appPath,
-    "Contents",
-    "Library",
-    "LoginItems",
-    "AudioTeeHelper.app"
-  );
-
-  if (!fs.existsSync(helperPath)) {
-    console.error("❌ Helper app not found at:", helperPath);
-    return false;
-  }
-
-  console.log("✅ Found helper app:", helperPath);
-
-  // Check Info.plist
-  const infoPlistPath = path.join(helperPath, "Contents", "Info.plist");
-  if (fs.existsSync(infoPlistPath)) {
-    console.log("✅ Helper app Info.plist found");
-
-    // Verify bundle identifier
-    const bundleIdCommand = `defaults read "${infoPlistPath}" CFBundleIdentifier`;
-    const bundleId = execSync(bundleIdCommand, { encoding: "utf8" }).trim();
-    console.log("   Bundle ID:", bundleId);
-
-    if (bundleId !== "com.cueme.audiotee-helper") {
-      console.warn("⚠️  Unexpected bundle ID:", bundleId);
-    }
-  }
-
-  console.log("\n✅ Helper app structure verified");
-  console.log("   (Signing will happen in afterAllArtifactBuild hook)");
-  return true;
-}
 
 /**
  * Process and sign the audiotee binary with proper entitlements
@@ -211,79 +170,32 @@ module.exports = async function (context) {
   const appPath = path.join(appOutDir, `${appName}.app`);
   const resourcesPath = path.join(appPath, "Contents", "Resources");
 
+  // Binary location (following article: directly in Resources/)
+  const binaryPath = path.join(resourcesPath, "audiotee");
+
   console.log(`📦 App path: ${appPath}`);
   console.log(`📂 Resources path: ${resourcesPath}`);
+  console.log(`🎵 Binary path: ${binaryPath}`);
 
-  // Process helper app
-  console.log("\n📦 Processing helper app...");
-  const helperSuccess = processHelperApp(appPath);
-  if (!helperSuccess) {
-    console.warn("⚠️  Helper app processing failed, but continuing build...");
-  }
-
-  // PRIORITY: Process custom binary FIRST (has Info.plist)
-  const customBinaryPath = path.join(
-    resourcesPath,
-    "app.asar.unpacked",
-    "custom-binaries",
-    "audiotee"
-  );
-
-  // Fallback: npm package binary (no Info.plist)
-  const npmBinaryPath = path.join(
-    resourcesPath,
-    "app.asar.unpacked",
-    "node_modules",
-    "audiotee",
-    "bin",
-    "audiotee"
-  );
-
-  // Check custom binary FIRST
-  if (fs.existsSync(customBinaryPath)) {
-    console.log(
-      `✅ Found custom audiotee binary (with Info.plist): ${customBinaryPath}`
-    );
-    try {
-      const success = processAudioteeBinary(customBinaryPath);
-      if (!success) {
-        console.warn(
-          "⚠️  Failed to process custom binary, but continuing build..."
-        );
-      }
-    } catch (error) {
-      console.error("\n❌ afterPack hook failed:", error);
-      console.error("   Audio capture may not work in production!\n");
-    }
+  // Check if binary exists
+  if (!fs.existsSync(binaryPath)) {
+    console.error("❌ audiotee binary not found at:", binaryPath);
+    console.error("   System audio capture will not work in production!");
     return;
   }
 
-  // Fallback to npm binary if custom not found
-  if (fs.existsSync(npmBinaryPath)) {
-    console.warn(
-      `⚠️  Custom binary not found, using npm package binary: ${npmBinaryPath}`
-    );
-    console.warn(
-      "   NOTE: npm binary lacks Info.plist - may fail on macOS 14.2+"
-    );
-    try {
-      const success = processAudioteeBinary(npmBinaryPath);
-      if (!success) {
-        console.warn(
-          "⚠️  Failed to process npm binary, but continuing build..."
-        );
-      }
-    } catch (error) {
-      console.error("\n❌ afterPack hook failed:", error);
-      console.error("   Audio capture may not work in production!\n");
-    }
-    return;
-  }
+  console.log("✅ Found audiotee binary");
 
-  // No binary found
-  console.error("❌ No audiotee binary found!");
-  console.error(`   Checked paths:`);
-  console.error(`   - ${customBinaryPath}`);
-  console.error(`   - ${npmBinaryPath}`);
-  console.warn("   System audio capture will not work in production!");
+  // Process and sign the binary
+  try {
+    const success = processAudioteeBinary(binaryPath);
+    if (!success) {
+      console.warn(
+        "⚠️  Failed to process audiotee binary, but continuing build..."
+      );
+    }
+  } catch (error) {
+    console.error("\n❌ afterPack hook failed:", error);
+    console.error("   Audio capture may not work in production!\n");
+  }
 };
