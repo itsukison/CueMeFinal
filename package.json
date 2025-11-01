@@ -1,6 +1,6 @@
 {
   "name": "CueMe",
-  "version": "1.0.104",
+  "version": "1.0.105",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
@@ -49,7 +49,7 @@
     },
     "compression": "maximum",
     "afterPack": "./scripts/afterPack.js",
-    "afterAllArtifactBuild": "./scripts/afterAllArtifactBuild.js",
+    "afterSign": "./scripts/afterSign.js",
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "assets/logo.icns",
