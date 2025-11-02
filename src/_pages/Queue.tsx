@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ModeSelect, ModeToggle } from "../components/ui/mode-select";
 import { useQuery } from "react-query";
-import {
-  MessageCircle,
-  Send,
-} from "lucide-react";
+import { MessageCircle, Send } from "lucide-react";
 import ScreenshotQueue from "../components/Queue/ScreenshotQueue";
 import {
   Toast,
@@ -58,8 +55,6 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
   // Removed isQuestionPanelOpen - panel shows automatically when listening or has questions
   const chatInputRef = useRef<HTMLInputElement>(null);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
-
-
 
   // Response mode state
   const [responseMode, setResponseMode] = useState<ResponseMode>({
@@ -361,28 +356,35 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
   // Permission request handler
   const handlePermissionRequest = async () => {
     try {
-      console.log('[Queue] Opening permission request dialog...');
+      console.log("[Queue] Opening permission request dialog...");
 
       // Check current permission status first
-      const status = await window.electronAPI.invoke('permission-check-status');
-      console.log('[Queue] Current permission status:', status);
+      const status = await window.electronAPI.invoke("permission-check-status");
+      console.log("[Queue] Current permission status:", status);
 
       let hasRequestedAny = false;
 
       // Handle microphone permission
-      if (status.microphone !== 'granted') {
-        console.log('[Queue] Microphone permission not granted, requesting...');
+      if (status.microphone !== "granted") {
+        console.log("[Queue] Microphone permission not granted, requesting...");
         hasRequestedAny = true;
 
         try {
           // First try to request programmatically
-          const micResult = await window.electronAPI.invoke('permission-request-microphone');
+          const micResult = await window.electronAPI.invoke(
+            "permission-request-microphone"
+          );
           if (micResult.granted) {
             showToast("権限許可", "マイクの権限が許可されました", "success");
           } else {
             // If denied, open system preferences for microphone
-            console.log('[Queue] Microphone permission denied, opening system preferences...');
-            await window.electronAPI.invoke('permission-open-system-preferences', 'microphone');
+            console.log(
+              "[Queue] Microphone permission denied, opening system preferences..."
+            );
+            await window.electronAPI.invoke(
+              "permission-open-system-preferences",
+              "microphone"
+            );
             showToast(
               "マイクの設定",
               "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。",
@@ -390,9 +392,15 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
             );
           }
         } catch (error) {
-          console.error('[Queue] Error requesting microphone permission:', error);
+          console.error(
+            "[Queue] Error requesting microphone permission:",
+            error
+          );
           // Fallback to opening system preferences
-          await window.electronAPI.invoke('permission-open-system-preferences', 'microphone');
+          await window.electronAPI.invoke(
+            "permission-open-system-preferences",
+            "microphone"
+          );
           showToast(
             "マイクの設定",
             "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。",
@@ -402,11 +410,16 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       }
 
       // Handle screen recording permission (cannot be requested programmatically)
-      if (status.screenCapture !== 'granted') {
-        console.log('[Queue] Screen recording permission not granted, opening system preferences...');
+      if (status.screenCapture !== "granted") {
+        console.log(
+          "[Queue] Screen recording permission not granted, opening system preferences..."
+        );
         hasRequestedAny = true;
 
-        await window.electronAPI.invoke('permission-open-system-preferences', 'screen');
+        await window.electronAPI.invoke(
+          "permission-open-system-preferences",
+          "screen"
+        );
         showToast(
           "画面収録の設定",
           "システム環境設定が開きました。セキュリティとプライバシー → 画面収録でCueMeを有効にしてください。",
@@ -415,7 +428,10 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       }
 
       // If both permissions are already granted
-      if (status.microphone === 'granted' && status.screenCapture === 'granted') {
+      if (
+        status.microphone === "granted" &&
+        status.screenCapture === "granted"
+      ) {
         showToast("権限確認", "すべての権限が許可されています。", "success");
       } else if (hasRequestedAny) {
         // Show additional guidance for users
@@ -427,9 +443,8 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
           );
         }, 3000);
       }
-
     } catch (error) {
-      console.error('[Queue] Error requesting permissions:', error);
+      console.error("[Queue] Error requesting permissions:", error);
       showToast("エラー", "権限の確認に失敗しました", "error");
     }
   };
@@ -565,7 +580,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
         console.log("[Queue] Listen toggle triggered via Command+L");
         // Since we don't have a toggle method exposed, we'll trigger the button click
         // by dispatching a custom event that QueueCommands can listen to
-        document.dispatchEvent(new CustomEvent('trigger-listen-toggle'));
+        document.dispatchEvent(new CustomEvent("trigger-listen-toggle"));
       }
     };
 
@@ -591,7 +606,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       } catch (error) {
         console.log("IPC setup skipped:", error);
       }
-      return () => { };
+      return () => {};
     };
 
     const cleanup = setupIpcListeners();
@@ -607,8 +622,6 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       );
     };
   }, []);
-
-
 
   return (
     <div
@@ -671,12 +684,12 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
               {/* Close Button */}
               <button
                 onClick={() => setShowUsageLimitToast(false)}
-                className="absolute top-2 right-2 w-5 h-5 rounded-full morphism-button flex items-center justify-center"
+                className="absolute top-3 right-3 w-5 h-5 rounded-full bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors"
                 type="button"
                 title="閉じる"
               >
                 <svg
-                  className="w-2.5 h-2.5 text-white"
+                  className="w-3 h-3 text-white/60 hover:text-white/90 transition-colors"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -721,21 +734,21 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
             </div>
           )}
 
-          {/* Conditional Chat Interface - Wider and centered relative to floating bar system */}
+          {/* Conditional Chat Interface - Glass-style with animation */}
           {isChatOpen && (
             <div
-              className="mt-4 w-full max-w-2xl liquid-glass chat-container p-4 flex flex-col relative"
-              style={{ height: `${chatResize.height}px` }}
+              className="mt-4 w-full max-w-2xl liquid-glass chat-container p-4 flex flex-col relative overflow-hidden"
+              style={{ minHeight: "80px" }}
             >
               {/* Close Button */}
               <button
                 onClick={() => setIsChatOpen(false)}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full morphism-button flex items-center justify-center z-10"
+                className="absolute top-3 right-3 w-5 h-5 rounded-full bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors z-10"
                 type="button"
                 title="閉じる"
               >
                 <svg
-                  className="w-3 h-3 text-white"
+                  className="w-3 h-3 text-white/60 hover:text-white/90 transition-colors"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -749,65 +762,60 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
                 </svg>
               </button>
 
-              {/* Chat Messages Area - Flexible height */}
-              <div className="flex-1 flex flex-col min-h-0">
-                {chatMessages.length === 0 ? (
-                  <div className="text-sm text-white/80 text-center mt-8 pr-8 mb-3">
-                    <img
-                      src="./logo.png"
-                      alt="CueMe Logo"
-                      className="w-5 h-5 mx-auto mb-2"
-                    />
-                    CueMeとチャット
-                    <br />
-                    <span className="text-xs text-white/50">
-                      スクリーンショットを撮る (Cmd+H) で自動分析
-                    </span>
-                  </div>
-                ) : (
-                  <div
-                    ref={chatMessagesRef}
-                    className="flex-1 overflow-y-auto mb-3"
-                  >
-                    {chatMessages.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`w-full flex ${msg.role === "user" ? "justify-end" : "justify-start"
-                          } mb-3`}
-                      >
-                        <div
-                          className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs border ${msg.role === "user"
-                            ? "bg-gray-800/60 backdrop-blur-md text-gray-100 ml-12 mr-8 border-gray-600/40"
-                            : "morphism-dropdown text-white/90 mr-12"
-                            }`}
-                          style={{ wordBreak: "break-word", lineHeight: "1.4" }}
-                        >
-                          {msg.text}
-                        </div>
+              {/* Answer Display Area - Animates in when content appears */}
+              <div
+                className={`flex-1 flex flex-col transition-all duration-300 origin-bottom ${
+                  chatMessages.length > 0 &&
+                  chatMessages[chatMessages.length - 1]?.role === "gemini"
+                    ? "opacity-100 scale-y-100 mb-3"
+                    : "opacity-0 scale-y-0 h-0 mb-0"
+                }`}
+              >
+                <div
+                  ref={chatMessagesRef}
+                  className="flex-1 overflow-y-auto px-2"
+                >
+                  {/* Show only the latest gemini message */}
+                  {(() => {
+                    const lastGeminiMsg = [...chatMessages]
+                      .reverse()
+                      .find((msg) => msg.role === "gemini");
+                    return lastGeminiMsg ? (
+                      <div className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">
+                        {lastGeminiMsg.text}
                       </div>
-                    ))}
-                  </div>
-                )}
-                {chatLoading && (
-                  <div className="flex justify-start mb-3">
-                    <div className="morphism-dropdown text-white/80 px-3 py-1.5 rounded-xl text-xs mr-12">
-                      <span className="inline-flex items-center">
-                        <span className="animate-pulse text-white/40">●</span>
-                        <span className="animate-pulse animation-delay-200 text-white/40">
-                          ●
-                        </span>
-                        <span className="animate-pulse animation-delay-400 text-white/40">
-                          ●
-                        </span>
-                        <span className="ml-2">CueMeが考え中...</span>
-                      </span>
-                    </div>
-                  </div>
-                )}
+                    ) : null;
+                  })()}
+                </div>
               </div>
 
-              {/* Input Form - Fixed at bottom with consistent spacing */}
-              <div className="mt-3">
+              {/* Loading indicator - Shows in place of answer area */}
+              {chatLoading && (
+                <div className="flex-1 mb-3 px-2">
+                  <div className="flex items-center">
+                    <span className="text-xs text-white/70 mr-2">
+                      回答を生成中
+                    </span>
+                    <div className="flex gap-0.5">
+                      <div
+                        className="w-1 h-1 bg-white/70 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-1 h-1 bg-white/70 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-1 h-1 bg-white/70 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Input Form - Always visible at bottom */}
+              <div className="mt-auto">
                 <form
                   className="flex gap-2 items-center glass-content"
                   onSubmit={(e) => {
@@ -825,7 +833,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
                   />
                   <button
                     type="submit"
-                    className="p-2 morphism-button flex items-center justify-center disabled:opacity-50"
+                    className="text-white/70 hover:text-white transition-colors disabled:opacity-50"
                     disabled={chatLoading || !chatInput.trim()}
                     tabIndex={-1}
                     aria-label="送信"
@@ -835,7 +843,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
                       fill="none"
                       viewBox="0 0 24 24"
                       strokeWidth={2}
-                      stroke="white"
+                      stroke="currentColor"
                       className="w-4 h-4"
                     >
                       <path
@@ -847,9 +855,6 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
                   </button>
                 </form>
               </div>
-
-              {/* Resize Handle */}
-              <chatResize.ResizeHandle />
             </div>
           )}
 
@@ -857,8 +862,8 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
           {/* Show panel when listening OR when there are questions (even if not listening) */}
           {(audioStreamState?.isListening || detectedQuestions.length > 0) && (
             <div
-              className="mt-4 w-full max-w-2xl relative"
-              style={{ height: `${questionResize.height}px` }}
+              className="mt-4 w-full max-w-4xl relative"
+              style={{ height: `${questionResize.height}px`, minHeight: '200px' }}
             >
               <QuestionSidePanel
                 questions={detectedQuestions}

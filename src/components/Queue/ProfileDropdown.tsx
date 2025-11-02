@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { User, LogOut, Settings, Shield } from 'lucide-react';
-import { ProfileModeSelector } from './ProfileModeSelector';
+import React, { useState, useEffect } from "react";
+import { User, LogOut, Settings, Shield } from "lucide-react";
+import { ProfileModeSelector } from "./ProfileModeSelector";
 
 interface ProfileDropdownProps {
   currentMode: string;
@@ -22,7 +22,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   onLogout,
   onSettings,
   onPermissionRequest,
-  dropdownWidth = 'w-48',
+  dropdownWidth = "w-48",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -31,15 +31,15 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (
         isOpen &&
-        !(event.target as Element)?.closest('.profile-dropdown-container')
+        !(event.target as Element)?.closest(".profile-dropdown-container")
       ) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, [isOpen]);
 
@@ -67,12 +67,14 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           type="button"
           title="プロフィール"
         >
-          <User className="w-4 h-4 text-emerald-800" />
+          <User className="w-4 h-4 text-[#D8F9B8]" />
         </button>
 
         {/* Profile Dropdown Menu */}
         {isOpen && (
-          <div className={`absolute right-0 mt-4 ${dropdownWidth} morphism-dropdown shadow-lg z-50`}>
+          <div
+            className={`absolute right-0 mt-4 ${dropdownWidth} morphism-dropdown shadow-lg z-50`}
+          >
             <div className="py-1">
               {/* Answer Mode Section */}
               <div className="px-3 py-2 border-b border-white/10">

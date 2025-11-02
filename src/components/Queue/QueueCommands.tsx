@@ -386,7 +386,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
 
     /**
      * Start audio capture and streaming
-     * 
+     *
      * NEW SYSTEM (Gemini Live):
      * - Microphone audio: Captured here and sent to dualAudioProcessMicrophoneChunk
      * - System audio: Captured by backend and sent directly to Gemini Live
@@ -394,7 +394,9 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
      */
     const startAudioCapture = async (): Promise<void> => {
       try {
-        console.log("[QueueCommands] Starting audio capture (Gemini Live system)...");
+        console.log(
+          "[QueueCommands] Starting audio capture (Gemini Live system)..."
+        );
 
         // System audio is handled by the backend DualAudioCaptureManager
         // It captures system audio and streams directly to Gemini Live (opponent source)
@@ -402,11 +404,13 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           console.log(
             "[QueueCommands] System audio selected - backend will handle capture and stream to Gemini Live"
           );
-          
+
           // Just set up the backend audio stream processing
           // The native Swift binary will provide audio data to the backend
-          console.log("[QueueCommands] ✅ System audio capture delegated to backend");
-          
+          console.log(
+            "[QueueCommands] ✅ System audio capture delegated to backend"
+          );
+
           // For system audio, no frontend processing needed
           // The backend native Swift binary handles everything
           return;
@@ -488,7 +492,9 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           // CRITICAL: Set frontendListening to true BEFORE connecting AudioWorklet
           // This prevents race condition where chunks arrive before flag is set
           frontendListeningRef.current = true;
-          console.log("[QueueCommands] Set frontendListening to true (before AudioWorklet connection)");
+          console.log(
+            "[QueueCommands] Set frontendListening to true (before AudioWorklet connection)"
+          );
           window.electronAPI.invoke(
             "debug-log",
             "[QueueCommands] Set frontendListening to true (before AudioWorklet connection)"
@@ -497,31 +503,38 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           // Construct the correct path for AudioWorklet processor
           // In development: served by Vite dev server
           // In production: needs to be relative to the current page location
-          const workletPath = import.meta.env.DEV 
+          const workletPath = import.meta.env.DEV
             ? "/audio-worklet-processor.js"
             : new URL("/audio-worklet-processor.js", window.location.href).href;
-          
-          console.log("[QueueCommands] Loading AudioWorklet module from:", workletPath);
+
+          console.log(
+            "[QueueCommands] Loading AudioWorklet module from:",
+            workletPath
+          );
           window.electronAPI.invoke(
             "debug-log",
             `[QueueCommands] Loading AudioWorklet module from: ${workletPath}`
           );
-          
+
           await ctx.audioWorklet.addModule(workletPath);
-          
-          console.log("[QueueCommands] ✅ AudioWorklet module loaded successfully");
+
+          console.log(
+            "[QueueCommands] ✅ AudioWorklet module loaded successfully"
+          );
           window.electronAPI.invoke(
             "debug-log",
             "[QueueCommands] AudioWorklet module loaded successfully"
           );
-          
+
           console.log("[QueueCommands] Creating AudioWorkletNode...");
           const workletNode = new AudioWorkletNode(
             ctx,
             "audio-capture-processor"
           );
-          
-          console.log("[QueueCommands] ✅ AudioWorkletNode created successfully");
+
+          console.log(
+            "[QueueCommands] ✅ AudioWorkletNode created successfully"
+          );
           window.electronAPI.invoke(
             "debug-log",
             "[QueueCommands] AudioWorkletNode created successfully"
@@ -547,11 +560,11 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             if (type === "audio-chunk") {
               chunkCount++;
               const currentlyListening = frontendListeningRef.current;
-              
+
               // Log only every 50 chunks to avoid spam (50 chunks = ~6.4 seconds)
               if (chunkCount % 50 === 0) {
                 console.log(
-                  `[QueueCommands] Streaming: ${chunkCount} chunks sent (${(chunkCount * 128 / 1000).toFixed(1)}s)`
+                  `[QueueCommands] Streaming: ${chunkCount} chunks sent (${((chunkCount * 128) / 1000).toFixed(1)}s)`
                 );
               }
 
@@ -575,8 +588,10 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
                 }
 
                 // Send microphone audio to Gemini Live (continuous streaming)
-                await window.electronAPI.dualAudioProcessMicrophoneChunk(inputData);
-                
+                await window.electronAPI.dualAudioProcessMicrophoneChunk(
+                  inputData
+                );
+
                 // Success - no need to log every chunk (too spammy)
               } catch (error) {
                 console.error(
@@ -626,9 +641,12 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           );
           window.electronAPI.invoke(
             "debug-log",
-            "[QueueCommands] AudioWorklet failed: " + (workletError instanceof Error ? workletError.message : String(workletError))
+            "[QueueCommands] AudioWorklet failed: " +
+              (workletError instanceof Error
+                ? workletError.message
+                : String(workletError))
           );
-          
+
           console.warn(
             "[QueueCommands] Falling back to ScriptProcessor (deprecated but more compatible)"
           );
@@ -690,8 +708,12 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
                   "[QueueCommands] Sending audio chunk to main process (Gemini Live)..."
                 );
                 // FIXED: Use dualAudioProcessMicrophoneChunk for Gemini Live (same as AudioWorklet path)
-                await window.electronAPI.dualAudioProcessMicrophoneChunk(inputData);
-                console.log("[QueueCommands] Audio chunk sent successfully to Gemini Live");
+                await window.electronAPI.dualAudioProcessMicrophoneChunk(
+                  inputData
+                );
+                console.log(
+                  "[QueueCommands] Audio chunk sent successfully to Gemini Live"
+                );
               } catch (error) {
                 console.error(
                   "[QueueCommands] Error sending audio chunk:",
@@ -857,9 +879,11 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             // Step 2: Start dual audio capture with Gemini Live (NEW SYSTEM)
             // AUTOMATIC: Both microphone and system audio start automatically
             // No source selection needed
-            console.log("[QueueCommands] Starting AUTOMATIC dual audio capture (microphone + system audio)...");
+            console.log(
+              "[QueueCommands] Starting AUTOMATIC dual audio capture (microphone + system audio)..."
+            );
             const result = await window.electronAPI.dualAudioStart();
-            
+
             if (!result.success) {
               throw new Error(result.error || "Dual audio start failed");
             }
@@ -996,7 +1020,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           {/* Always-On Listen Button */}
           {isAuthenticated && (
             <button
-              className={`glass-button text-[11px] leading-none flex items-center gap-1 ${
+              className={`glass-button px-2 py-1 text-[11px] leading-none flex items-center gap-1 ${
                 isListening
                   ? "!bg-white/30 hover:!bg-white/40 text-white"
                   : "text-white/70 hover:text-white hover:bg-white/15"
@@ -1023,7 +1047,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
 
           {/* Chat Button */}
           <button
-            className="glass-button text-[11px] leading-none text-white/70 hover:text-white hover:bg-white/15 flex items-center gap-1"
+            className="glass-button px-2 py-1 text-[11px] leading-none text-white/70 hover:text-white hover:bg-white/15 flex items-center gap-1"
             onClick={onChatToggle}
             type="button"
           >
@@ -1040,7 +1064,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             <div className="relative" ref={dropdownRef}>
               <button
                 ref={triggerRef}
-                className="morphism-button px-2 py-0 text-[11px] leading-none text-white/70 flex items-center gap-1 min-w-[80px] h-6"
+                className="morphism-button px-4 py-0 text-[11px] leading-none text-white/70 flex items-center gap-2 min-w-[80px] h-6"
                 onClick={toggleDropdown}
                 type="button"
               >
