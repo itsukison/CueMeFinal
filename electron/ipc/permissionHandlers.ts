@@ -26,7 +26,8 @@ export function registerPermissionHandlers(appState: AppState): void {
       console.error("Error checking permission status:", error);
       return {
         microphone: 'unknown',
-        screenCapture: 'unknown'
+        screenCapture: 'unknown',
+        systemAudio: 'unknown'
       };
     }
   });
@@ -99,13 +100,16 @@ export function registerPermissionHandlers(appState: AppState): void {
   ipcMain.handle("permission-open-system-preferences", async (event, permissionType?: string) => {
     try {
       if (process.platform === 'darwin') {
-        let url = 'x-apple.systempreferences:com.apple.preference.security?Privacy';
+        // Default to System Audio instead of Screen Recording
+        let url = 'x-apple.systempreferences:com.apple.preference.security?Privacy_SystemAudio';
         
         // Open specific privacy settings based on permission type
         if (permissionType === 'microphone') {
           url = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone';
         } else if (permissionType === 'screen') {
           url = 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture';
+        } else if (permissionType === 'system-audio') {
+          url = 'x-apple.systempreferences:com.apple.preference.security?Privacy_SystemAudio';
         }
         
         console.log('[IPC] Opening macOS system preferences:', url);

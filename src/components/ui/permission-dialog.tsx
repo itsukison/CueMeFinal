@@ -18,8 +18,24 @@ interface PermissionDialogProps {
 }
 
 interface PermissionStatus {
-  microphone: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined';
-  screenCapture: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined';
+  microphone:
+    | "granted"
+    | "denied"
+    | "restricted"
+    | "unknown"
+    | "not-determined";
+  screenCapture:
+    | "granted"
+    | "denied"
+    | "restricted"
+    | "unknown"
+    | "not-determined";
+  systemAudio:
+    | "granted"
+    | "denied"
+    | "restricted"
+    | "unknown"
+    | "not-determined";
 }
 
 export const PermissionDialog: React.FC<PermissionDialogProps> = ({
@@ -29,10 +45,13 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [currentStep, setCurrentStep] = useState<'welcome' | 'permissions' | 'completed'>('welcome');
+  const [currentStep, setCurrentStep] = useState<
+    "welcome" | "permissions" | "completed"
+  >("welcome");
   const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>({
-    microphone: 'unknown',
-    screenCapture: 'unknown'
+    microphone: "unknown",
+    screenCapture: "unknown",
+    systemAudio: "unknown",
   });
   const [checkingPermissions, setCheckingPermissions] = useState(false);
 
@@ -40,19 +59,35 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
 
   // Check initial permission status
   useEffect(() => {
-    if (isOpen && currentStep === 'permissions') {
+    if (isOpen && currentStep === "permissions") {
       checkPermissionStatus();
     }
   }, [isOpen, currentStep]);
 
+  // Phase 3: Detect permission conflicts
+  useEffect(() => {
+    if (
+      permissionStatus.screenCapture === "granted" &&
+      permissionStatus.systemAudio !== "granted"
+    ) {
+      setError(
+        "⚠️ 「画面収録」ではなく「システム音声」の権限を許可してください。" +
+          "画面収録の権限は削除することをお勧めします。"
+      );
+    } else if (error.includes("画面収録")) {
+      // Clear error if conflict is resolved
+      setError("");
+    }
+  }, [permissionStatus]);
+
   const checkPermissionStatus = async () => {
     try {
       setCheckingPermissions(true);
-      const status = await window.electronAPI.invoke('permission-check-status');
+      const status = await window.electronAPI.invoke("permission-check-status");
       setPermissionStatus(status);
     } catch (err) {
-      console.error('Error checking permission status:', err);
-      setError('権限の確認に失敗しました');
+      console.error("Error checking permission status:", err);
+      setError("権限の確認に失敗しました");
     } finally {
       setCheckingPermissions(false);
     }
@@ -62,20 +97,22 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
     try {
       setLoading(true);
       setError("");
-      
-      const result = await window.electronAPI.invoke('permission-request-microphone');
-      
+
+      const result = await window.electronAPI.invoke(
+        "permission-request-microphone"
+      );
+
       if (result.granted) {
-        setPermissionStatus(prev => ({ ...prev, microphone: 'granted' }));
+        setPermissionStatus((prev) => ({ ...prev, microphone: "granted" }));
       } else {
-        setError(result.error || 'マイクの権限が拒否されました');
+        setError(result.error || "マイクの権限が拒否されました");
       }
-      
+
       // Refresh status after request
       await checkPermissionStatus();
     } catch (err) {
-      console.error('Error requesting microphone permission:', err);
-      setError('マイクの権限リクエストに失敗しました');
+      console.error("Error requesting microphone permission:", err);
+      setError("マイクの権限リクエストに失敗しました");
     } finally {
       setLoading(false);
     }
@@ -84,27 +121,49 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
   const openSystemPreferences = async () => {
     try {
       setLoading(true);
-      await window.electronAPI.invoke('permission-open-system-preferences');
+      // Phase 4: Open System Audio preferences specifically
+      await window.electronAPI.invoke(
+        "permission-open-system-preferences",
+        "system-audio"
+      );
     } catch (err) {
-      console.error('Error opening system preferences:', err);
-      setError('システム環境設定を開けませんでした');
+      console.error("Error opening system preferences:", err);
+      setError("システム環境設定を開けませんでした");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openPermissionResetGuide = async () => {
+    // Open System Preferences to Screen Recording to help users remove it
+    try {
+      await window.electronAPI.invoke(
+        "permission-open-system-preferences",
+        "screen"
+      );
+      setError(
+        "権限をリセットする方法:\n" +
+          "1. 開いた「画面収録」ページでCueMeのチェックを外す\n" +
+          "2. 左側のリストから「システム音声」を選択\n" +
+          "3. CueMeにチェックを入れる"
+      );
+    } catch (err) {
+      console.error("Error opening reset guide:", err);
     }
   };
 
   const handleCompleteSetup = async () => {
     try {
       setLoading(true);
-      
+
       // Mark initial setup as completed
-      await window.electronAPI.invoke('permission-mark-setup-completed');
-      
+      await window.electronAPI.invoke("permission-mark-setup-completed");
+
       // Close dialog and proceed to auth
       onPermissionsCompleted();
     } catch (err) {
-      console.error('Error completing setup:', err);
-      setError('セットアップの完了に失敗しました');
+      console.error("Error completing setup:", err);
+      setError("セットアップの完了に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -112,163 +171,193 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
 
   const getPermissionIcon = (status: string) => {
     switch (status) {
-      case 'granted':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'denied':
-      case 'restricted':
-        return <XCircle className="w-5 h-5 text-red-500" />;
+      case "granted":
+        return <CheckCircle className="w-4 h-4" style={{ color: "#013220" }} />;
+      case "denied":
+      case "restricted":
+        return <XCircle className="w-4 h-4" style={{ color: "#D4A574" }} />;
       default:
-        return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+        return (
+          <AlertTriangle className="w-4 h-4" style={{ color: "#D4A574" }} />
+        );
     }
   };
 
   const getPermissionText = (status: string) => {
     switch (status) {
-      case 'granted':
-        return '許可済み';
-      case 'denied':
-        return '拒否済み';
-      case 'restricted':
-        return '制限あり';
-      case 'not-determined':
-        return '未設定';
+      case "granted":
+        return "許可済み";
+      case "denied":
+        return "拒否済み";
+      case "restricted":
+        return "制限あり";
+      case "not-determined":
+        return "未設定";
       default:
-        return '不明';
+        return "不明";
     }
   };
 
   const getStepContent = () => {
     switch (currentStep) {
-      case 'welcome':
+      case "welcome":
         return (
           <>
-            {/* Header with Logo and Title */}
-            <div className="flex flex-col items-center justify-center p-10 bg-gradient-to-b from-white/20 to-transparent">
-              <div className="flex items-center gap-4 mb-6">
-                <img src="./logogreen.png" alt="CueMe Logo" className="w-12 h-12" />
-                <h1 className="text-3xl font-bold logo-text" style={{ color: "#013220" }}>
-                  CueMe
-                </h1>
-              </div>
-              <div className="flex items-center gap-3">
-                <Shield className="w-6 h-6" style={{ color: "#013220" }} />
-                <h3 className="text-xl font-medium" style={{ color: "#013220" }}>
-                  アプリの初期設定
-                </h3>
-              </div>
+            {/* Compact Header */}
+            <div className="flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-b from-white/20 to-transparent">
+              <img src="./logogreen.png" alt="CueMe Logo" className="w-8 h-8" />
+              <h1
+                className="text-xl font-bold logo-text"
+                style={{ color: "#013220" }}
+              >
+                CueMe
+              </h1>
+              <span className="text-sm" style={{ color: "#013220" }}>
+                初期設定
+              </span>
             </div>
 
-            <div className="px-10 pb-10 space-y-8">
+            <div className="px-6 pb-6 space-y-4">
               {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-red-700 text-sm">{error}</p>
+                <div
+                  className="p-2 rounded-lg"
+                  style={{
+                    backgroundColor: "#FFF8E1",
+                    border: "1px solid #D4A574",
+                  }}
+                >
+                  <p className="text-xs" style={{ color: "#8B6914" }}>
+                    {error}
+                  </p>
                 </div>
               )}
 
-              <div className="text-center space-y-4">
-                <p className="text-lg font-medium" style={{ color: "#013220" }}>
-                  CueMeへようこそ！
+              <div className="text-center">
+                <p className="text-sm font-medium" style={{ color: "#013220" }}>
+                  ようこそ！
                 </p>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  音声による質問分析やスクリーンショット解析を使用するため、<br />
-                  いくつかのシステム権限が必要です。<br />
-                  次のステップで権限を設定しましょう。
+                <p className="text-xs text-gray-600 mt-1">
+                  システム権限の設定が必要です
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 p-4 bg-white/50 rounded-xl">
-                  <Mic className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium text-sm" style={{ color: "#013220" }}>
-                      マイクアクセス
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 p-2 bg-white/50 rounded-lg">
+                  <Mic
+                    className="w-4 h-4 mt-0.5 flex-shrink-0"
+                    style={{ color: "#013220" }}
+                  />
+                  <div className="flex-1">
+                    <div
+                      className="font-medium text-xs"
+                      style={{ color: "#013220" }}
+                    >
+                      マイク
                     </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      音声による質問の検出と分析に使用します
-                    </div>
+                    <div className="text-xs text-gray-600">音声質問の検出</div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-4 bg-white/50 rounded-xl">
-                  <Monitor className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium text-sm" style={{ color: "#013220" }}>
-                      画面収録
+                <div className="flex items-start gap-2 p-2 bg-white/50 rounded-lg">
+                  <Monitor
+                    className="w-4 h-4 mt-0.5 flex-shrink-0"
+                    style={{ color: "#013220" }}
+                  />
+                  <div className="flex-1">
+                    <div
+                      className="font-medium text-xs"
+                      style={{ color: "#013220" }}
+                    >
+                      システム音声
                     </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      システム音声の取得とスクリーンショット機能に使用します
+                    <div className="text-xs text-gray-600">
+                      Zoom/Teams等の音声取得
+                    </div>
+                    <div
+                      className="text-xs font-medium mt-0.5"
+                      style={{ color: "#D4A574" }}
+                    >
+                      ⚠️ 画面収録ではなくシステム音声
                     </div>
                   </div>
                 </div>
               </div>
 
               <button
-                onClick={() => setCurrentStep('permissions')}
+                onClick={() => setCurrentStep("permissions")}
                 disabled={loading}
-                className="w-full px-6 py-4 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 border-0 hover:opacity-90 flex items-center justify-center gap-3 shadow-sm hover:shadow-md"
+                className="w-full px-4 py-2.5 text-sm font-medium disabled:opacity-50 text-white rounded-lg transition-all hover:opacity-90"
                 style={{ backgroundColor: "#013220" }}
               >
                 {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto" />
                 ) : (
-                  <>
-                    <Settings className="w-4 h-4" />
-                    権限を設定する
-                  </>
+                  "設定する"
                 )}
               </button>
             </div>
           </>
         );
 
-      case 'permissions':
+      case "permissions":
         return (
           <>
-            {/* Header with Logo and Title */}
-            <div className="flex flex-col items-center justify-center p-10 bg-gradient-to-b from-white/20 to-transparent">
-              <div className="flex items-center gap-4 mb-6">
-                <img src="./logogreen.png" alt="CueMe Logo" className="w-12 h-12" />
-                <h1 className="text-3xl font-bold logo-text" style={{ color: "#013220" }}>
-                  CueMe
-                </h1>
-              </div>
-              <div className="flex items-center gap-3">
-                <Settings className="w-6 h-6" style={{ color: "#013220" }} />
-                <h3 className="text-xl font-medium" style={{ color: "#013220" }}>
-                  権限の設定
-                </h3>
-              </div>
+            {/* Compact Header */}
+            <div className="flex items-center justify-center gap-2 py-2 px-6 bg-gradient-to-b from-white/20 to-transparent">
+              <img src="./logogreen.png" alt="CueMe Logo" className="w-7 h-7" />
+              <h1
+                className="text-lg font-bold logo-text"
+                style={{ color: "#013220" }}
+              >
+                CueMe
+              </h1>
+              <span className="text-xs" style={{ color: "#013220" }}>
+                権限設定
+              </span>
             </div>
 
-            <div className="px-10 pb-10 space-y-8">
+            <div className="px-5 pb-5 space-y-3">
               {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-red-700 text-sm">{error}</p>
+                <div
+                  className="p-2 rounded-lg text-xs whitespace-pre-line"
+                  style={{
+                    backgroundColor: "#FFF8E1",
+                    border: "1px solid #D4A574",
+                    color: "#8B6914",
+                  }}
+                >
+                  {error}
                 </div>
               )}
 
               {checkingPermissions ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: "#013220" }} />
-                  <p className="text-gray-600 text-sm">権限を確認中...</p>
+                <div className="text-center py-4">
+                  <Loader2
+                    className="w-6 h-6 animate-spin mx-auto mb-2"
+                    style={{ color: "#013220" }}
+                  />
+                  <p className="text-xs text-gray-600">確認中...</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-2.5">
                   {/* Microphone Permission */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-white/50 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <Mic className="w-5 h-5 text-blue-500" />
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between p-2 bg-white/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Mic className="w-4 h-4" style={{ color: "#013220" }} />
                         <div>
-                          <div className="font-medium text-sm" style={{ color: "#013220" }}>
-                            マイクアクセス
+                          <div
+                            className="font-medium text-xs"
+                            style={{ color: "#013220" }}
+                          >
+                            マイク
                           </div>
                           <div className="text-xs text-gray-600">
-                            音声質問の検出に必要
+                            音声質問の検出
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         {getPermissionIcon(permissionStatus.microphone)}
                         <span className="text-xs text-gray-600">
                           {getPermissionText(permissionStatus.microphone)}
@@ -276,101 +365,151 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                       </div>
                     </div>
 
-                    {permissionStatus.microphone !== 'granted' && (
+                    {permissionStatus.microphone !== "granted" && (
                       <button
                         onClick={requestMicrophonePermission}
                         disabled={loading}
-                        className="w-full px-4 py-2 text-sm bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 rounded-xl transition-all duration-200 font-medium border border-blue-200"
+                        className="w-full px-3 py-1.5 text-xs font-medium rounded-lg transition-all"
+                        style={{
+                          backgroundColor: "#F7F7EE",
+                          border: "1px solid #013220",
+                          color: "#013220",
+                        }}
                       >
                         {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                          <Loader2 className="w-3 h-3 animate-spin mx-auto" />
                         ) : (
-                          'マイクの権限を許可'
+                          "許可"
                         )}
                       </button>
                     )}
                   </div>
 
-                  {/* Screen Recording Permission */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-white/50 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <Monitor className="w-5 h-5 text-green-500" />
-                        <div>
-                          <div className="font-medium text-sm" style={{ color: "#013220" }}>
-                            画面収録
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            システム音声とスクリーンショットに必要
-                          </div>
+                  {/* System Audio Permission */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 p-2 bg-white/50 rounded-lg">
+                      <Monitor
+                        className="w-4 h-4"
+                        style={{ color: "#013220" }}
+                      />
+                      <div>
+                        <div
+                          className="font-medium text-xs"
+                          style={{ color: "#013220" }}
+                        >
+                          システム音声
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          Zoom/Teams等
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {getPermissionIcon(permissionStatus.screenCapture)}
-                        <span className="text-xs text-gray-600">
-                          {getPermissionText(permissionStatus.screenCapture)}
-                        </span>
-                      </div>
                     </div>
+
+                    {/* Warning if Screen Recording is granted */}
+                    {permissionStatus.screenCapture === "granted" &&
+                      permissionStatus.systemAudio !== "granted" && (
+                        <div
+                          className="p-2 rounded-lg space-y-1"
+                          style={{
+                            backgroundColor: "#FFF8E1",
+                            border: "1px solid #D4A574",
+                          }}
+                        >
+                          <div
+                            className="text-xs font-medium"
+                            style={{ color: "#8B6914" }}
+                          >
+                            ⚠️ 間違った権限
+                          </div>
+                          <div className="text-xs" style={{ color: "#8B6914" }}>
+                            画面収録ではなくシステム音声を許可してください
+                          </div>
+                          <button
+                            onClick={openPermissionResetGuide}
+                            className="w-full px-2 py-1 text-xs font-medium rounded transition-all"
+                            style={{
+                              backgroundColor: "#D4A574",
+                              color: "#FFF",
+                            }}
+                          >
+                            リセット手順
+                          </button>
+                        </div>
+                      )}
 
                     <button
                       onClick={openSystemPreferences}
                       disabled={loading}
-                      className="w-full px-4 py-2 text-sm bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed text-green-700 rounded-xl transition-all duration-200 font-medium border border-green-200"
+                      className="w-full px-3 py-1.5 text-xs font-medium rounded-lg transition-all"
+                      style={{
+                        backgroundColor: "#F7F7EE",
+                        border: "1px solid #013220",
+                        color: "#013220",
+                      }}
                     >
                       {loading ? (
-                        <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                        <Loader2 className="w-3 h-3 animate-spin mx-auto" />
                       ) : (
-                        'システム環境設定を開く'
+                        "設定を開く"
                       )}
                     </button>
                   </div>
 
-                  {/* Instructions */}
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-xs text-yellow-800">
-                        <div className="font-medium mb-1">macOSでの設定方法:</div>
-                        <ul className="space-y-1 list-disc list-inside ml-2">
-                          <li>システム環境設定 → セキュリティとプライバシー → マイク</li>
-                          <li>システム環境設定 → セキュリティとプライバシー → 画面収録</li>
-                          <li>CueMeアプリにチェックを入れて有効にしてください</li>
-                          <li>設定後はアプリを再起動することをお勧めします</li>
-                        </ul>
-                      </div>
+                  {/* Compact Instructions */}
+                  <div
+                    className="p-2 rounded-lg"
+                    style={{
+                      backgroundColor: "#FFF8E1",
+                      border: "1px solid #D4A574",
+                    }}
+                  >
+                    <div
+                      className="text-xs font-medium mb-1"
+                      style={{ color: "#8B6914" }}
+                    >
+                      📌 設定手順
                     </div>
+                    <ol
+                      className="text-xs space-y-0.5 list-decimal list-inside"
+                      style={{ color: "#8B6914" }}
+                    >
+                      <li>
+                        プライバシーとセキュリティ →{" "}
+                        <span className="font-bold">画面収録とシステムオーディオ録音</span>
+                      </li>
+                      <li>
+                        <span className="font-bold">システムオーディオ録音のみ</span>
+                        に+で追加{" "}
+                        <span style={{ color: "#D4A574" }}>(重要：画面収録ではありません)</span>
+                      </li>
+                      <li>
+                        CueMeにチェック →{" "}
+                        <span className="font-bold">アプリを再起動</span>
+                      </li>
+                      <li>
+                        再起動後、<span className="font-bold">設定完了</span>
+                        ボタンを押す
+                      </li>
+                    </ol>
                   </div>
 
-                  {/* Refresh and Continue buttons */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={checkPermissionStatus}
-                      disabled={loading || checkingPermissions}
-                      className="flex-1 px-4 py-3 text-sm bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 rounded-xl transition-all duration-200 font-medium border border-gray-200"
-                    >
-                      状態を更新
-                    </button>
-                    
-                    <button
-                      onClick={handleCompleteSetup}
-                      disabled={loading}
-                      className="flex-1 px-4 py-3 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 border-0 hover:opacity-90"
-                      style={{ backgroundColor: "#013220" }}
-                    >
-                      {loading ? (
-                        <Loader2 className="w-4 h-4 animate-spin mx-auto" />
-                      ) : (
-                        '設定を完了'
-                      )}
-                    </button>
-                  </div>
+                  {/* Complete Button */}
+                  <button
+                    onClick={handleCompleteSetup}
+                    disabled={loading}
+                    className="w-full px-3 py-2 text-xs font-medium text-white rounded-lg transition-all hover:opacity-90"
+                    style={{ backgroundColor: "#013220" }}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-3 h-3 animate-spin mx-auto" />
+                    ) : (
+                      "設定完了"
+                    )}
+                  </button>
 
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">
-                      権限は後からでも変更可能です。まずはアプリを体験してみましょう。
-                    </p>
-                  </div>
+                  <p className="text-xs text-center text-gray-500">
+                    権限設定後、必ずアプリを再起動してください
+                  </p>
                 </div>
               )}
             </div>

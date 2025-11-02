@@ -141,12 +141,14 @@ export class PermissionStorage {
   public async getCurrentPermissionStatus(): Promise<{
     microphone: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined'
     screenCapture: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined'
+    systemAudio: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined'
   }> {
     try {
       console.log('[PermissionStorage] Checking current system permissions...')
       
       let microphoneStatus: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined' = 'unknown'
       let screenCaptureStatus: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined' = 'unknown'
+      let systemAudioStatus: 'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined' = 'unknown'
       
       // Check microphone permission (macOS only)
       if (process.platform === 'darwin') {
@@ -163,18 +165,101 @@ export class PermissionStorage {
         } catch (error) {
           console.warn('[PermissionStorage] Could not check screen capture permission:', error)
         }
+
+        // Check System Audio permission
+        try {
+          systemAudioStatus = await this.checkSystemAudioPermission()
+          console.log('[PermissionStorage] System Audio permission status:', systemAudioStatus)
+        } catch (error) {
+          console.warn('[PermissionStorage] Could not check system audio permission:', error)
+        }
       }
       
       return {
         microphone: microphoneStatus,
-        screenCapture: screenCaptureStatus
+        screenCapture: screenCaptureStatus,
+        systemAudio: systemAudioStatus
       }
     } catch (error) {
       console.error('[PermissionStorage] Error checking permissions:', error)
       return {
         microphone: 'unknown',
-        screenCapture: 'unknown'
+        screenCapture: 'unknown',
+        systemAudio: 'unknown'
       }
+    }
+  }
+
+  /**
+   * Check System Audio permission by attempting a test capture
+   * This is a workaround since there's no direct macOS API
+   */
+  private async checkSystemAudioPermission(): Promise<'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined'> {
+    try {
+      const { spawn } = require('child_process')
+      const path = require('path')
+      
+      // Determine audiotee binary path based on environment
+      let audioteeDir: string
+      if (app.isPackaged) {
+        // Production: Binary is in Contents/Resources/audiotee
+        audioteeDir = process.resourcesPath
+      } else {
+        // Development: Binary is in custom-audiotee/.build/apple/Products/Release
+        audioteeDir = path.join(process.cwd(), 'custom-audiotee', '.build', 'apple', 'Products', 'Release')
+      }
+      
+      const audioteeExecutable = path.join(audioteeDir, 'audiotee')
+      
+      // Check if binary exists
+      if (!require('fs').existsSync(audioteeExecutable)) {
+        console.log('[PermissionStorage] audiotee binary not found at:', audioteeExecutable)
+        return 'unknown'
+      }
+      
+      // Attempt a quick test capture (1 second, redirect output to /dev/null)
+      return new Promise((resolve) => {
+        const testProcess = spawn(audioteeExecutable, [
+          '-t', '1',  // 1 second test
+          '/dev/null'  // Discard output
+        ], {
+          stdio: 'pipe'
+        })
+        
+        let stderr = ''
+        
+        testProcess.stderr?.on('data', (data) => {
+          stderr += data.toString()
+        })
+        
+        testProcess.on('close', (code) => {
+          if (code === 0) {
+            console.log('[PermissionStorage] System Audio permission test: GRANTED')
+            resolve('granted')
+          } else if (stderr.includes('permission') || stderr.includes('denied') || stderr.includes('0x6E6F7065')) {
+            console.log('[PermissionStorage] System Audio permission test: DENIED')
+            resolve('denied')
+          } else {
+            console.log('[PermissionStorage] System Audio permission test: UNKNOWN (exit code:', code, ')')
+            resolve('unknown')
+          }
+        })
+        
+        testProcess.on('error', (error) => {
+          console.log('[PermissionStorage] System Audio permission test error:', error)
+          resolve('unknown')
+        })
+        
+        // Timeout after 3 seconds
+        setTimeout(() => {
+          testProcess.kill()
+          console.log('[PermissionStorage] System Audio permission test: TIMEOUT')
+          resolve('unknown')
+        }, 3000)
+      })
+    } catch (error) {
+      console.error('[PermissionStorage] Error checking system audio permission:', error)
+      return 'unknown'
     }
   }
 

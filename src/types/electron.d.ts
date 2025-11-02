@@ -89,7 +89,7 @@ interface ElectronAPI {
   onListenToggle: (callback: () => void) => () => void
   
   // Permission methods
-  permissionGetStatus: () => Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown' }>
+  permissionGetStatus: () => Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown'; systemAudio: 'granted' | 'denied' | 'not-determined' | 'unknown' }>
   permissionRequestMicrophone: () => Promise<{ granted: boolean; error?: string }>
   permissionRequestSystemAudio: () => Promise<{ granted: boolean; error?: string }>
 }
