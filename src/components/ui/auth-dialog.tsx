@@ -148,7 +148,6 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
           {/* Header with Logo and Title */}
           <div
             className="flex flex-col items-center justify-center p-10"
-            style={{ backgroundColor: "#F3F7EF" }}
           >
             <div className="flex items-center gap-4 mb-6">
               <img

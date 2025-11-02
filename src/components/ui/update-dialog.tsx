@@ -89,7 +89,6 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
         {/* Header */}
         <div
           className="flex items-center justify-center gap-2 py-3 px-6"
-          style={{ backgroundColor: "#F3F7EF" }}
         >
           <img src="./logogreen.png" alt="CueMe Logo" className="w-8 h-8" />
           <h1

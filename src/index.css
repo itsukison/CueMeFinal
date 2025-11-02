@@ -108,8 +108,7 @@ textarea,
 
 /* Chat container specific styling - Modified */
 .liquid-glass.chat-container {
-  min-height: auto;
-  height: auto;
+  /* Removed height: auto and min-height: auto to allow Tailwind h-full to work */
   background: rgba(0, 0, 0, 0.8);
   /* Darker background like glass project */
   backdrop-filter: none;
@@ -119,8 +118,8 @@ textarea,
   /* Increased border radius */
   padding: 20px;
   /* Increased padding like glass project */
-  overflow: visible !important;
-  /* Override parent's overflow: hidden to allow content scrolling */
+  overflow: hidden !important;
+  /* Clip content at container boundaries - internal scrolling handles overflow */
 }
 
 /* Command bars variant - Modified */

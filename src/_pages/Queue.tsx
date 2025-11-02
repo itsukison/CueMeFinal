@@ -84,12 +84,26 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     initialHeight: 200,
   });
   const questionResize = useVerticalResize({
-    minHeight: 200,
+    minHeight: 120,  // Reduced for minimal chat input bar
     maxHeight: 600,
-    initialHeight: 320,
+    initialHeight: 150,  // Reduced for compact initial view
   });
 
   const barRef = useRef<HTMLDivElement>(null);
+
+  // Auto-expand panel when content is added
+  useEffect(() => {
+    const hasContent = detectedQuestions.length > 0 || chatMessages.length > 0;
+    const hasAnswer = detectedQuestions.some(q => (q as any).refinedText);
+    
+    if (hasContent && questionResize.height < 300) {
+      // Expand to comfortable viewing height when content appears
+      questionResize.setHeight(350);
+    } else if (!hasContent && questionResize.height > 150) {
+      // Shrink back to minimal when no content
+      questionResize.setHeight(150);
+    }
+  }, [detectedQuestions.length, chatMessages.length]);
 
   const { data: screenshots = [], refetch } = useQuery<
     Array<{ path: string; preview: string }>,
@@ -734,144 +748,28 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
             </div>
           )}
 
-          {/* Conditional Chat Interface - Glass-style with animation */}
-          {isChatOpen && (
-            <div
-              className="mt-4 w-full max-w-2xl liquid-glass chat-container p-4 flex flex-col relative overflow-hidden"
-              style={{ minHeight: "80px" }}
-            >
-              {/* Close Button */}
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="absolute top-3 right-3 w-5 h-5 rounded-full bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors z-10"
-                type="button"
-                title="閉じる"
-              >
-                <svg
-                  className="w-3 h-3 text-white/60 hover:text-white/90 transition-colors"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-
-              {/* Answer Display Area - Animates in when content appears */}
-              <div
-                className={`flex-1 flex flex-col transition-all duration-300 origin-bottom ${
-                  chatMessages.length > 0 &&
-                  chatMessages[chatMessages.length - 1]?.role === "gemini"
-                    ? "opacity-100 scale-y-100 mb-3"
-                    : "opacity-0 scale-y-0 h-0 mb-0"
-                }`}
-              >
-                <div
-                  ref={chatMessagesRef}
-                  className="flex-1 overflow-y-auto px-2"
-                >
-                  {/* Show only the latest gemini message */}
-                  {(() => {
-                    const lastGeminiMsg = [...chatMessages]
-                      .reverse()
-                      .find((msg) => msg.role === "gemini");
-                    return lastGeminiMsg ? (
-                      <div className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">
-                        {lastGeminiMsg.text}
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-              </div>
-
-              {/* Loading indicator - Shows in place of answer area */}
-              {chatLoading && (
-                <div className="flex-1 mb-3 px-2">
-                  <div className="flex items-center">
-                    <span className="text-xs text-white/70 mr-2">
-                      回答を生成中
-                    </span>
-                    <div className="flex gap-0.5">
-                      <div
-                        className="w-1 h-1 bg-white/70 rounded-full animate-bounce"
-                        style={{ animationDelay: "0ms" }}
-                      ></div>
-                      <div
-                        className="w-1 h-1 bg-white/70 rounded-full animate-bounce"
-                        style={{ animationDelay: "150ms" }}
-                      ></div>
-                      <div
-                        className="w-1 h-1 bg-white/70 rounded-full animate-bounce"
-                        style={{ animationDelay: "300ms" }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Input Form - Always visible at bottom */}
-              <div className="mt-auto">
-                <form
-                  className="flex gap-2 items-center glass-content"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleChatSend();
-                  }}
-                >
-                  <input
-                    ref={chatInputRef}
-                    className="flex-1 morphism-input px-3 py-2 text-white placeholder-white/60 text-xs focus:outline-none transition-all duration-200"
-                    placeholder="メッセージを入力..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    disabled={chatLoading}
-                  />
-                  <button
-                    type="submit"
-                    className="text-white/70 hover:text-white transition-colors disabled:opacity-50"
-                    disabled={chatLoading || !chatInput.trim()}
-                    tabIndex={-1}
-                    aria-label="送信"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="w-4 h-4"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4.5 19.5l15-7.5-15-7.5v6l10 1.5-10 1.5v6z"
-                      />
-                    </svg>
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* Question Panel - Wider and centered relative to floating bar system */}
-          {/* Show panel when listening OR when there are questions (even if not listening) */}
-          {(audioStreamState?.isListening || detectedQuestions.length > 0) && (
+          {/* Question Panel with Unified Chat/Answer - Show when listening OR has questions OR chat is open */}
+          {(audioStreamState?.isListening || detectedQuestions.length > 0 || isChatOpen) && (
             <div
               className="mt-4 w-full max-w-4xl relative"
-              style={{ height: `${questionResize.height}px`, minHeight: '200px' }}
+              style={{
+                height: `${questionResize.height}px`,
+                minHeight: "120px",  // Reduced for minimal chat input bar
+              }}
             >
               <QuestionSidePanel
                 questions={detectedQuestions}
                 audioStreamState={audioStreamState}
                 onAnswerQuestion={handleAnswerQuestion}
                 responseMode={responseMode}
+                isChatOpen={isChatOpen}
+                chatMessages={chatMessages}
+                chatInput={chatInput}
+                onChatInputChange={setChatInput}
+                onChatSend={handleChatSend}
+                chatLoading={chatLoading}
                 className="w-full h-full"
-                onClose={() => {
+                onCloseQuestions={() => {
                   // Stop listening session if active
                   if (
                     audioStreamState?.isListening &&
@@ -887,8 +785,10 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
 
                   // Clear frontend questions state
                   setDetectedQuestions([]);
-
-                  // Panel will auto-hide when both listening stops AND questions are cleared
+                }}
+                onCloseChat={() => {
+                  // Close chat only
+                  setIsChatOpen(false);
                 }}
               />
 

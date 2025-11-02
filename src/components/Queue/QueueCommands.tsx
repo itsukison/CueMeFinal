@@ -1064,7 +1064,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             <div className="relative" ref={dropdownRef}>
               <button
                 ref={triggerRef}
-                className="morphism-button px-4 py-0 text-[11px] leading-none text-white/70 flex items-center gap-2 min-w-[80px] h-6"
+                className="morphism-button px-4 py-0 text-[11px] leading-none text-white/70 flex items-center justify-center gap-2 min-w-[120px] h-6"
                 onClick={toggleDropdown}
                 type="button"
               >
