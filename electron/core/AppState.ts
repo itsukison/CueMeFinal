@@ -12,6 +12,7 @@ import { DualAudioCaptureManager } from "../audio/DualAudioCaptureManager";
 import { PermissionStorage } from "../PermissionStorage";
 import { UniversalPermissionManager } from "./UniversalPermissionManager";
 import { AuthCallbackServer } from "./AuthCallbackServer";
+import { AutoUpdateManager } from "./AutoUpdateManager";
 
 /**
  * Central application state manager
@@ -33,6 +34,7 @@ export class AppState {
   public permissionStorage: PermissionStorage;
   public universalPermissionManager: UniversalPermissionManager;
   private authCallbackServer: AuthCallbackServer;
+  private autoUpdateManager: AutoUpdateManager;
   private tray: Tray | null = null;
 
   // View management
@@ -132,6 +134,9 @@ export class AppState {
 
     // Initialize ShortcutsHelper
     this.shortcutsHelper = new ShortcutsHelper(this);
+
+    // Initialize AutoUpdateManager
+    this.autoUpdateManager = new AutoUpdateManager();
   }
 
   /**
@@ -401,6 +406,10 @@ export class AppState {
 
   public getHasDebugged(): boolean {
     return this.hasDebugged;
+  }
+
+  public getAutoUpdateManager(): AutoUpdateManager {
+    return this.autoUpdateManager;
   }
 
   // Window management methods

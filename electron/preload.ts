@@ -90,6 +90,12 @@ interface ElectronAPI {
   onChatToggle: (callback: () => void) => () => void
   onListenToggle: (callback: () => void) => () => void
   onDevAuthOpen: (callback: () => void) => () => void
+  
+  // Update event listeners
+  onUpdateAvailable: (callback: (info: any) => void) => () => void
+  onUpdateDownloaded: (callback: (info: any) => void) => () => void
+  onUpdateDownloadProgress: (callback: (progress: any) => void) => () => void
+  onUpdateError: (callback: (error: any) => void) => () => void
 }
 
 export const PROCESSING_EVENTS = {
@@ -317,6 +323,36 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("open-dev-auth", subscription)
     return () => {
       ipcRenderer.removeListener("open-dev-auth", subscription)
+    }
+  },
+  
+  // Update event listeners
+  onUpdateAvailable: (callback: (info: any) => void) => {
+    const subscription = (_: any, info: any) => callback(info)
+    ipcRenderer.on("update-available", subscription)
+    return () => {
+      ipcRenderer.removeListener("update-available", subscription)
+    }
+  },
+  onUpdateDownloaded: (callback: (info: any) => void) => {
+    const subscription = (_: any, info: any) => callback(info)
+    ipcRenderer.on("update-downloaded", subscription)
+    return () => {
+      ipcRenderer.removeListener("update-downloaded", subscription)
+    }
+  },
+  onUpdateDownloadProgress: (callback: (progress: any) => void) => {
+    const subscription = (_: any, progress: any) => callback(progress)
+    ipcRenderer.on("update-download-progress", subscription)
+    return () => {
+      ipcRenderer.removeListener("update-download-progress", subscription)
+    }
+  },
+  onUpdateError: (callback: (error: any) => void) => {
+    const subscription = (_: any, error: any) => callback(error)
+    ipcRenderer.on("update-error", subscription)
+    return () => {
+      ipcRenderer.removeListener("update-error", subscription)
     }
   },
   

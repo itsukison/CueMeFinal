@@ -130,13 +130,19 @@ export class WindowHelper {
     this.mainWindow.once('ready-to-show', () => {
       if (this.mainWindow) {
         // Center the window first
-        this.centerWindow()
-        this.mainWindow.show()
-        this.mainWindow.focus()
-        this.mainWindow.setAlwaysOnTop(true)
-        console.log("Window is now visible and centered")
+        this.centerWindow();
+        this.mainWindow.show();
+        this.mainWindow.focus();
+        this.mainWindow.setAlwaysOnTop(true);
+        console.log("Window is now visible and centered");
+        
+        // Set window reference in AutoUpdateManager
+        this.appState.getAutoUpdateManager().setMainWindow(this.mainWindow);
+        
+        // Start update checks after window is ready
+        this.appState.getAutoUpdateManager().startUpdateChecks(true);
       }
-    })
+    });
 
     const bounds = this.mainWindow.getBounds()
     this.windowPosition = { x: bounds.x, y: bounds.y }

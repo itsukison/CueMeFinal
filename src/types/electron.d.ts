@@ -92,6 +92,12 @@ interface ElectronAPI {
   permissionGetStatus: () => Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown'; systemAudio: 'granted' | 'denied' | 'not-determined' | 'unknown' }>
   permissionRequestMicrophone: () => Promise<{ granted: boolean; error?: string }>
   permissionRequestSystemAudio: () => Promise<{ granted: boolean; error?: string }>
+  
+  // Update event listeners
+  onUpdateAvailable: (callback: (info: { version: string; releaseDate: string; releaseNotes?: string }) => void) => () => void
+  onUpdateDownloaded: (callback: (info: { version: string; releaseDate: string; releaseNotes?: string }) => void) => () => void
+  onUpdateDownloadProgress: (callback: (progress: { percent: number; transferred: number; total: number }) => void) => () => void
+  onUpdateError: (callback: (error: { message: string }) => void) => () => void
 }
 
 declare global {

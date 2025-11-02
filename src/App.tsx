@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "react-query";
 import { AuthDialog } from "./components/ui/auth-dialog";
 import { DevAuthDialog } from "./components/ui/dev-auth-dialog";
 import { PermissionDialog } from "./components/ui/permission-dialog";
+import { UpdateDialog } from "./components/ui/update-dialog";
 import { AppRouter } from "./components/AppRouter";
 import { useAuth } from "./hooks/useAuth";
 import { usePermissions } from "./hooks/usePermissions";
@@ -154,6 +155,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue");
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDevAuthOpen, setIsDevAuthOpen] = useState(false);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
 
   // Use custom hooks for auth and permissions
   const [permissionState, handlePermissionsCompleted] = usePermissions();
@@ -338,6 +340,10 @@ const App: React.FC = () => {
             onOpenChange={setIsDevAuthOpen}
             onSignIn={authHandlers.handleSignIn}
             onSignUp={authHandlers.handleSignUp}
+          />
+          <UpdateDialog
+            isOpen={isUpdateDialogOpen}
+            onOpenChange={setIsUpdateDialogOpen}
           />
           <ToastViewport />
         </ToastProvider>

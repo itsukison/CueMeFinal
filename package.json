@@ -1,6 +1,6 @@
 {
   "name": "CueMe",
-  "version": "1.0.107",
+  "version": "1.0.108",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
@@ -40,7 +40,6 @@
       "custom-binaries/**/*",
       "package.json"
     ],
-
     "directories": {
       "output": "release"
     },
@@ -187,6 +186,7 @@
     "diff": "^7.0.0",
     "dotenv": "^16.4.5",
     "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2",
     "form-data": "^4.0.1",
     "lucide-react": "^0.460.0",
     "openai": "^5.15.0",

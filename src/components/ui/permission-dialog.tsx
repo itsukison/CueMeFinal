@@ -172,13 +172,13 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
   const getPermissionIcon = (status: string) => {
     switch (status) {
       case "granted":
-        return <CheckCircle className="w-4 h-4" style={{ color: "#013220" }} />;
+        return <CheckCircle className="w-4 h-4" style={{ color: "#D8F9B8" }} />;
       case "denied":
       case "restricted":
-        return <XCircle className="w-4 h-4" style={{ color: "#D4A574" }} />;
+        return <XCircle className="w-4 h-4" style={{ color: "#2B2D2D" }} />;
       default:
         return (
-          <AlertTriangle className="w-4 h-4" style={{ color: "#D4A574" }} />
+          <AlertTriangle className="w-4 h-4" style={{ color: "#D8F9B8" }} />
         );
     }
   };
@@ -204,15 +204,18 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
         return (
           <>
             {/* Compact Header */}
-            <div className="flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-b from-white/20 to-transparent">
+            <div
+              className="flex items-center justify-center gap-2 py-3 px-6"
+              
+            >
               <img src="./logogreen.png" alt="CueMe Logo" className="w-8 h-8" />
               <h1
                 className="text-xl font-bold logo-text"
-                style={{ color: "#013220" }}
+                style={{ color: "#2B2D2D" }}
               >
                 CueMe
               </h1>
-              <span className="text-sm" style={{ color: "#013220" }}>
+              <span className="text-sm">
                 初期設定
               </span>
             </div>
@@ -222,18 +225,18 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                 <div
                   className="p-2 rounded-lg"
                   style={{
-                    backgroundColor: "#FFF8E1",
-                    border: "1px solid #D4A574",
+                    backgroundColor: "#EAFBDD",
+                    border: "1px solid #D8F9B8",
                   }}
                 >
-                  <p className="text-xs" style={{ color: "#8B6914" }}>
+                  <p className="text-xs" style={{ color: "#2B2D2D" }}>
                     {error}
                   </p>
                 </div>
               )}
 
               <div className="text-center">
-                <p className="text-sm font-medium" style={{ color: "#013220" }}>
+                <p className="text-sm font-medium" style={{ color: "#2B2D2D" }}>
                   ようこそ！
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
@@ -242,15 +245,18 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-start gap-2 p-2 bg-white/50 rounded-lg">
+                <div
+                  className="flex items-start gap-2 p-2 rounded-lg"
+                  style={{ backgroundColor: "#F3F7EF" }}
+                >
                   <Mic
                     className="w-4 h-4 mt-0.5 flex-shrink-0"
-                    style={{ color: "#013220" }}
+                    style={{ color: "#2B2D2D" }}
                   />
                   <div className="flex-1">
                     <div
                       className="font-medium text-xs"
-                      style={{ color: "#013220" }}
+                      style={{ color: "#2B2D2D" }}
                     >
                       マイク
                     </div>
@@ -258,15 +264,18 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 p-2 bg-white/50 rounded-lg">
+                <div
+                  className="flex items-start gap-2 p-2 rounded-lg"
+                  style={{ backgroundColor: "#F3F7EF" }}
+                >
                   <Monitor
                     className="w-4 h-4 mt-0.5 flex-shrink-0"
-                    style={{ color: "#013220" }}
+                    style={{ color: "#2B2D2D" }}
                   />
                   <div className="flex-1">
                     <div
                       className="font-medium text-xs"
-                      style={{ color: "#013220" }}
+                      style={{ color: "#2B2D2D" }}
                     >
                       システム音声
                     </div>
@@ -275,7 +284,7 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                     </div>
                     <div
                       className="text-xs font-medium mt-0.5"
-                      style={{ color: "#D4A574" }}
+                      style={{ color: "#D8F9B8" }}
                     >
                       ⚠️ 画面収録ではなくシステム音声
                     </div>
@@ -287,7 +296,7 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                 onClick={() => setCurrentStep("permissions")}
                 disabled={loading}
                 className="w-full px-4 py-2.5 text-sm font-medium disabled:opacity-50 text-white rounded-lg transition-all hover:opacity-90"
-                style={{ backgroundColor: "#013220" }}
+                style={{ backgroundColor: "#2B2D2D" }}
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin mx-auto" />
@@ -303,15 +312,17 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
         return (
           <>
             {/* Compact Header */}
-            <div className="flex items-center justify-center gap-2 py-2 px-6 bg-gradient-to-b from-white/20 to-transparent">
+            <div
+              className="flex items-center justify-center gap-2 py-2 px-6"
+            >
               <img src="./logogreen.png" alt="CueMe Logo" className="w-7 h-7" />
               <h1
                 className="text-lg font-bold logo-text"
-                style={{ color: "#013220" }}
+                style={{ color: "#2B2D2D" }}
               >
                 CueMe
               </h1>
-              <span className="text-xs" style={{ color: "#013220" }}>
+              <span className="text-xs" style={{ color: "#2B2D2D" }}>
                 権限設定
               </span>
             </div>
@@ -321,9 +332,9 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                 <div
                   className="p-2 rounded-lg text-xs whitespace-pre-line"
                   style={{
-                    backgroundColor: "#FFF8E1",
-                    border: "1px solid #D4A574",
-                    color: "#8B6914",
+                    backgroundColor: "#EAFBDD",
+                    border: "1px solid #D8F9B8",
+                    color: "#2B2D2D",
                   }}
                 >
                   {error}
@@ -334,7 +345,7 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                 <div className="text-center py-4">
                   <Loader2
                     className="w-6 h-6 animate-spin mx-auto mb-2"
-                    style={{ color: "#013220" }}
+                    style={{ color: "#2B2D2D" }}
                   />
                   <p className="text-xs text-gray-600">確認中...</p>
                 </div>
@@ -342,13 +353,16 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                 <div className="space-y-2.5">
                   {/* Microphone Permission */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between p-2 bg-white/50 rounded-lg">
+                    <div
+                      className="flex items-center justify-between p-2 rounded-lg"
+                      style={{ backgroundColor: "#F3F7EF" }}
+                    >
                       <div className="flex items-center gap-2">
-                        <Mic className="w-4 h-4" style={{ color: "#013220" }} />
+                        <Mic className="w-4 h-4" style={{ color: "#2B2D2D" }} />
                         <div>
                           <div
                             className="font-medium text-xs"
-                            style={{ color: "#013220" }}
+                            style={{ color: "#2B2D2D" }}
                           >
                             マイク
                           </div>
@@ -371,9 +385,9 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                         disabled={loading}
                         className="w-full px-3 py-1.5 text-xs font-medium rounded-lg transition-all"
                         style={{
-                          backgroundColor: "#F7F7EE",
-                          border: "1px solid #013220",
-                          color: "#013220",
+                          backgroundColor: "#F3F7EF",
+                          border: "1px solid #EDECEA",
+                          color: "#2B2D2D",
                         }}
                       >
                         {loading ? (
@@ -387,15 +401,18 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
 
                   {/* System Audio Permission */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 p-2 bg-white/50 rounded-lg">
+                    <div
+                      className="flex items-center gap-2 p-2 rounded-lg"
+                      style={{ backgroundColor: "#F3F7EF" }}
+                    >
                       <Monitor
                         className="w-4 h-4"
-                        style={{ color: "#013220" }}
+                        style={{ color: "#2B2D2D" }}
                       />
                       <div>
                         <div
                           className="font-medium text-xs"
-                          style={{ color: "#013220" }}
+                          style={{ color: "#2B2D2D" }}
                         >
                           システム音声
                         </div>
@@ -411,25 +428,25 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                         <div
                           className="p-2 rounded-lg space-y-1"
                           style={{
-                            backgroundColor: "#FFF8E1",
-                            border: "1px solid #D4A574",
+                            backgroundColor: "#EAFBDD",
+                            border: "1px solid #D8F9B8",
                           }}
                         >
                           <div
                             className="text-xs font-medium"
-                            style={{ color: "#8B6914" }}
+                            style={{ color: "#2B2D2D" }}
                           >
                             ⚠️ 間違った権限
                           </div>
-                          <div className="text-xs" style={{ color: "#8B6914" }}>
+                          <div className="text-xs" style={{ color: "#2B2D2D" }}>
                             画面収録ではなくシステム音声を許可してください
                           </div>
                           <button
                             onClick={openPermissionResetGuide}
                             className="w-full px-2 py-1 text-xs font-medium rounded transition-all"
                             style={{
-                              backgroundColor: "#D4A574",
-                              color: "#FFF",
+                              backgroundColor: "#D8F9B8",
+                              color: "#2B2D2D",
                             }}
                           >
                             リセット手順
@@ -442,9 +459,9 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                       disabled={loading}
                       className="w-full px-3 py-1.5 text-xs font-medium rounded-lg transition-all"
                       style={{
-                        backgroundColor: "#F7F7EE",
-                        border: "1px solid #013220",
-                        color: "#013220",
+                        backgroundColor: "#EAFBDD",
+                        border: "1px solid #EDECEA",
+                        color: "#2B2D2D",
                       }}
                     >
                       {loading ? (
@@ -459,32 +476,38 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                   <div
                     className="p-2 rounded-lg"
                     style={{
-                      backgroundColor: "#FFF8E1",
-                      border: "1px solid #D4A574",
+                      backgroundColor: "#F3F7EF",
+                      border: "1px solid #D8F9B8",
                     }}
                   >
                     <div
                       className="text-xs font-medium mb-1"
-                      style={{ color: "#8B6914" }}
+                      style={{ color: "#2B2D2D" }}
                     >
                       📌 設定手順
                     </div>
                     <ol
                       className="text-xs space-y-0.5 list-decimal list-inside"
-                      style={{ color: "#8B6914" }}
+                      style={{ color: "#2B2D2D" }}
                     >
                       <li>
                         プライバシーとセキュリティ →{" "}
-                        <span className="font-bold">画面収録とシステムオーディオ録音</span>
+                        <span className="font-bold">
+                          画面収録とシステムオーディオ録音
+                        </span>
                       </li>
                       <li>
-                        <span className="font-bold">システムオーディオ録音のみ</span>
+                        <span className="font-bold">
+                          システムオーディオ録音のみ
+                        </span>
                         に+で追加{" "}
-                        <span style={{ color: "#D4A574" }}>(重要：画面収録ではありません)</span>
+                        <span className="font-bold">
+                          (重要：画面収録ではありません!!)
+                        </span>
                       </li>
                       <li>
                         CueMeにチェック →{" "}
-                        <span className="font-bold">アプリを再起動</span>
+                        <span>アプリを再起動</span>
                       </li>
                       <li>
                         再起動後、<span className="font-bold">設定完了</span>
@@ -498,7 +521,7 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                     onClick={handleCompleteSetup}
                     disabled={loading}
                     className="w-full px-3 py-2 text-xs font-medium text-white rounded-lg transition-all hover:opacity-90"
-                    style={{ backgroundColor: "#013220" }}
+                    style={{ backgroundColor: "#2B2D2D" }}
                   >
                     {loading ? (
                       <Loader2 className="w-3 h-3 animate-spin mx-auto" />
@@ -526,7 +549,7 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
       <DialogContent
         ref={dialogRef}
         className="w-[520px] max-w-lg border-0 rounded-3xl p-0 overflow-hidden shadow-2xl backdrop-blur-lg"
-        style={{ backgroundColor: "#F7F7EE" }}
+        style={{ backgroundColor: "#FEFEFE" }}
       >
         {getStepContent()}
       </DialogContent>
