@@ -18,6 +18,7 @@ import QuestionSidePanel from "../components/AudioListener/QuestionSidePanel";
 import { DetectedQuestion, AudioStreamState } from "../types/audio-stream";
 import { useVerticalResize } from "../hooks/useVerticalResize";
 import { ProfileDropdown } from "../components/Queue/ProfileDropdown";
+import { PermissionDialog } from "../components/ui/permission-dialog";
 // Removed AudioSettings import - dual audio capture is automatic
 
 interface ResponseMode {
@@ -73,6 +74,9 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
 
   // Audio listening state (no source selection needed - dual capture is automatic)
   const [isListening, setIsListening] = useState(false);
+
+  // Permission dialog state
+  const [isPermissionDialogOpen, setIsPermissionDialogOpen] = useState(false);
 
   // Ref to access QueueCommands methods
   const queueCommandsRef = useRef<QueueCommandsRef>(null);
@@ -367,100 +371,21 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     window.electronAPI.invoke("open-external-url", "https://www.cueme.ink/");
   };
 
-  // Permission request handler
+  // Permission request handler - opens the permission dialog
   const handlePermissionRequest = async () => {
-    try {
-      console.log("[Queue] Opening permission request dialog...");
+    console.log("[Queue] Opening permission dialog...");
+    setIsPermissionDialogOpen(true);
+  };
 
-      // Check current permission status first
-      const status = await window.electronAPI.invoke("permission-check-status");
-      console.log("[Queue] Current permission status:", status);
+  // Handler for when permission dialog is completed or closed
+  const handlePermissionDialogChange = (open: boolean) => {
+    setIsPermissionDialogOpen(open);
+  };
 
-      let hasRequestedAny = false;
-
-      // Handle microphone permission
-      if (status.microphone !== "granted") {
-        console.log("[Queue] Microphone permission not granted, requesting...");
-        hasRequestedAny = true;
-
-        try {
-          // First try to request programmatically
-          const micResult = await window.electronAPI.invoke(
-            "permission-request-microphone"
-          );
-          if (micResult.granted) {
-            showToast("権限許可", "マイクの権限が許可されました", "success");
-          } else {
-            // If denied, open system preferences for microphone
-            console.log(
-              "[Queue] Microphone permission denied, opening system preferences..."
-            );
-            await window.electronAPI.invoke(
-              "permission-open-system-preferences",
-              "microphone"
-            );
-            showToast(
-              "マイクの設定",
-              "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。",
-              "neutral"
-            );
-          }
-        } catch (error) {
-          console.error(
-            "[Queue] Error requesting microphone permission:",
-            error
-          );
-          // Fallback to opening system preferences
-          await window.electronAPI.invoke(
-            "permission-open-system-preferences",
-            "microphone"
-          );
-          showToast(
-            "マイクの設定",
-            "システム環境設定が開きました。セキュリティとプライバシー → マイクでCueMeを有効にしてください。",
-            "neutral"
-          );
-        }
-      }
-
-      // Handle screen recording permission (cannot be requested programmatically)
-      if (status.screenCapture !== "granted") {
-        console.log(
-          "[Queue] Screen recording permission not granted, opening system preferences..."
-        );
-        hasRequestedAny = true;
-
-        await window.electronAPI.invoke(
-          "permission-open-system-preferences",
-          "screen"
-        );
-        showToast(
-          "画面収録の設定",
-          "システム環境設定が開きました。セキュリティとプライバシー → 画面収録でCueMeを有効にしてください。",
-          "neutral"
-        );
-      }
-
-      // If both permissions are already granted
-      if (
-        status.microphone === "granted" &&
-        status.screenCapture === "granted"
-      ) {
-        showToast("権限確認", "すべての権限が許可されています。", "success");
-      } else if (hasRequestedAny) {
-        // Show additional guidance for users
-        setTimeout(() => {
-          showToast(
-            "再起動のお知らせ",
-            "権限を変更した後は、アプリを再起動することをお勧めします。",
-            "neutral"
-          );
-        }, 3000);
-      }
-    } catch (error) {
-      console.error("[Queue] Error requesting permissions:", error);
-      showToast("エラー", "権限の確認に失敗しました", "error");
-    }
+  // Handler for when permission dialog is completed
+  const handlePermissionsCompleted = () => {
+    setIsPermissionDialogOpen(false);
+    showToast("権限設定完了", "権限の設定が完了しました。アプリを再起動してください。", "success");
   };
 
   const handleResponseModeChange = (mode: ResponseMode) => {
@@ -806,6 +731,13 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
           onDeleteScreenshot={handleDeleteScreenshot}
         />
       </div>
+
+      {/* Permission Dialog */}
+      <PermissionDialog
+        isOpen={isPermissionDialogOpen}
+        onOpenChange={setIsPermissionDialogOpen}
+        onPermissionsCompleted={handlePermissionsCompleted}
+      />
     </div>
   );
 };

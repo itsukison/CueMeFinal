@@ -283,8 +283,7 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
                       Zoom/Teams等の音声取得
                     </div>
                     <div
-                      className="text-xs font-medium mt-0.5"
-                      style={{ color: "#D8F9B8" }}
+                      className="text-xs font-bold mt-0.5"
                     >
                       ⚠️ 画面収録ではなくシステム音声
                     </div>
@@ -548,8 +547,8 @@ export const PermissionDialog: React.FC<PermissionDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         ref={dialogRef}
-        className="w-[520px] max-w-lg border-0 rounded-3xl p-0 overflow-hidden shadow-2xl backdrop-blur-lg"
-        style={{ backgroundColor: "#FEFEFE" }}
+        className="w-[90vw] max-w-[420px] border-0 rounded-3xl p-0 overflow-hidden shadow-2xl backdrop-blur-lg"
+        style={{ backgroundColor: "#FEFEFE", maxHeight: "90vh", overflowY: "auto" }}
       >
         {getStepContent()}
       </DialogContent>
