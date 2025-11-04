@@ -453,6 +453,53 @@ ${message}
     }
   }
 
+  /**
+   * Chat with RAG support using streaming for better UX
+   * Calls onChunk callback for each token received
+   */
+  public async chatWithRAGStreaming(
+    message: string,
+    collectionId: string | undefined,
+    onChunk: (chunk: string) => void
+  ): Promise<{ response: string; ragContext: RAGContext }> {
+    try {
+      console.log('[LLMHelper] Starting streaming response...');
+      
+      // Search for relevant context if collection is specified
+      const ragContext = await this.searchRAGContext(message, collectionId);
+      
+      // Format the prompt with RAG context if available
+      const enhancedPrompt = this.formatRAGPrompt(message, ragContext);
+      
+      // Use streaming API
+      const result = await this.model.generateContentStream(enhancedPrompt);
+      
+      let fullResponse = '';
+      
+      // Stream chunks as they arrive
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        fullResponse += chunkText;
+        
+        // Send chunk to callback immediately
+        onChunk(chunkText);
+      }
+      
+      // Clean up the complete response
+      const cleanedResponse = this.cleanResponseText(fullResponse);
+      
+      console.log('[LLMHelper] Streaming complete, total length:', cleanedResponse.length);
+      
+      return {
+        response: cleanedResponse,
+        ragContext
+      };
+    } catch (error) {
+      console.error('[LLMHelper] Error in chatWithRAGStreaming:', error);
+      throw error;
+    }
+  }
+
   private cleanResponseText(text: string): string {
     // Remove English phrases about information sources
     text = text.replace(/I found relevant information|I'm using information from|Based on the information provided|According to the sources/gi, "");

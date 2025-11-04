@@ -241,6 +241,51 @@ export function registerAudioHandlers(appState: AppState): void {
     }
   });
 
+  // Generate answers with streaming for better UX
+  ipcMain.handle("audio-stream-answer-question-streaming", async (event, questionText: string, collectionId?: string) => {
+    try {
+      const user = appState.authService.getCurrentUser();
+      const accessToken = appState.authService.getAccessToken();
+      
+      if (user && accessToken) {
+        const usageCheck = await appState.usageTracker.checkCanAskQuestion(accessToken);
+        if (!usageCheck.allowed) {
+          const error = new Error(usageCheck.error || 'Usage limit exceeded');
+          (error as any).code = 'USAGE_LIMIT_EXCEEDED';
+          (error as any).remaining = usageCheck.remaining || 0;
+          throw error;
+        }
+
+        const usageResult = await appState.usageTracker.incrementQuestionUsage(accessToken);
+        if (!usageResult.success) {
+          console.warn('Usage tracking failed, but continuing with request:', usageResult.error);
+        }
+      }
+
+      const llmHelper = appState.processingHelper.getLLMHelper();
+      
+      // Use streaming API with callback to send chunks to renderer
+      const result = await llmHelper.chatWithRAGStreaming(
+        questionText,
+        collectionId,
+        (chunk: string) => {
+          // Send each chunk to the renderer process
+          event.sender.send('audio-stream-answer-chunk', chunk);
+        }
+      );
+      
+      // Return final response
+      return { 
+        response: result.response, 
+        ragContext: result.ragContext,
+        timestamp: Date.now() 
+      };
+    } catch (error: any) {
+      console.error("Error answering question with streaming:", error);
+      throw error;
+    }
+  });
+
   // System Audio Capture handlers
   ipcMain.handle("audio-get-sources", async () => {
     try {

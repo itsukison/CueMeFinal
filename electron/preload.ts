@@ -52,6 +52,7 @@ interface ElectronAPI {
   audioStreamGetQuestions: () => Promise<Array<{ text: string; timestamp: number }>>
   audioStreamClearQuestions: () => Promise<{ success: boolean; error?: string }>
   audioStreamAnswerQuestion: (questionText: string, collectionId?: string) => Promise<{ response: string; timestamp: number }>
+  audioStreamAnswerQuestionStreaming: (questionText: string, collectionId: string | undefined, onChunk: (chunk: string) => void) => Promise<{ response: string; ragContext: any; timestamp: number }>
   
   // Microphone capture from renderer (new - MicrophoneCapture service)
   audioProcessMicrophoneChunk: (audioData: Float32Array) => Promise<{ success: boolean; error?: string }>
@@ -243,6 +244,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   audioStreamGetQuestions: () => ipcRenderer.invoke("audio-stream-get-questions") as Promise<Array<{ text: string; timestamp: number }>>,
   audioStreamClearQuestions: () => ipcRenderer.invoke("audio-stream-clear-questions"),
   audioStreamAnswerQuestion: (questionText: string, collectionId?: string) => ipcRenderer.invoke("audio-stream-answer-question", questionText, collectionId),
+  audioStreamAnswerQuestionStreaming: (questionText: string, collectionId: string | undefined, onChunk: (chunk: string) => void) => {
+    // Set up listener for chunks
+    const chunkHandler = (_: any, chunk: string) => onChunk(chunk);
+    ipcRenderer.on("audio-stream-answer-chunk", chunkHandler);
+    
+    // Start the streaming request
+    const promise = ipcRenderer.invoke("audio-stream-answer-question-streaming", questionText, collectionId);
+    
+    // Clean up listener when done
+    promise.finally(() => {
+      ipcRenderer.removeListener("audio-stream-answer-chunk", chunkHandler);
+    });
+    
+    return promise;
+  },
   
   // Microphone capture from renderer (new - MicrophoneCapture service)
   audioProcessMicrophoneChunk: (audioData: Float32Array) => ipcRenderer.invoke("audio-process-microphone-chunk", audioData),

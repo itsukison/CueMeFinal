@@ -440,22 +440,46 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
         return cached;
       }
 
-      const result = await (
-        window.electronAPI as any
-      ).audioStreamAnswerQuestion(question.text, collectionId);
-
-      console.log("[Queue] Question answered:", result);
-
-      // Show answer in chat
+      // Add user message immediately
       setChatMessages((prev) => [
         ...prev,
         { role: "user", text: question.text },
-        { role: "gemini", text: result.response },
       ]);
 
-      // Cache the result
-      answersCacheRef.current.set(question.id, result);
-      return result;
+      // Use streaming for better UX
+      let streamingResponse = "";
+      const result = await window.electronAPI.audioStreamAnswerQuestionStreaming(
+        question.text,
+        collectionId,
+        (chunk: string) => {
+          // Append each chunk as it arrives
+          streamingResponse += chunk;
+          
+          // Update chat with streaming response
+          setChatMessages((prev) => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            
+            if (lastMessage && lastMessage.role === "gemini") {
+              // Update existing gemini message
+              lastMessage.text = streamingResponse;
+            } else {
+              // Add new gemini message
+              newMessages.push({ role: "gemini", text: streamingResponse });
+            }
+            
+            return newMessages;
+          });
+        }
+      );
+
+      console.log("[Queue] Question answered (streaming complete):", result);
+
+      // Cache the final result
+      const finalResult = { response: result.response, timestamp: result.timestamp };
+      answersCacheRef.current.set(question.id, finalResult);
+      
+      return finalResult;
     } catch (error: any) {
       console.error("[Queue] Failed to answer question:", error);
 
@@ -470,7 +494,6 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       } else {
         setChatMessages((prev) => [
           ...prev,
-          { role: "user", text: question.text },
           { role: "gemini", text: "エラー: " + error.message },
         ]);
       }

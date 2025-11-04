@@ -108,22 +108,25 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
       return;
     }
 
-    // Generate new answer
+    // Generate new answer with streaming
     setGeneratingAnswer(true);
-    setCurrentAnswer(null);
+    setCurrentAnswer(""); // Start with empty string for streaming
 
     try {
       const collectionId =
         responseMode.type === "qna" ? responseMode.collectionId : undefined;
+      
+      // Call onAnswerQuestion which now handles streaming internally
       const result = await onAnswerQuestion(question, collectionId);
 
-      // Cache the answer
+      // Cache the final answer
       setAnswers((prev) => {
         const next = new Map(prev);
         next.set(question.id, result.response);
         return next;
       });
 
+      // Set final answer (in case streaming didn't update it)
       setCurrentAnswer(result.response);
     } catch (error) {
       console.error("Failed to answer question:", error);
