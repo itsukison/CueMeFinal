@@ -203,9 +203,18 @@ jobs:
         run: |
           echo "🚀 Building and releasing for platform: ${{ matrix.platform }}"
           
-          # Run the build script
+          # Run platform-specific build script
           echo "📦 Running build script..."
-          npm run build
+          if [ "${{ matrix.platform }}" = "mac" ]; then
+            echo "🍎 Building for macOS (with native binary)..."
+            npm run build
+          elif [ "${{ matrix.platform }}" = "win" ]; then
+            echo "🪟 Building for Windows (without native binary)..."
+            npm run build:win
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            echo "🐧 Building for Linux (without native binary)..."
+            npm run build:linux
+          fi
           
           # Run electron-builder with platform-specific arguments and enhanced error handling
           echo "🔨 Running electron-builder..."
