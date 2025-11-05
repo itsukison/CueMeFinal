@@ -293,6 +293,10 @@ const App: React.FC = () => {
               onSignIn={authHandlers.handleSignIn}
               onSignUp={authHandlers.handleSignUp}
             />
+            <UpdateDialog
+              isOpen={isUpdateDialogOpen}
+              onOpenChange={setIsUpdateDialogOpen}
+            />
             <ToastViewport />
           </ToastProvider>
         </QueryClientProvider>
@@ -317,6 +321,10 @@ const App: React.FC = () => {
               ></div>
               <p>認証状態を確認中...</p>
             </div>
+            <UpdateDialog
+              isOpen={isUpdateDialogOpen}
+              onOpenChange={setIsUpdateDialogOpen}
+            />
             <ToastViewport />
           </ToastProvider>
         </QueryClientProvider>

@@ -32,6 +32,11 @@ export class AutoUpdateManager {
       return;
     }
 
+    // Checking for update event
+    autoUpdater.on('checking-for-update', () => {
+      Logger.info('[AutoUpdate] Checking for update started');
+    });
+
     // Update available event
     autoUpdater.on('update-available', (info) => {
       Logger.info('[AutoUpdate] Update available:', info.version);
@@ -40,8 +45,8 @@ export class AutoUpdateManager {
     });
 
     // Update not available event
-    autoUpdater.on('update-not-available', () => {
-      Logger.info('[AutoUpdate] No updates available');
+    autoUpdater.on('update-not-available', (info) => {
+      Logger.info('[AutoUpdate] No updates available. Current version:', info.version);
     });
 
     // Download progress event
@@ -135,7 +140,10 @@ export class AutoUpdateManager {
     }
 
     try {
+      const { app } = require('electron');
       Logger.info('[AutoUpdate] Checking for updates...');
+      Logger.info('[AutoUpdate] Current version:', app.getVersion());
+      Logger.info('[AutoUpdate] Feed URL:', autoUpdater.getFeedURL());
       
       // Notify renderer that check is starting
       if (this.mainWindow) {
