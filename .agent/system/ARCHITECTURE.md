@@ -371,11 +371,18 @@ CueMeFinal/
 ## Future Improvements
 
 ### Planned Refactoring
-1. Split large files (main.ts, ipcHandlers.ts, QueueCommands.tsx)
-2. Extract custom hooks from components
-3. Create utility modules for shared code
-4. Improve error handling consistency
-5. Add comprehensive logging
+**See:** `.agent/tasks/PROJECT_CLEANUP_REORGANIZATION.md` for comprehensive cleanup plan
+
+**Summary:**
+1. Remove dead code (WorkflowOptimizationManager, OptimizationValidator, etc.)
+2. Reorganize electron/ into proper service layer structure
+3. Split oversized files (QueueCommands: 1244→200 lines, AudioStreamProcessor: 937→200 lines)
+4. Implement feature-based organization in React
+5. Extract custom hooks from large components
+6. Create organized utility modules
+7. Update documentation to reflect new structure
+
+**Target:** All files < 400 lines, clear separation of concerns, feature-based organization
 
 ### Feature Enhancements
 1. Multi-language support

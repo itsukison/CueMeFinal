@@ -318,20 +318,26 @@ npm run watch            # Watch TypeScript changes
    - Removed all non-error logging for performance
    - See: `.agent/tasks/QUESTION_DETECTION_SPEED_OPTIMIZATION.md`
 
-### Known Issues
-1. **Large Files** - Several files exceed 500 lines and need refactoring
-2. **Mixed Concerns** - Some components handle too many responsibilities
-3. **Unused Files** - Some test/debug files not cleaned up
-4. **Documentation** - Some services lack inline documentation
+### Known Issues & Cleanup Plan
+**See:** `.agent/tasks/PROJECT_CLEANUP_REORGANIZATION.md` for comprehensive cleanup plan
 
-### Planned Refactoring (See CODE_RESTRUCTURE.md)
-1. Split `electron/main.ts` into AppState, DeepLinkHandler, AuthCallbackServer
-2. Split `electron/ipcHandlers.ts` by feature domain
-3. Split `electron/AudioStreamProcessor.ts` into smaller modules
-4. Split `src/_pages/Queue.tsx` into smaller components
-5. Split `src/components/Queue/QueueCommands.tsx` into feature components
-6. Extract custom hooks from large components
-7. Create utility modules for shared code
+**Current Issues:**
+1. **Large Files** - QueueCommands.tsx (1244 lines), AudioStreamProcessor.ts (937 lines)
+2. **Flat Structure** - 25+ files in electron/ root directory
+3. **Dead Code** - WorkflowOptimizationManager, OptimizationValidator, AdaptiveQualityManager (unused)
+4. **Mixed Concerns** - Components handling too many responsibilities
+
+**Planned Cleanup (5-day plan):**
+1. **Phase 1:** Remove dead code (Day 1)
+2. **Phase 2:** Reorganize electron/ into service layer (Days 2-3)
+3. **Phase 3:** Split oversized files (Day 3)
+4. **Phase 4:** Reorganize React with feature-based structure (Day 4)
+5. **Phase 5:** Extract custom hooks (Day 4)
+6. **Phase 6:** Create utility modules (Day 5)
+7. **Phase 7:** Update documentation (Day 5)
+8. **Phase 8:** Testing & validation (Day 5)
+
+**Target:** All files < 400 lines, clear service layer, feature-based organization
 
 ### Future Features
 1. Multi-language support (currently Japanese/English)
