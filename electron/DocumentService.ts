@@ -1,5 +1,4 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import OpenAI from 'openai'
 
 export interface Document {
   id: string
@@ -29,23 +28,15 @@ export interface DocumentSearchResult {
 
 export class DocumentService {
   private supabase: SupabaseClient
-  private openai: OpenAI
-  private openaiApiKey: string | undefined
+  // TODO: Migrate to Gemini embeddings (OpenAI removed)
+  // private openai: OpenAI
+  // private openaiApiKey: string | undefined
 
   constructor(supabaseClient: SupabaseClient) {
     this.supabase = supabaseClient
     
-    // Initialize OpenAI client
-    this.openaiApiKey = process.env.OPENAI_API_KEY
-    
-    if (!this.openaiApiKey) {
-      console.error('[DocumentService] Missing OpenAI configuration. Please set OPENAI_API_KEY environment variable.')
-      console.warn('[DocumentService] Document search functionality will not work until proper OpenAI credentials are provided.')
-    }
-    
-    this.openai = new OpenAI({
-      apiKey: this.openaiApiKey || 'placeholder-key',
-    })
+    // TODO: Initialize Gemini client for embeddings
+    console.warn('[DocumentService] OpenAI removed - embeddings functionality needs migration to Gemini')
   }
 
   private normalizeJapaneseText(text: string): string {

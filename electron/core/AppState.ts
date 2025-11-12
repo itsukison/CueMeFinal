@@ -1,14 +1,12 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron";
+import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut } from "electron";
 import { WindowHelper } from "../WindowHelper";
 import { ScreenshotHelper } from "../ScreenshotHelper";
-import { ShortcutsHelper } from "../shortcuts";
 import { ProcessingHelper } from "../ProcessingHelper";
 import { AuthService } from "../AuthService";
 import { QnAService } from "../QnAService";
 import { DocumentService } from "../DocumentService";
 import { UsageTracker } from "../UsageTracker";
 import { LocalUsageManager } from "../LocalUsageManager";
-import { AudioStreamProcessor } from "../AudioStreamProcessor";
 import { DualAudioCaptureManager } from "../audio/DualAudioCaptureManager";
 import { PermissionStorage } from "../PermissionStorage";
 import { UniversalPermissionManager } from "./UniversalPermissionManager";
@@ -24,14 +22,12 @@ export class AppState {
 
   private windowHelper: WindowHelper;
   private screenshotHelper: ScreenshotHelper;
-  public shortcutsHelper: ShortcutsHelper;
   public processingHelper: ProcessingHelper;
   public authService: AuthService;
   public qnaService: QnAService;
   public documentService: DocumentService;
   public usageTracker: UsageTracker;
   public localUsageManager: LocalUsageManager;
-  public audioStreamProcessor: AudioStreamProcessor;
   public dualAudioManager: DualAudioCaptureManager | null = null;
   public permissionStorage: PermissionStorage;
   public universalPermissionManager: UniversalPermissionManager;
@@ -135,14 +131,8 @@ export class AppState {
     this.processingHelper.getLLMHelper().setQnAService(this.qnaService);
     this.processingHelper.getLLMHelper().setDocumentService(this.documentService);
 
-    // Initialize AudioStreamProcessor
-    this.audioStreamProcessor = this.initializeAudioStreamProcessor();
-
-    // Initialize DualAudioCaptureManager (new Gemini Live approach)
+    // Initialize DualAudioCaptureManager (Gemini Live for real-time question detection)
     this.dualAudioManager = this.initializeDualAudioManager();
-
-    // Initialize ShortcutsHelper
-    this.shortcutsHelper = new ShortcutsHelper(this);
 
     // Initialize AutoUpdateManager
     this.autoUpdateManager = new AutoUpdateManager();
@@ -192,77 +182,7 @@ export class AppState {
     return AppState.instance;
   }
 
-  /**
-   * Initialize AudioStreamProcessor with proper error handling
-   */
-  private initializeAudioStreamProcessor(): AudioStreamProcessor {
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    console.log('[AppState] OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing');
-    console.log('[AppState] Environment variables loaded:', {
-      NODE_ENV: process.env.NODE_ENV,
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Present' : 'Missing',
-      OPENAI_API_KEY: openaiApiKey ? 'Present' : 'Missing'
-    });
 
-    if (!openaiApiKey) {
-      console.warn('[AppState] OPENAI_API_KEY not found - audio streaming will be disabled');
-      return this.createDisabledAudioProcessor();
-    }
-
-    try {
-      const processor = new AudioStreamProcessor(openaiApiKey, {
-        questionDetectionEnabled: true,
-        batchInterval: 30000, // 30 seconds
-        maxBatchSize: 3
-      });
-      
-      // Setup event listeners for audio stream events
-      this.setupAudioStreamEvents(processor);
-      
-      console.log('[AppState] AudioStreamProcessor initialized successfully');
-      return processor;
-    } catch (error) {
-      console.error('[AppState] Failed to initialize AudioStreamProcessor:', error);
-      return this.createDisabledAudioProcessor();
-    }
-  }
-
-  /**
-   * Create a disabled audio processor stub
-   */
-  private createDisabledAudioProcessor(): AudioStreamProcessor {
-    return {
-      async startListening() {
-        console.warn('[AudioStreamProcessor] Cannot start - OpenAI API key not configured');
-        return Promise.resolve();
-      },
-      async stopListening() {
-        return Promise.resolve();
-      },
-      async processAudioChunk() {
-        console.warn('[AudioStreamProcessor] Cannot process audio - OpenAI API key not configured');
-        return Promise.resolve();
-      },
-      getState() {
-        return {
-          isListening: false,
-          isProcessing: false,
-          lastActivityTime: 0,
-          questionBuffer: [],
-          batchProcessor: {
-            lastBatchTime: 0,
-            isProcessing: false,
-            pendingQuestions: []
-          }
-        };
-      },
-      getQuestions() { return []; },
-      clearQuestions() {},
-      setLLMHelper() {},
-      on() { return this; },
-      emit() { return false; }
-    } as any;
-  }
 
   /**
    * Initialize DualAudioCaptureManager with Gemini Live (no Whisper needed)
@@ -333,43 +253,7 @@ export class AppState {
     setupListeners();
   }
 
-  /**
-   * Setup event listeners for AudioStreamProcessor events
-   */
-  private setupAudioStreamEvents(processor: AudioStreamProcessor): void {
-    const getMainWindow = () => this.getMainWindow();
-    
-    // Delay setup until window is available
-    const setupListeners = () => {
-      const mainWindow = getMainWindow();
-      if (!mainWindow) {
-        setTimeout(setupListeners, 1000);
-        return;
-      }
 
-      // Forward audio stream events to renderer process
-      processor.on('question-detected', (question) => {
-        mainWindow.webContents.send('audio-question-detected', question);
-      });
-
-      processor.on('transcription-completed', (result) => {
-        mainWindow.webContents.send('audio-transcription-completed', result);
-      });
-
-      processor.on('state-changed', (state) => {
-        mainWindow.webContents.send('audio-stream-state-changed', state);
-      });
-
-      processor.on('error', (error) => {
-        console.error('[AppState] Audio stream error:', error);
-        mainWindow.webContents.send('audio-stream-error', error.message);
-      });
-
-      console.log('[AppState] Audio stream event listeners setup complete');
-    };
-
-    setupListeners();
-  }
 
   // Getters and Setters
   public getMainWindow(): BrowserWindow | null {

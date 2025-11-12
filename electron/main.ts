@@ -149,9 +149,9 @@ async function initializeApp() {
     console.log('[App Init] Creating system tray...');
     appState.createTray();
     
-    // Register global shortcuts using ShortcutsHelper
-    console.log('[App Init] Registering global shortcuts...');
-    appState.shortcutsHelper.registerGlobalShortcuts();
+    // TODO: Register global shortcuts (Cmd+H for screenshot, Cmd+Shift+Space for toggle)
+    // Shortcuts functionality needs to be reimplemented after cleanup
+    console.log('[App Init] Global shortcuts registration skipped (needs reimplementation)');
     
     // Request microphone permission on startup
     console.log('[App Init] Requesting microphone permission...');

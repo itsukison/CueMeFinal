@@ -1,5 +1,4 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import OpenAI from 'openai'
 
 export interface QnACollection {
   id: string
@@ -30,22 +29,14 @@ export interface SearchResult {
 
 export class QnAService {
   private supabase: SupabaseClient
-  private openai: OpenAI
+  // TODO: Migrate to Gemini embeddings (OpenAI removed)
+  // private openai: OpenAI
 
   constructor(supabaseClient: SupabaseClient) {
     this.supabase = supabaseClient
     
-    // Initialize OpenAI client
-    const openaiApiKey = process.env.OPENAI_API_KEY
-    
-    if (!openaiApiKey) {
-      console.error('Missing OpenAI configuration. Please set OPENAI_API_KEY environment variable.')
-      console.warn('QnA functionality will not work until proper OpenAI credentials are provided.')
-    }
-    
-    this.openai = new OpenAI({
-      apiKey: openaiApiKey || 'placeholder-key',
-    })
+    // TODO: Initialize Gemini client for embeddings
+    console.warn('[QnAService] OpenAI removed - embeddings functionality needs migration to Gemini')
   }
 
   private normalizeJapaneseText(text: string): string {

@@ -94,123 +94,8 @@ export function registerAudioHandlers(appState: AppState): void {
     }
   });
 
-  // Audio Stream Processing handlers
-  ipcMain.handle("audio-stream-start", async (event, audioSourceId?: string) => {
-    diagLogger.info(`IPC: audio-stream-start called`, { audioSourceId: audioSourceId || 'default' });
-    Logger.info(`[IPC audioHandlers] 🎙️  Received audio-stream-start request with sourceId: ${audioSourceId || 'default'}`);
-    try {
-      await appState.audioStreamProcessor.startListening(audioSourceId);
-      diagLogger.info('✅ Audio stream started successfully');
-      Logger.info('[IPC audioHandlers] ✅ Audio stream started successfully');
-      return { success: true };
-    } catch (error: any) {
-      diagLogger.error("Error starting audio stream", error, { audioSourceId });
-      Logger.error("[IPC audioHandlers] ❌ Error starting audio stream:", error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle("audio-stream-stop", async () => {
-    diagLogger.info('IPC: audio-stream-stop called');
-    Logger.info('[IPC audioHandlers] 🛑 Received audio-stream-stop request');
-    try {
-      await appState.audioStreamProcessor.stopListening();
-      diagLogger.info('✅ Audio stream stopped successfully');
-      Logger.info('[IPC audioHandlers] ✅ Audio stream stopped successfully');
-      return { success: true };
-    } catch (error: any) {
-      diagLogger.error("Error stopping audio stream", error);
-      Logger.error("[IPC audioHandlers] ❌ Error stopping audio stream:", error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle("audio-stream-process-chunk", async (event, audioData: Float32Array) => {
-    try {
-      console.log('[IPC] Received audio chunk, samples:', audioData.length);
-      
-      // Convert Float32Array to Buffer for AudioStreamProcessor
-      const buffer = Buffer.alloc(audioData.length * 2);
-      for (let i = 0; i < audioData.length; i++) {
-        const sample = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
-        buffer.writeInt16LE(sample, i * 2);
-      }
-      
-      await appState.audioStreamProcessor.processAudioChunk(buffer);
-      return { success: true };
-    } catch (error: any) {
-      console.error("Error processing audio chunk:", error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  // Process microphone audio chunk from renderer (new MicrophoneCapture service)
-  let micChunkCount = 0;
-  let lastMicLogTime = Date.now();
-  
-  ipcMain.handle("audio-process-microphone-chunk", async (event, audioData: Float32Array) => {
-    try {
-      micChunkCount++;
-      
-      // Log first chunk and then every 100 chunks
-      if (micChunkCount === 1) {
-        diagLogger.info('✅ First microphone chunk received from renderer', {
-          sampleCount: audioData.length,
-          sampleRate: '16000 (assumed)',
-          duration: `${(audioData.length / 16000).toFixed(3)}s`
-        });
-      } else if (micChunkCount % 100 === 0) {
-        const now = Date.now();
-        const elapsed = now - lastMicLogTime;
-        diagLogger.debug(`Microphone chunks: ${micChunkCount} total, ${elapsed}ms since last log`);
-        lastMicLogTime = now;
-      }
-      
-      // Convert Float32Array to Buffer for AudioStreamProcessor
-      const buffer = Buffer.alloc(audioData.length * 2);
-      for (let i = 0; i < audioData.length; i++) {
-        const sample = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
-        buffer.writeInt16LE(sample, i * 2);
-      }
-      
-      await appState.audioStreamProcessor.processAudioChunk(buffer);
-      return { success: true };
-    } catch (error: any) {
-      diagLogger.error("Error processing microphone chunk", error, {
-        chunkNumber: micChunkCount,
-        sampleCount: audioData?.length
-      });
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle("audio-stream-get-state", async () => {
-    try {
-      return appState.audioStreamProcessor.getState();
-    } catch (error: any) {
-      console.error("Error getting audio stream state:", error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("audio-stream-get-questions", async () => {
-    try {
-      return appState.audioStreamProcessor.getQuestions();
-    } catch (error: any) {
-      console.error("Error getting detected questions:", error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("audio-stream-clear-questions", async () => {
-    try {
-      appState.audioStreamProcessor.clearQuestions();
-      return { success: true };
-    } catch (error: any) {
-      console.error("Error clearing questions:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  // OLD audio-stream-* handlers REMOVED - replaced by dual-audio-* handlers
+  // Frontend migrated to Gemini Live (see DUAL_AUDIO_TRANSCRIPTION_IMPROVEMENT.md)
 
   // Generate answers to detected questions using RAG system
   ipcMain.handle("audio-stream-answer-question", async (event, questionText: string, collectionId?: string) => {
@@ -329,47 +214,9 @@ export function registerAudioHandlers(appState: AppState): void {
     }
   });
 
-  // System Audio Capture handlers
-  ipcMain.handle("audio-get-sources", async () => {
-    try {
-      const sources = await appState.audioStreamProcessor.getAvailableAudioSources();
-      return { success: true, sources };
-    } catch (error: any) {
-      console.error("Error getting audio sources:", error);
-      return { success: false, error: error.message, sources: [] };
-    }
-  });
-
-  ipcMain.handle("audio-switch-source", async (event, sourceId: string) => {
-    try {
-      await appState.audioStreamProcessor.switchAudioSource(sourceId);
-      return { success: true };
-    } catch (error: any) {
-      console.error("Error switching audio source:", error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle("audio-request-permissions", async () => {
-    try {
-      const result = await appState.audioStreamProcessor.requestAudioPermissions();
-      return result;
-    } catch (error: any) {
-      console.error("Error requesting audio permissions:", error);
-      return { granted: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle("audio-check-system-support", async () => {
-    try {
-      // System audio is supported on macOS 14.2+ via audioteejs
-      // Check will be done in getAvailableSources()
-      return { supported: process.platform === 'darwin' };
-    } catch (error: any) {
-      console.error("Error checking system audio support:", error);
-      return { supported: false };
-    }
-  });
+  // OLD System Audio Capture handlers REMOVED
+  // audio-get-sources, audio-switch-source, audio-request-permissions, audio-check-system-support
+  // Replaced by automatic dual audio capture (no user selection needed)
 
   // Dual Audio Capture with Gemini Live handlers
   // AUTOMATIC: Both microphone and system audio are captured simultaneously
