@@ -18,7 +18,7 @@ import QuestionSidePanel from "../components/AudioListener/QuestionSidePanel";
 import { DetectedQuestion, AudioStreamState } from "../types/audio-stream";
 import { useVerticalResize } from "../hooks/useVerticalResize";
 import { ProfileDropdown } from "../components/Queue/ProfileDropdown";
-import { PermissionDialog } from "../components/ui/permission-dialog";
+import { InlinePermissionPanel } from "../components/ui/inline-permission-panel";
 // Removed AudioSettings import - dual audio capture is automatic
 
 interface ResponseMode {
@@ -75,8 +75,8 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
   // Audio listening state (no source selection needed - dual capture is automatic)
   const [isListening, setIsListening] = useState(false);
 
-  // Permission dialog state
-  const [isPermissionDialogOpen, setIsPermissionDialogOpen] = useState(false);
+  // Permission panel state (inline, not dialog)
+  const [isPermissionPanelOpen, setIsPermissionPanelOpen] = useState(false);
 
   // Ref to access QueueCommands methods
   const queueCommandsRef = useRef<QueueCommandsRef>(null);
@@ -88,9 +88,9 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     initialHeight: 200,
   });
   const questionResize = useVerticalResize({
-    minHeight: 120,  // Reduced for minimal chat input bar
+    minHeight: 80,  // Reduced for minimal chat input bar
     maxHeight: 600,
-    initialHeight: 150,  // Reduced for compact initial view
+    initialHeight: 100,  // Reduced for compact initial view
   });
 
   const barRef = useRef<HTMLDivElement>(null);
@@ -103,9 +103,9 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     if (hasContent && questionResize.height < 300) {
       // Expand to comfortable viewing height when content appears
       questionResize.setHeight(350);
-    } else if (!hasContent && questionResize.height > 150) {
+    } else if (!hasContent && questionResize.height > 100) {
       // Shrink back to minimal when no content
-      questionResize.setHeight(150);
+      questionResize.setHeight(100);
     }
   }, [detectedQuestions.length, chatMessages.length]);
 
@@ -371,21 +371,10 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     window.electronAPI.invoke("open-external-url", "https://www.cueme.ink/");
   };
 
-  // Permission request handler - opens the permission dialog
+  // Permission request handler - toggles the inline permission panel
   const handlePermissionRequest = async () => {
-    console.log("[Queue] Opening permission dialog...");
-    setIsPermissionDialogOpen(true);
-  };
-
-  // Handler for when permission dialog is completed or closed
-  const handlePermissionDialogChange = (open: boolean) => {
-    setIsPermissionDialogOpen(open);
-  };
-
-  // Handler for when permission dialog is completed
-  const handlePermissionsCompleted = () => {
-    setIsPermissionDialogOpen(false);
-    showToast("権限設定完了", "権限の設定が完了しました。アプリを再起動してください。", "success");
+    console.log("[Queue] Toggling permission panel...");
+    setIsPermissionPanelOpen(!isPermissionPanelOpen);
   };
 
   const handleResponseModeChange = (mode: ResponseMode) => {
@@ -696,13 +685,19 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
             </div>
           )}
 
+          {/* Inline Permission Panel - Centered below the bar */}
+          <InlinePermissionPanel
+            isOpen={isPermissionPanelOpen}
+            onClose={() => setIsPermissionPanelOpen(false)}
+          />
+
           {/* Question Panel with Unified Chat/Answer - Show when listening OR has questions OR chat is open */}
           {(audioStreamState?.isListening || detectedQuestions.length > 0 || isChatOpen) && (
             <div
               className="mt-4 w-full max-w-4xl relative"
               style={{
                 height: `${questionResize.height}px`,
-                minHeight: "120px",  // Reduced for minimal chat input bar
+                minHeight: "80px",  // Reduced for minimal chat input bar
               }}
             >
               <QuestionSidePanel
@@ -754,13 +749,6 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
           onDeleteScreenshot={handleDeleteScreenshot}
         />
       </div>
-
-      {/* Permission Dialog */}
-      <PermissionDialog
-        isOpen={isPermissionDialogOpen}
-        onOpenChange={setIsPermissionDialogOpen}
-        onPermissionsCompleted={handlePermissionsCompleted}
-      />
     </div>
   );
 };

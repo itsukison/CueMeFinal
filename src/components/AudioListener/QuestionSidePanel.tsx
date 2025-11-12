@@ -191,7 +191,7 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
 
   // Determine what to show
   const hasQuestions = refinedQuestions.length > 0 || isListening;
-  const shouldShowUnifiedPanel = showAnswerPanel || isChatOpen;
+  const shouldShowUnifiedPanel = showAnswerPanel || isChatOpen; // Show when user clicks question or opens chat
   
   // Dynamic layout based on what's visible
   const showBothPanels = hasQuestions && shouldShowUnifiedPanel;
@@ -205,11 +205,11 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
             ? "w-1/2 mr-1"  // Split view: left side
             : shouldShowUnifiedPanel
             ? "w-0 opacity-0"  // Hide when only chat is open
-            : "w-full max-w-xl"  // Centered when only questions - reduced from max-w-2xl
+            : "w-full max-w-lg"  // Centered when only questions - reduced from max-w-2xl to max-w-lg
         }`}
       >
         {hasQuestions && (
-          <div className="liquid-glass chat-container p-4 flex flex-col h-full min-h-[120px] relative">
+          <div className="liquid-glass chat-container p-4 flex flex-col h-full min-h-[80px] relative">
             {/* Close Button - Question Panel (always show when questions exist) */}
             {onCloseQuestions && (
               <button
@@ -283,12 +283,12 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
           showBothPanels
             ? "w-1/2 opacity-100 ml-1"  // Split view: right side
             : shouldShowUnifiedPanel
-            ? "w-full max-w-xl opacity-100"  // Centered when only chat - reduced from max-w-2xl
+            ? "w-full max-w-lg opacity-100"  // Centered when only chat - reduced from max-w-2xl to max-w-lg
             : "w-0 opacity-0"  // Hidden
         }`}
       >
         {shouldShowUnifiedPanel && (
-          <div className="liquid-glass chat-container p-4 flex flex-col h-full min-h-[120px] relative">
+          <div className="liquid-glass chat-container p-4 flex flex-col h-full min-h-[100px] relative">
             {/* Close Button - Always show when unified panel is visible */}
             {onCloseChat && (
               <button
@@ -319,15 +319,13 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
               </button>
             )}
 
-            {/* Header - Only show when there's content */}
-            {(currentAnswer || chatMessages.length > 0 || generatingAnswer || chatLoading) && (
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                <img src="./logo.png" alt="CueMe Logo" className="w-4 h-4" />
-                <span className="text-sm font-medium text-white/90">AI回答</span>
-              </div>
-            )}
+            {/* Header - Always show */}
+            <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+              <img src="./logo.png" alt="CueMe Logo" className="w-4 h-4" />
+              <span className="text-sm font-medium text-white/90">AI回答</span>
+            </div>
 
-            {/* Content Area - Shows answer OR chat messages */}
+            {/* Content Area - Shows answer OR chat messages OR placeholder */}
             <div className="flex-1 flex flex-col min-h-0">
               {(generatingAnswer || chatLoading) ? (
                 <div className="flex items-center px-2">
@@ -357,7 +355,13 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
                     return lastGeminiMsg?.text || "";
                   })()}
                 </div>
-              ) : null}
+              ) : (
+                <div className="flex-1 flex items-center justify-center px-2">
+                  <p className="text-xs text-white/40 text-center">
+                    質問を入力するか、検出された質問をクリックしてください
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Unified Input Bar - FUNCTIONAL */}
