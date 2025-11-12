@@ -5,6 +5,46 @@ import { DiagnosticLogger } from "../utils/DiagnosticLogger";
 
 const diagLogger = new DiagnosticLogger('AudioHandlers');
 
+// Fast usage checking utility
+function checkUsageFast(appState: AppState, requiredCount: number = 1): { allowed: boolean; remaining?: number; error?: string } {
+  const user = appState.authService.getCurrentUser();
+  const accessToken = appState.authService.getAccessToken();
+
+  if (!user || !accessToken) {
+    return { allowed: true }; // Allow anonymous usage
+  }
+
+  // Use local usage estimation (non-blocking)
+  const localUsageCheck = appState.localUsageManager.canUse(requiredCount);
+
+  if (!localUsageCheck.allowed) {
+    console.log(`[AudioHandlers] Usage limit exceeded locally - remaining: ${localUsageCheck.remaining}`);
+    const error = new Error(localUsageCheck.error || 'Usage limit exceeded');
+    (error as any).code = 'USAGE_LIMIT_EXCEEDED';
+    (error as any).remaining = localUsageCheck.remaining || 0;
+    throw error;
+  }
+
+  console.log(`[AudioHandlers] Local usage check passed - remaining: ${localUsageCheck.remaining}`);
+  return localUsageCheck;
+}
+
+// Post-processing usage tracking utility
+function trackUsagePostProcessing(appState: AppState, count: number = 1, type: 'question' | 'other' = 'question'): void {
+  const user = appState.authService.getCurrentUser();
+  const accessToken = appState.authService.getAccessToken();
+
+  if (user && accessToken) {
+    console.log('[AudioHandlers] Tracking usage post-processing (non-blocking)');
+    appState.localUsageManager.trackUsage(count, type);
+
+    // Trigger background sync after a small delay
+    setTimeout(() => {
+      appState.localUsageManager.forceSync(accessToken);
+    }, 1000);
+  }
+}
+
 /**
  * Audio processing and streaming IPC handlers
  * Handles audio analysis, streaming, and system audio capture
@@ -13,35 +53,18 @@ export function registerAudioHandlers(appState: AppState): void {
   // Analyze audio from base64 data
   ipcMain.handle("analyze-audio-base64", async (event, data: string, mimeType: string, collectionId?: string) => {
     try {
-      // Check if user is authenticated and try usage tracking (optional)
-      const user = appState.authService.getCurrentUser();
-      const accessToken = appState.authService.getAccessToken();
-      
-      if (user && accessToken) {
-        // Check usage limits for 1 question (audio analysis counts as 1 user question)
-        const usageCheck = await appState.usageTracker.checkCanAskQuestion(accessToken);
-        if (!usageCheck.allowed) {
-          const error = new Error(usageCheck.error || 'Usage limit exceeded');
-          (error as any).code = 'USAGE_LIMIT_EXCEEDED';
-          (error as any).remaining = usageCheck.remaining || 0;
-          throw error;
-        }
-        
-        if (usageCheck.remaining !== undefined && usageCheck.remaining < 1) {
-          const error = new Error(`Insufficient usage remaining. This operation requires 1 question but only ${usageCheck.remaining} remaining.`);
-          (error as any).code = 'USAGE_LIMIT_EXCEEDED';
-          (error as any).remaining = usageCheck.remaining;
-          throw error;
-        }
+      console.log('[AudioHandlers] analyze-audio-base64 - starting fast usage check...');
+      const startTime = Date.now();
 
-        // Increment usage by 1
-        const usageResult = await appState.usageTracker.incrementQuestionUsage(accessToken, 1);
-        if (!usageResult.success) {
-          console.warn('Usage tracking failed, but continuing with request:', usageResult.error);
-        }
-      }
+      // FAST: Use local usage estimation (non-blocking)
+      checkUsageFast(appState, 1);
 
       const result = await appState.processingHelper.processAudioBase64(data, mimeType, collectionId);
+
+      // POST-PROCESSING: Track usage after successful audio analysis
+      trackUsagePostProcessing(appState, 1, 'question');
+
+      console.log(`[AudioHandlers] analyze-audio-base64 completed in ${Date.now() - startTime}ms`);
       return result;
     } catch (error: any) {
       console.error("Error in analyze-audio-base64 handler:", error);
@@ -52,32 +75,18 @@ export function registerAudioHandlers(appState: AppState): void {
   // Analyze audio from file path
   ipcMain.handle("analyze-audio-file", async (event, path: string, collectionId?: string) => {
     try {
-      const user = appState.authService.getCurrentUser();
-      const accessToken = appState.authService.getAccessToken();
-      
-      if (user && accessToken) {
-        const usageCheck = await appState.usageTracker.checkCanAskQuestion(accessToken);
-        if (!usageCheck.allowed) {
-          const error = new Error(usageCheck.error || 'Usage limit exceeded');
-          (error as any).code = 'USAGE_LIMIT_EXCEEDED';
-          (error as any).remaining = usageCheck.remaining || 0;
-          throw error;
-        }
-        
-        if (usageCheck.remaining !== undefined && usageCheck.remaining < 1) {
-          const error = new Error(`Insufficient usage remaining. This operation requires 1 question but only ${usageCheck.remaining} remaining.`);
-          (error as any).code = 'USAGE_LIMIT_EXCEEDED';
-          (error as any).remaining = usageCheck.remaining;
-          throw error;
-        }
+      console.log('[AudioHandlers] analyze-audio-file - starting fast usage check...');
+      const startTime = Date.now();
 
-        const usageResult = await appState.usageTracker.incrementQuestionUsage(accessToken, 1);
-        if (!usageResult.success) {
-          console.warn('Usage tracking failed, but continuing with request:', usageResult.error);
-        }
-      }
+      // FAST: Use local usage estimation (non-blocking)
+      checkUsageFast(appState, 1);
 
       const result = await appState.processingHelper.processAudioFile(path, collectionId);
+
+      // POST-PROCESSING: Track usage after successful audio analysis
+      trackUsagePostProcessing(appState, 1, 'question');
+
+      console.log(`[AudioHandlers] analyze-audio-file completed in ${Date.now() - startTime}ms`);
       return result;
     } catch (error: any) {
       console.error("Error in analyze-audio-file handler:", error);
@@ -206,23 +215,11 @@ export function registerAudioHandlers(appState: AppState): void {
   // Generate answers to detected questions using RAG system
   ipcMain.handle("audio-stream-answer-question", async (event, questionText: string, collectionId?: string) => {
     try {
-      const user = appState.authService.getCurrentUser();
-      const accessToken = appState.authService.getAccessToken();
-      
-      if (user && accessToken) {
-        const usageCheck = await appState.usageTracker.checkCanAskQuestion(accessToken);
-        if (!usageCheck.allowed) {
-          const error = new Error(usageCheck.error || 'Usage limit exceeded');
-          (error as any).code = 'USAGE_LIMIT_EXCEEDED';
-          (error as any).remaining = usageCheck.remaining || 0;
-          throw error;
-        }
+      console.log('[AudioHandlers] audio-stream-answer-question - starting fast usage check...');
+      const startTime = Date.now();
 
-        const usageResult = await appState.usageTracker.incrementQuestionUsage(accessToken);
-        if (!usageResult.success) {
-          console.warn('Usage tracking failed, but continuing with request:', usageResult.error);
-        }
-      }
+      // FAST: Use local usage estimation (non-blocking)
+      checkUsageFast(appState, 1);
 
       // Use existing LLM helper with RAG if collection ID provided
       let result;
@@ -234,6 +231,11 @@ export function registerAudioHandlers(appState: AppState): void {
       
       // Handle different return types
       const response = typeof result === 'string' ? result : result.response;
+
+      // POST-PROCESSING: Track usage after successful response
+      trackUsagePostProcessing(appState, 1, 'question');
+
+      console.log(`[AudioHandlers] audio-stream-answer-question completed in ${Date.now() - startTime}ms`);
       return { response, timestamp: Date.now() };
     } catch (error: any) {
       console.error("Error answering question:", error);
@@ -243,27 +245,40 @@ export function registerAudioHandlers(appState: AppState): void {
 
   // Generate answers with streaming for better UX
   ipcMain.handle("audio-stream-answer-question-streaming", async (event, questionText: string, collectionId?: string) => {
+    const startTime = Date.now();
+    let usageTrackingTime = 0;
+
     try {
       const user = appState.authService.getCurrentUser();
       const accessToken = appState.authService.getAccessToken();
-      
+
       if (user && accessToken) {
-        const usageCheck = await appState.usageTracker.checkCanAskQuestion(accessToken);
-        if (!usageCheck.allowed) {
-          const error = new Error(usageCheck.error || 'Usage limit exceeded');
+        console.log('[AudioHandlers] Starting fast usage check with LocalUsageManager...');
+        const usageStartTime = Date.now();
+
+        // FAST: Use local usage estimation (non-blocking)
+        const localUsageCheck = appState.localUsageManager.canUse(1);
+        usageTrackingTime = Date.now() - usageStartTime;
+
+        if (!localUsageCheck.allowed) {
+          console.log('[AudioHandlers] Usage limit exceeded locally');
+          const error = new Error(localUsageCheck.error || 'Usage limit exceeded');
           (error as any).code = 'USAGE_LIMIT_EXCEEDED';
-          (error as any).remaining = usageCheck.remaining || 0;
+          (error as any).remaining = localUsageCheck.remaining || 0;
           throw error;
         }
 
-        const usageResult = await appState.usageTracker.incrementQuestionUsage(accessToken);
-        if (!usageResult.success) {
-          console.warn('Usage tracking failed, but continuing with request:', usageResult.error);
-        }
+        console.log(`[AudioHandlers] Local usage check passed in ${usageTrackingTime}ms, remaining: ${localUsageCheck.remaining}`);
+
+        // POST-PROCESSING: Track usage after successful response (non-blocking)
+        // We'll track usage after the LLM response succeeds
       }
 
+      const llmStartTime = Date.now();
       const llmHelper = appState.processingHelper.getLLMHelper();
-      
+
+      console.log(`[AudioHandlers] Starting LLM streaming... Total prep time: ${Date.now() - startTime}ms`);
+
       // Use streaming API with callback to send chunks to renderer
       const result = await llmHelper.chatWithRAGStreaming(
         questionText,
@@ -273,12 +288,40 @@ export function registerAudioHandlers(appState: AppState): void {
           event.sender.send('audio-stream-answer-chunk', chunk);
         }
       );
-      
-      // Return final response
-      return { 
-        response: result.response, 
+
+      const llmEndTime = Date.now();
+      const llmProcessingTime = llmEndTime - llmStartTime;
+
+      // POST-PROCESSING: Track usage now that we have a successful response
+      if (user && accessToken) {
+        console.log('[AudioHandlers] Tracking usage post-processing (non-blocking)');
+        appState.localUsageManager.trackUsage(1, 'question');
+
+        // Trigger background sync if needed
+        setTimeout(() => {
+          appState.localUsageManager.forceSync(accessToken);
+        }, 1000); // Small delay to not interfere with streaming
+      }
+
+      const totalTime = Date.now() - startTime;
+
+      console.log(`[AudioHandlers] Performance metrics:`);
+      console.log(`  - Usage tracking time: ${usageTrackingTime}ms`);
+      console.log(`  - LLM processing time: ${llmProcessingTime}ms`);
+      console.log(`  - Total time: ${totalTime}ms`);
+      console.log(`  - Performance improvement: ${usageTrackingTime < 100 ? '✅ Excellent' : usageTrackingTime < 500 ? '✅ Good' : '⚠️ Needs improvement'}`);
+
+      // Return final response with performance data
+      return {
+        response: result.response,
         ragContext: result.ragContext,
-        timestamp: Date.now() 
+        timestamp: Date.now(),
+        performance: {
+          usageTrackingTime,
+          llmProcessingTime,
+          totalTime,
+          firstChunkLatency: result.performance?.firstChunkLatency // Add this from LLMHelper if available
+        }
       };
     } catch (error: any) {
       console.error("Error answering question with streaming:", error);

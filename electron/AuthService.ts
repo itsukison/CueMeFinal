@@ -477,9 +477,17 @@ export class AuthService {
 
   public async signUpWithEmail(email: string, password: string) {
     try {
+      // Get the site URL from environment or use production URL
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cueme.ink'
+      
+      // Set emailRedirectTo with electron-callback parameter so the verification email
+      // redirects to the callback page with the button to open the app
       const { data, error } = await this.supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: `${siteUrl}/auth/callback?redirect_to=${encodeURIComponent('cueme://auth-callback')}&is_new_user=true`
+        }
       })
 
       if (error) throw error

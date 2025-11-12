@@ -688,11 +688,11 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
 
               {/* Upgrade Button */}
               <button
-                onClick={handleSubscriptionUpgrade}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors morphism-button"
-              >
-                プランをアップグレード
-              </button>
+  onClick={handleSubscriptionUpgrade}
+  className="bg-red-600 hover:bg-red-700 text-white !px-2 !py-2 rounded text-xs font-medium transition-colors morphism-button"
+>
+  プランをアップグレード
+</button>
             </div>
           )}
 

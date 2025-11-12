@@ -18,32 +18,34 @@ export class LLMHelper {
   private model: GenerativeModel
   private qnaService: QnAService | null = null
   private documentService: DocumentService | null = null
-  private readonly systemPrompt = `あなたは面接支援AIアシスタントです。ユーザーの質問に対して、面接で直接使える形で回答してください。
+  private readonly modelName: string
+  private readonly systemPrompt = `面接で直接使える日本語回答を提供してください。
 
-## 回答の基本方針：
-- 必ず日本語で回答する
-- 面接官に対して自然に話せる形で回答を構成する
-- 簡潔で明確、かつ具体的な内容にする
-- 専門用語は適切に説明を加える
-- 回答は即座に使える完成形で提供する
+禁止事項:
+• 前置き（「はい、」「それでは、」「お答えします」など）
+• メタ説明（「面接官に伝える形で」「説明します」など）
+• 情報源への言及（「参考情報によると」など）
+• マークダウン記法（**太字**、*斜体*、*箇条書き）は使用禁止
 
-## 回答形式：
-1. 核心となる回答を最初に述べる
-2. 必要に応じて具体例や補足説明を加える
-3. 関連する技術や概念があれば簡潔に触れる
-4. 「〜について説明します」などの前置きは不要
+回答形式:
+• 核心を最初に述べる
+• 具体例を2-3個含める
+• 箇条書きは「•」を使用
+• 重要な語句は【】で囲む（例: 【重要】）`
 
-## 避けるべき表現：
-- 「以下が回答になります」
-- 「参考情報によると」
-- 「検索結果から」
-- 「情報源によると」
-
-ユーザーが提供した資料や過去の質問回答集がある場合は、その内容を自然に組み込んで回答してください。`
-
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelName: string = "gemini-2.0-flash") {
     const genAI = new GoogleGenerativeAI(apiKey)
-    this.model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+    this.modelName = modelName
+    this.model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 1200, // Balanced length for detailed but concise responses
+      }
+    })
+    console.log(`[LLMHelper] Initialized with model: ${modelName}`);
   }
 
   private async fileToGenerativePart(imagePath: string) {
@@ -379,16 +381,9 @@ ${JSON.stringify(problemInfo, null, 2)}
     if (!ragContext.hasContext) {
       return `${this.systemPrompt}
 
-## ユーザーの質問：
-${message}
+質問: ${message}
 
-上記の質問に対して、面接で直接使える形で回答してください。回答は簡潔で実用的にし、以下の形式で構成してください：
-
-• **要点を箇条書きで整理**
-• **具体例があれば1-2個含める**
-• **面接官に伝わりやすい表現を使用**
-
-回答は自然で話しやすい内容にしてください。`
+上記の形式で回答してください。`
     }
 
     let contextInfo = ''
@@ -409,20 +404,12 @@ ${message}
 
     return `${this.systemPrompt}
 
-## 利用可能な関連情報：
+関連情報:
 ${contextInfo}
 
-## ユーザーの質問：
-${message}
+質問: ${message}
 
-上記の関連情報を活用して、面接で直接使える形で回答してください。以下の形式で構成してください：
-
-• **核心となる回答を最初に述べる**
-• **重要なポイントを箇条書きで整理**
-• **具体例があれば1-2個含める**
-• **面接官に伝わりやすい表現を使用**
-
-情報源については言及せず、自然に内容を統合して回答してください。回答は完結で実用的にし、面接官に対して自然に話せる内容にしてください。`
+上記の情報を活用し、指定の形式で回答してください。`
   }
 
   public async chatWithRAG(
@@ -461,46 +448,81 @@ ${message}
     message: string,
     collectionId: string | undefined,
     onChunk: (chunk: string) => void
-  ): Promise<{ response: string; ragContext: RAGContext }> {
+  ): Promise<{ response: string; ragContext: RAGContext; performance?: { firstChunkLatency: number | null } }> {
     try {
-      console.log('[LLMHelper] Starting streaming response...');
-      
+      const startTime = Date.now();
+      console.log(`[LLMHelper] Starting streaming response with model ${this.modelName}...`);
+
       // Search for relevant context if collection is specified
       const ragContext = await this.searchRAGContext(message, collectionId);
-      
+      const ragTime = Date.now();
+      console.log(`[LLMHelper] RAG search completed in ${ragTime - startTime}ms`);
+
       // Format the prompt with RAG context if available
       const enhancedPrompt = this.formatRAGPrompt(message, ragContext);
-      
+
       // Use streaming API
       const result = await this.model.generateContentStream(enhancedPrompt);
-      
+      const apiCallTime = Date.now();
+      console.log(`[LLMHelper] API call initiated in ${apiCallTime - ragTime}ms`);
+
       let fullResponse = '';
-      
+      let chunkCount = 0;
+      let firstChunkTime: number | null = null;
+
       // Stream chunks as they arrive
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
+
+        if (!firstChunkTime) {
+          firstChunkTime = Date.now();
+          const firstChunkLatency = firstChunkTime - apiCallTime;
+          console.log(`[LLMHelper] First chunk received in ${firstChunkLatency}ms`);
+        }
+
         fullResponse += chunkText;
-        
-        // Send chunk to callback immediately
+        chunkCount++;
+
+        // Send chunk to callback immediately with timestamp
+        const chunkTime = Date.now();
+        console.log(`[LLMHelper] Chunk ${chunkCount} (${chunkText.length} chars) at ${chunkTime - startTime}ms`);
         onChunk(chunkText);
       }
-      
+
       // Clean up the complete response
       const cleanedResponse = this.cleanResponseText(fullResponse);
-      
-      console.log('[LLMHelper] Streaming complete, total length:', cleanedResponse.length);
-      
+      const totalTime = Date.now() - startTime;
+
+      console.log(`[LLMHelper] Streaming complete:`);
+      console.log(`  - Total time: ${totalTime}ms`);
+      console.log(`  - Total chunks: ${chunkCount}`);
+      console.log(`  - Response length: ${cleanedResponse.length} chars`);
+      console.log(`  - Chars per second: ${Math.round((cleanedResponse.length / totalTime) * 1000)}`);
+
       return {
         response: cleanedResponse,
-        ragContext
+        ragContext,
+        performance: {
+          firstChunkLatency: firstChunkTime ? firstChunkTime - apiCallTime : null
+        }
       };
     } catch (error) {
       console.error('[LLMHelper] Error in chatWithRAGStreaming:', error);
-      throw error;
+
+      // Add streaming error code for fallback handling
+      const streamingError = error as any;
+      streamingError.code = 'STREAMING_ERROR';
+      streamingError.message = `Streaming failed: ${streamingError.message}`;
+
+      throw streamingError;
     }
   }
 
   private cleanResponseText(text: string): string {
+    // Remove forbidden prefixes (meta-commentary about interview format)
+    text = text.replace(/^はい、[^。]*面接官[^。]*お伝え[^。]*形で[^。]*私?[がは]?[、。]/i, "");
+    text = text.replace(/^はい、[^。]{0,30}(お答え|説明|回答)[^。]*[。、]/i, "");
+    
     // Remove English phrases about information sources
     text = text.replace(/I found relevant information|I'm using information from|Based on the information provided|According to the sources/gi, "");
     text = text.replace(/Let me search for relevant information|Let me check the relevant information/gi, "");

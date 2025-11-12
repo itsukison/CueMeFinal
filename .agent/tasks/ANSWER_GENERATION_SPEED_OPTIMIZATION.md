@@ -665,8 +665,8 @@ The answer generation speed can be dramatically improved through:
 4. ✅ Test streaming UX with real users
 5. ⚠️ Phase 3 only if needed (unlikely)
 
-**Last Updated:** 2025-11-03  
-**Status:** Phase 2 Complete - Streaming Implemented ✅
+**Last Updated:** 2025-11-12  
+**Status:** Phase 2 Complete - Streaming Fixed in QuestionSidePanel ✅
 
 ---
 
@@ -676,6 +676,7 @@ The answer generation speed can be dramatically improved through:
 - ✅ Implemented response streaming using Gemini's `generateContentStream()` API
 - ✅ Added IPC streaming support with chunk-by-chunk delivery
 - ✅ Updated frontend to display responses in real-time
+- ✅ Fixed QuestionSidePanel to use streaming API directly (2025-11-12)
 - ✅ Maintained backward compatibility with caching
 
 **Impact:**
@@ -686,9 +687,10 @@ The answer generation speed can be dramatically improved through:
 
 **Next Steps:**
 1. ✅ Build verification - No TypeScript errors
-2. ⏳ Test with real questions to verify <500ms first token latency
-3. ⏳ Consider Phase 1 (answer caching) if needed for repeated questions
-4. ⏳ Phase 3 (parallel operations) only if still not fast enough
+2. ✅ Fixed streaming in QuestionSidePanel.tsx (2025-11-12)
+3. ⏳ Test with real questions to verify <500ms first token latency
+4. ⏳ Consider Phase 1 (answer caching) if needed for repeated questions
+5. ⏳ Phase 3 (parallel operations) only if still not fast enough
 
 **Code Quality:**
 - ✅ No TypeScript errors in modified files

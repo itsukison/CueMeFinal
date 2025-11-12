@@ -116,8 +116,36 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
       const collectionId =
         responseMode.type === "qna" ? responseMode.collectionId : undefined;
       
-      // Call onAnswerQuestion which now handles streaming internally
-      const result = await onAnswerQuestion(question, collectionId);
+      // Use streaming API directly for real-time updates
+      let streamingResponse = "";
+      let chunkCount = 0;
+      const startTime = Date.now();
+
+      const result = await window.electronAPI.audioStreamAnswerQuestionStreaming(
+        question.text,
+        collectionId,
+        (chunk: string) => {
+          chunkCount++;
+          const now = Date.now();
+          const latency = now - startTime;
+
+          // Log performance for debugging
+          console.log(`[QuestionSidePanel] Chunk ${chunkCount} (${chunk.length} chars) arrived in ${latency}ms`);
+
+          // Append each chunk as it arrives
+          streamingResponse += chunk;
+
+          // Use flushSync to prevent React batching and ensure immediate UI updates
+          import('react-dom').then(({ flushSync }) => {
+            flushSync(() => {
+              setCurrentAnswer(streamingResponse);
+            });
+          }).catch(() => {
+            // Fallback if flushSync fails
+            setCurrentAnswer(streamingResponse);
+          });
+        }
+      );
 
       // Cache the final answer
       setAnswers((prev) => {
@@ -126,11 +154,34 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
         return next;
       });
 
-      // Set final answer (in case streaming didn't update it)
+      // Ensure final answer is set (should already be set by streaming)
       setCurrentAnswer(result.response);
-    } catch (error) {
-      console.error("Failed to answer question:", error);
-      setCurrentAnswer("回答の生成中にエラーが発生しました。");
+    } catch (error: any) {
+      console.error("Failed to answer question with streaming:", error);
+
+      // Check if it's a streaming-specific error and fallback to non-streaming
+      if (error.message?.includes('streaming') || error.code === 'STREAMING_ERROR') {
+        console.log('[QuestionSidePanel] Falling back to non-streaming mode...');
+        try {
+          const result = await window.electronAPI.audioStreamAnswerQuestion(
+            question.text,
+            collectionId
+          );
+          setCurrentAnswer(result.response);
+
+          // Cache the answer
+          setAnswers((prev) => {
+            const next = new Map(prev);
+            next.set(question.id, result.response);
+            return next;
+          });
+        } catch (fallbackError) {
+          console.error("Fallback also failed:", fallbackError);
+          setCurrentAnswer("回答の生成中にエラーが発生しました。もう一度お試しください。");
+        }
+      } else {
+        setCurrentAnswer("回答の生成中にエラーが発生しました。もう一度お試しください。");
+      }
     } finally {
       setGeneratingAnswer(false);
     }

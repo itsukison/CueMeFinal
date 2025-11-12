@@ -302,7 +302,15 @@ npm run watch            # Watch TypeScript changes
 ## Current Issues & Planned Improvements
 
 ### Recent Improvements
-1. **Audio Question Detection Speed** - Optimized from 3-6s to ~1.1-1.2s (75-80% faster)
+1. **Gemini Output Quality** - Optimized for speed and accuracy (~60% faster)
+   - Reduced token limit (2048 → 800) for faster generation
+   - Shortened prompts by 60% for faster API processing
+   - Added forbidden prefix filtering (removes meta-commentary)
+   - Markdown formatting support (bold/italic rendering)
+   - Livestream empty response fix (filters "何も出力しない")
+   - See: `.agent/tasks/GEMINI_OUTPUT_IMPROVEMENTS.md`
+
+2. **Audio Question Detection Speed** - Optimized from 3-6s to ~1.1-1.2s (75-80% faster)
    - Reduced chunking delays (2-4s → 0.8-1.5s)
    - Added audio volume detection to filter background noise
    - Expanded question patterns (8 → 35+ patterns)
@@ -440,6 +448,7 @@ npm run app:build
 - [Component Map](.agent/system/COMPONENT_MAP.md)
 - [Code Restructure Plan](.agent/tasks/CODE_RESTRUCTURE.md)
 - [Persistent Authentication](.agent/tasks/PERSISTENT_AUTH.md) - ✅ Completed
+- [Gemini Output Improvements](.agent/tasks/GEMINI_OUTPUT_IMPROVEMENTS.md) - ✅ Completed
 - [Question Detection Speed Optimization](.agent/tasks/QUESTION_DETECTION_SPEED_OPTIMIZATION.md) - ✅ Phase 1 & 2A Completed
 - [Live Detection Pricing & Usage Limits](.agent/tasks/LIVE_DETECTION_PRICING.md) - 📋 Ready for Implementation
 - [Agent Rules](.agent/rule.MD)
@@ -458,11 +467,16 @@ For issues, questions, or contributions, please refer to the project repository.
 
 ---
 
-**Last Updated:** 2025/10/27
+**Last Updated:** 2025/11/12
 **Version:** 1.0.52
 **Status:** Active Development
 
 **Recent Updates:**
+- ✅ Gemini output quality improvements (60% faster responses)
+- ✅ Token limit optimized (2048 → 800 tokens)
+- ✅ Forbidden prefix filtering (removes meta-commentary)
+- ✅ Markdown formatting support (bold/italic rendering)
+- ✅ Livestream empty response fix (filters meta-instructions)
 - ✅ Audio question detection optimized (75-80% faster)
 - ✅ Background noise filtering implemented
 - ✅ Expanded question pattern matching (35+ patterns)

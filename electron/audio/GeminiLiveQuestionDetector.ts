@@ -242,29 +242,22 @@ export class GeminiLiveQuestionDetector {
   private buildSystemPrompt(source: 'user' | 'opponent'): string {
     const sourceLabel = source === 'user' ? 'ユーザー' : '相手';
 
-    return `あなたは質問検出専用のAIです。${sourceLabel}の音声を聞いて、質問が発せられたら、その質問文だけを出力してください。
+    return `${sourceLabel}の音声から質問のみを抽出。
 
-**重要な制約:**
-- 質問に対する回答は絶対にしない
-- 会話をしない
-- 自分の意見を述べない
-- 質問でない文には何も出力しない
-- 質問が聞こえたら、その質問文のみを出力する
+ルール:
+- 質問のみ出力
+- 質問でない→何も返さない
+- フィラーワード除去
+- 質問完了まで待つ
 
-**出力ルール:**
-- 質問が完全に終わるまで待つ
-- フィラーワード（えー、あー、うーん）を除去
-- 自然な日本語で返す（スペースなし）
-- 一度に一つの完全な質問のみ返す
+質問形式: 〜ですか、〜ますか、〜ください、どう/何/なぜ/誰/いつ/どこ
 
-**質問形式:** 〜ですか、〜ますか、〜ください、〜もらえますか、どう/何/なぜ/誰/いつ/どこで始まる文
-
-**例:**
-入力: "えーと、それはどうやって実装するんですか？"
-出力: "それはどうやって実装するんですか？"
+例:
+入力: "ええそうですねではそれはどうやって実装するんんんですか？"
+出力: それはどうやって実装するんですか？
 
 入力: "今日はいい天気ですね"
-出力: (何も出力しない - 質問ではないため)`;
+出力: `;
   }
 
   // Track audio sending for logging
@@ -421,6 +414,13 @@ export class GeminiLiveQuestionDetector {
         });
 
         if (completeText) {
+          // Filter out meta-instructions that Gemini might output literally
+          if (this.isMetaInstruction(completeText)) {
+            logger.info(`❌ Rejected meta-instruction (${source}): "${completeText}"`);
+            this[buffer] = '';
+            return;
+          }
+
           // Validate the COMPLETE question
           const isQuestion = this.looksLikeQuestion(completeText);
           
@@ -476,6 +476,24 @@ export class GeminiLiveQuestionDetector {
   }
 
   /**
+   * Check if text is a meta-instruction that Gemini output literally
+   */
+  private isMetaInstruction(text: string): boolean {
+    const metaPatterns = [
+      /何も出力しない/,
+      /出力なし/,
+      /^沈黙\)?$/,  // "沈黙" or "沈黙)"
+      /^\(沈黙\)?$/,  // "(沈黙" or "(沈黙)"
+      /応答しない/,
+      /質問ではない/,
+      /何も返さない/,
+      /^\(.*\)$/,  // Text in parentheses like "(何も出力しない)"
+    ];
+
+    return metaPatterns.some(pattern => pattern.test(text));
+  }
+
+  /**
    * Validate that text is a complete, well-formed question
    * ENHANCED - rejects auto-generated responses from Gemini
    */
@@ -487,9 +505,10 @@ export class GeminiLiveQuestionDetector {
       /^えっと[、。]/,                  // "えっと、" (Um,)
       /^そうですね[、。]/,              // "そうですね、" (Well,)
       /私の|私は/,                     // "私の" "私は" (my/I) - likely a personal response
-      /成功体験|経験|思います|考えます/,  // Common answer keywords
+      /成功体験|経験/,                 // Common answer keywords (experience)
+      /思います(?!か)|考えます(?!か)/,  // "思います" or "考えます" NOT followed by か (question marker)
       /でした[。、]?$/,                // Ends with past tense statement
-      /です[。、]?$/,                   // Ends with statement (not question)
+      /です(?!か)[。、]?$/,            // Ends with です but NOT ですか (question)
       /ました[。、]?$/,                 // Past tense statement ending
     ];
 

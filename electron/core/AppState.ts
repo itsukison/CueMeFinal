@@ -7,6 +7,7 @@ import { AuthService } from "../AuthService";
 import { QnAService } from "../QnAService";
 import { DocumentService } from "../DocumentService";
 import { UsageTracker } from "../UsageTracker";
+import { LocalUsageManager } from "../LocalUsageManager";
 import { AudioStreamProcessor } from "../AudioStreamProcessor";
 import { DualAudioCaptureManager } from "../audio/DualAudioCaptureManager";
 import { PermissionStorage } from "../PermissionStorage";
@@ -29,6 +30,7 @@ export class AppState {
   public qnaService: QnAService;
   public documentService: DocumentService;
   public usageTracker: UsageTracker;
+  public localUsageManager: LocalUsageManager;
   public audioStreamProcessor: AudioStreamProcessor;
   public dualAudioManager: DualAudioCaptureManager | null = null;
   public permissionStorage: PermissionStorage;
@@ -84,6 +86,9 @@ export class AppState {
     // Initialize UsageTracker (MUST be before auth listener setup)
     this.usageTracker = new UsageTracker();
 
+    // Initialize LocalUsageManager for fast, non-blocking usage tracking
+    this.localUsageManager = new LocalUsageManager();
+
     // Initialize PermissionStorage
     this.permissionStorage = new PermissionStorage();
 
@@ -110,6 +115,10 @@ export class AppState {
       if (authState.user && authState.session?.access_token) {
         console.log('[AppState] User logged in, initializing usage cache');
         this.usageTracker.initializeCache(authState.session.access_token);
+
+        // Prefetch usage data for fast local tracking
+        console.log('[AppState] Prefetching usage data for local tracking');
+        this.localUsageManager.prefetchUsageData(authState.session.access_token);
       } else {
         console.log('[AppState] User logged out, clearing usage cache');
         this.usageTracker.clearCache();

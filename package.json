@@ -20,7 +20,8 @@
     "app:build:linux": "npm run build:linux && electron-builder --linux",
     "release": "npm run build && electron-builder --publish=always",
     "release:draft": "npm run build && electron-builder --publish=onTagOrDraft",
-    "watch": "tsc -p electron/tsconfig.json --watch"
+    "watch": "tsc -p electron/tsconfig.json --watch",
+    "test-model": "node test-model.js"
   },
   "build": {
     "appId": "com.cueme.interview-assistant",

@@ -16,6 +16,7 @@ import { ProblemStatementData } from "../types/solutions"
 import { AudioResult } from "../types/audio"
 import SolutionCommands from "../components/Solutions/SolutionCommands"
 import Debug from "./Debug"
+import { renderMarkdown } from "../lib/markdown"
 
 // (Using global ElectronAPI type from src/types/electron.d.ts)
 
@@ -27,24 +28,34 @@ export const ContentSection = ({
   title: string
   content: React.ReactNode
   isLoading: boolean
-}) => (
-  <div className="space-y-2">
-    <h2 className="text-[13px] font-medium text-white tracking-wide">
-      {title}
-    </h2>
-    {isLoading ? (
-      <div className="mt-4 flex">
-        <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
-          問題文を抽出中...
-        </p>
-      </div>
-    ) : (
-      <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
-        {content}
-      </div>
-    )}
-  </div>
-)
+}) => {
+  // Check if content is a string and contains markdown
+  const isStringContent = typeof content === 'string';
+  const hasMarkdown = isStringContent && (content.includes('**') || content.includes('*'));
+  
+  return (
+    <div className="space-y-2">
+      <h2 className="text-[13px] font-medium text-white tracking-wide">
+        {title}
+      </h2>
+      {isLoading ? (
+        <div className="mt-4 flex">
+          <p className="text-xs bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 bg-clip-text text-transparent animate-pulse">
+            問題文を抽出中...
+          </p>
+        </div>
+      ) : (
+        <div className="text-[13px] leading-[1.4] text-gray-100 max-w-[600px]">
+          {hasMarkdown ? (
+            <div dangerouslySetInnerHTML={renderMarkdown(content as string)} />
+          ) : (
+            content
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 const SolutionSection = ({
   title,
   content,

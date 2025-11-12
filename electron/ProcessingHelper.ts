@@ -17,11 +17,15 @@ export class ProcessingHelper {
   constructor(appState: AppState) {
     this.appState = appState
     const apiKey = process.env.GEMINI_API_KEY
+    // Support different models via environment variable for easy testing
+    const modelOverride = process.env.GEMINI_MODEL || "gemini-2.0-flash"
+
     if (!apiKey) {
       console.warn("GEMINI_API_KEY not found in environment variables - running in limited mode")
-      this.llmHelper = new LLMHelper('dummy-key') // Initialize with dummy key for limited functionality
+      this.llmHelper = new LLMHelper('dummy-key', modelOverride) // Initialize with dummy key for limited functionality
     } else {
-      this.llmHelper = new LLMHelper(apiKey)
+      this.llmHelper = new LLMHelper(apiKey, modelOverride)
+      console.log(`[ProcessingHelper] Using Gemini model: ${modelOverride}`)
     }
   }
 
@@ -191,37 +195,28 @@ export class ProcessingHelper {
         return { allowed: true };
       }
 
-      // Check usage limits
-      const usageCheck = await this.appState.usageTracker.checkCanAskQuestion(accessToken);
+      console.log(`[ProcessingHelper] Checking usage for ${questionCount} questions...`);
+
+      // FAST: Use local usage estimation (non-blocking)
+      const usageCheck = this.appState.localUsageManager.canUse(questionCount);
       if (!usageCheck.allowed) {
         return {
           allowed: false,
           error: usageCheck.error || 'Usage limit exceeded'
         };
       }
-      
-      // Check if we have enough remaining questions
-      if (usageCheck.remaining !== undefined && usageCheck.remaining < questionCount) {
-        return {
-          allowed: false,
-          error: `Insufficient usage remaining. This operation requires ${questionCount} questions but only ${usageCheck.remaining} remaining.`
-        };
-      }
 
-      // Increment usage for each question
-      for (let i = 0; i < questionCount; i++) {
-        const usageResult = await this.appState.usageTracker.incrementQuestionUsage(accessToken);
-        if (!usageResult.success) {
-          console.warn(`Usage tracking failed for increment ${i + 1}/${questionCount}:`, usageResult.error);
-          // Continue with operation even if tracking fails
-          break;
-        }
-      }
+      console.log(`[ProcessingHelper] Usage check passed - remaining: ${usageCheck.remaining}`);
 
-      return {
-        allowed: true,
-        remaining: usageCheck.remaining ? usageCheck.remaining - questionCount : undefined
-      };
+      // POST-PROCESSING: Track usage after successful check (non-blocking)
+      this.appState.localUsageManager.trackUsage(questionCount, 'question');
+
+      // Trigger background sync if needed
+      setTimeout(() => {
+        this.appState.localUsageManager.forceSync(accessToken);
+      }, 1000);
+
+      return { allowed: true, remaining: usageCheck.remaining };
     } catch (error) {
       console.warn('Error in checkAndIncrementUsage (allowing operation to continue):', error);
       // Allow operation to continue even if usage tracking fails
