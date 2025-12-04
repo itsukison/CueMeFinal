@@ -355,17 +355,11 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
                     return lastGeminiMsg?.text || "";
                   })()}
                 </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center px-2">
-                  <p className="text-xs text-white/40 text-center">
-                    質問を入力するか、検出された質問をクリックしてください
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
 
             {/* Unified Input Bar - FUNCTIONAL */}
-            <div className="mt-auto pt-3 flex-shrink-0">
+            <div className="-mt-1 pb-2 flex-shrink-0">
               <form
                 className="flex gap-2 items-center"
                 onSubmit={(e) => {
@@ -376,7 +370,7 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
                 }}
               >
                 <input
-                  className="flex-1 morphism-input px-3 py-2 text-white placeholder-white/60 text-xs focus:outline-none transition-all duration-200"
+                  className="flex-1 morphism-input px-3 py-2.5 text-white placeholder-white/60 text-xs focus:outline-none transition-all duration-200"
                   placeholder="メッセージを入力..."
                   value={chatInput}
                   onChange={(e) => onChatInputChange?.(e.target.value)}

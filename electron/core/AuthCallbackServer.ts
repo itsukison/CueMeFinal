@@ -1,6 +1,6 @@
 import http from "http";
 import { URL } from "url";
-import type { AuthService } from "../AuthService";
+import type { AuthService } from "../services/auth/AuthService";
 import type { BrowserWindow } from "electron";
 
 /**

@@ -19,9 +19,9 @@ CueMe has grown organically and now suffers from:
 - **Inconsistent organization** (some files in subdirs, most in root)
 
 **CRITICAL UPDATE:** After Gemini Live migration (DUAL_AUDIO_TRANSCRIPTION_IMPROVEMENT.md):
-- ❌ AudioStreamProcessor.ts (937 lines) - **DELETE, don't split** (replaced by DualAudioCaptureManager)
-- ❌ Entire Whisper/regex pipeline - **DELETE** (AudioTranscriber, QuestionRefiner, StreamingQuestionDetector, QuestionDetector)
-- ❌ OpenAI dependency - **REMOVE** (no longer needed)
+- ✅ AudioStreamProcessor.ts (937 lines) - **DELETED** (replaced by DualAudioCaptureManager)
+- ✅ Entire Whisper/regex pipeline - **DELETED** (AudioTranscriber, QuestionRefiner, StreamingQuestionDetector, QuestionDetector)
+- ⚠️ OpenAI dependency - **KEPT** (still needed for embeddings - only Whisper removed)
 - ✅ New Gemini Live system is already organized properly in `electron/audio/`
 
 This plan follows the Architecture Rules to create a clean, maintainable codebase.
@@ -32,10 +32,10 @@ This plan follows the Architecture Rules to create a clean, maintainable codebas
 
 **Based on Gemini Live Migration Analysis:**
 
-1. **AudioStreamProcessor.ts (937 lines):** ❌ DELETE (don't split) - Replaced by DualAudioCaptureManager
-2. **Entire Whisper/regex pipeline:** ❌ DELETE - AudioTranscriber, QuestionRefiner, StreamingQuestionDetector, QuestionDetector
-3. **OpenAI dependency:** ❌ REMOVE - No longer using Whisper API
-4. **Old audio-stream-\* IPC handlers:** ❌ DELETE - Frontend migrated to dual-audio-\* handlers
+1. **AudioStreamProcessor.ts (937 lines):** ✅ DELETED - Replaced by DualAudioCaptureManager
+2. **Entire Whisper/regex pipeline:** ✅ DELETED - AudioTranscriber, QuestionRefiner, StreamingQuestionDetector, QuestionDetector
+3. **OpenAI dependency:** ⚠️ KEPT - Still needed for embeddings (only Whisper API removed)
+4. **Old audio-stream-\* IPC handlers:** ✅ DELETED - Frontend migrated to dual-audio-\* handlers
 5. **Estimated effort:** Reduced from 3-5 days to 2-3 days (less code to refactor)
 
 **What's Already Good:**
@@ -68,14 +68,13 @@ This plan follows the Architecture Rules to create a clean, maintainable codebas
 - ❌ All `audio-stream-*` handlers in `ipc/audioHandlers.ts` (no longer called by frontend)
 - ✅ Keep `dual-audio-*` handlers (new Gemini Live system)
 
-**Dependencies to REMOVE:**
-```bash
-npm uninstall openai  # No longer using Whisper API
-```
+**Dependencies Status:**
+- ⚠️ **OpenAI KEPT** - Still needed for embeddings (text-embedding-3-large)
+- ✅ Only removed Whisper API usage (audio transcription)
 
-**Environment Variables to REMOVE:**
-- ❌ `OPENAI_API_KEY` - No longer needed
-- ✅ Keep `GEMINI_API_KEY` - Required for Gemini Live
+**Environment Variables:**
+- ✅ `OPENAI_API_KEY` - **REQUIRED** for embeddings (Q&A search, document search)
+- ✅ `GEMINI_API_KEY` - Required for Gemini Live (audio transcription)
 
 ### 1.2 Other Unused Files to Delete
 
@@ -93,11 +92,12 @@ npm uninstall openai  # No longer using Whisper API
 - `src/_pages/Debug.tsx` (418 lines) - Development only, move to dev-only
 - `src/components/PerformanceDashboard.tsx` (354 lines) - Check usage
 
-### 1.3 Verification Process
+### 1.3 Verification Process ✅ COMPLETE
 ```bash
-# Already verified - no imports found for audio pipeline files
-rg "AudioStreamProcessor" --type ts  # No results
-rg "audio-stream-start" --type ts    # No results
+# Verified - no imports found for deleted audio pipeline files
+rg "AudioStreamProcessor" --type ts  # No results ✅
+rg "audio-stream-start" --type ts    # No results ✅
+npm run build                        # 0 TypeScript errors ✅
 ```
 
 ---
@@ -572,15 +572,22 @@ npx madge --circular --extensions ts electron/
 - Largest file: 1244 lines (QueueCommands.tsx)
 - Files > 500 lines: 8 files
 - Root-level services: 15+ files
-- Unused files: 5+ obsolete audio files + 5+ other unused files
-- Dependencies: OpenAI (unused after Gemini Live migration)
+- Unused files: 13 obsolete files (~6,200 lines)
+- Dependencies: OpenAI (Whisper unused after Gemini Live)
 
-**After:**
+**After (Current Progress):**
+- Largest file: 1244 lines (QueueCommands.tsx) - unchanged yet
+- Files > 500 lines: 8 files - unchanged yet
+- Root-level services: 15+ files - unchanged yet (Phase 2)
+- Unused files: ✅ 0 files (13 deleted)
+- Dependencies: ✅ OpenAI kept (embeddings), Whisper usage removed
+
+**Target (Final):**
 - Largest file: < 400 lines
 - Files > 500 lines: 0 files
 - Root-level services: 0 files (all in subdirs)
 - Unused files: 0 files
-- Dependencies: Only what's actively used (OpenAI removed)
+- Dependencies: Only what's actively used
 
 ### Organization Metrics
 
@@ -615,14 +622,14 @@ git reset --hard pre-cleanup
 
 ## Implementation Order
 
-### Priority 1 (Must Do - Day 1)
-1. **DELETE obsolete audio pipeline** (Phase 1.1) - AudioStreamProcessor, Whisper/regex files
-2. Remove other dead code (Phase 1.2) - WorkflowOptimizationManager, etc.
-3. Remove OpenAI dependency and OPENAI_API_KEY
+### Priority 1 (Must Do - Day 1) ✅ COMPLETE
+1. ✅ **DELETED obsolete audio pipeline** (Phase 1.1) - AudioStreamProcessor, Whisper/regex files
+2. ✅ Removed other dead code (Phase 1.2) - WorkflowOptimizationManager, etc.
+3. ⚠️ Kept OpenAI dependency (needed for embeddings - only removed Whisper usage)
 
-### Priority 2 (Should Do - Day 2)
-4. Reorganize electron services (Phase 2)
-5. Split QueueCommands.tsx (Phase 3.2)
+### Priority 2 (Should Do - Day 2) ✅ COMPLETE
+4. ✅ Reorganize electron services (Phase 2)
+5. Split QueueCommands.tsx (Phase 3.2) - NEXT
 
 ### Priority 3 (Nice to Have - Day 3)
 6. Reorganize React features (Phase 4)
@@ -666,6 +673,133 @@ git reset --hard pre-cleanup
 3. **Start with Phase 1:** Remove dead code (lowest risk)
 4. **Proceed incrementally:** One phase at a time
 5. **Update this document:** Mark completed phases
+
+---
+
+---
+
+## 📊 Implementation Progress
+
+### ✅ Phase 0: Organize Task Documentation (COMPLETE)
+- Created ACTIVE/, COMPLETED/, PLANNED/, REFERENCE/ structure
+- Moved 20+ task files into organized folders
+- Removed empty directories (AUDIO, UI, WINDOWS, releases, update)
+- Clean `.agent/tasks/` structure achieved
+
+### ✅ Phase 1: Remove Obsolete Code (COMPLETE - with corrections)
+
+**Files Deleted (~6,200 lines):**
+- AudioStreamProcessor.ts (937 lines)
+- AudioTranscriber.ts, QuestionRefiner.ts, StreamingQuestionDetector.ts, QuestionDetector.ts
+- WorkflowOptimizationManager.ts (551 lines)
+- OptimizationValidator.ts (400 lines)
+- AdaptiveQualityManager.ts (657 lines)
+- AdaptiveAudioChunker.ts (647 lines)
+- ConnectionPoolManager.ts (411 lines)
+- PerformanceIpcHandlers.ts, AudioDebugger.ts, shortcuts.ts
+- Test files: AdaptiveAudioChunker.test.ts, AudioStreamProcessor.test.ts
+
+**IPC Handlers Removed:**
+- All audio-stream-* handlers (replaced by dual-audio-*)
+- audio-get-sources, audio-switch-source, audio-request-permissions, audio-check-system-support
+- permission-request-system-audio, permission-get-diagnostics, permission-attempt-fix
+
+**Code Updates:**
+- Removed AudioStreamProcessor and ShortcutsHelper references from AppState.ts
+- Removed setupAudioStreamEvents() and related methods
+- Updated audioHandlers.ts to remove obsolete handlers
+- Updated permissionHandlers.ts to remove obsolete handlers
+- Updated utilityHandlers.ts to use dualAudioManager
+
+**CRITICAL CORRECTION - OpenAI Still Needed:**
+- ❌ Initially removed OpenAI - **WRONG**
+- ✅ **Restored OpenAI** - Required for embeddings (text-embedding-3-large)
+- ✅ CueMeWeb uses OpenAI embeddings - must align
+- ✅ Supabase stores OpenAI embeddings (1536 dimensions)
+- ✅ Gemini Live only replaced audio transcription, NOT embeddings
+- ✅ Restored OpenAI in QnAService.ts and DocumentService.ts
+- ✅ Re-added openai package to dependencies
+- ✅ Restored OPENAI_API_KEY in .env with clarifying comments
+
+**Build Status:** ✅ PASSING (0 TypeScript errors)
+
+**Remaining Work:**
+- TODO: Reimplement global shortcuts (Cmd+H, Cmd+Shift+Space)
+
+### ✅ Phase 2: Reorganize Electron Services (COMPLETE)
+
+**Services Moved:**
+- ✅ AuthService.ts → services/auth/
+- ✅ TokenStorage.ts → services/auth/
+- ✅ QnAService.ts → services/qna/
+- ✅ DocumentService.ts → services/qna/
+- ✅ LLMHelper.ts → services/ai/
+- ✅ ModeManager.ts → services/ai/
+- ✅ ProcessingHelper.ts → services/ai/
+- ✅ ScreenshotHelper.ts → services/screenshot/
+- ✅ WindowHelper.ts → services/window/
+- ✅ UsageTracker.ts → services/usage/
+- ✅ LocalUsageManager.ts → services/usage/
+- ✅ PermissionStorage.ts → services/permissions/
+- ✅ SystemAudioCapture.ts → audio/
+
+**Import Updates:**
+- ✅ AppState.ts - Updated all service imports
+- ✅ ProcessingHelper.ts - Updated AppState import
+- ✅ LLMHelper.ts - Updated QnAService, DocumentService, types imports
+- ✅ ModeManager.ts - Updated types import
+- ✅ WindowHelper.ts - Updated AppState import
+- ✅ SystemAudioCapture.ts - Updated DiagnosticLogger import
+- ✅ AuthCallbackServer.ts - Updated AuthService import
+- ✅ DualAudioCaptureManager.ts - Updated SystemAudioCapture import
+- ✅ UniversalPermissionManager.ts - Updated PermissionStorage import
+- ✅ SystemAudioCapture.test.ts - Updated test import
+
+**Build Status:** ✅ PASSING (0 TypeScript errors)
+
+**Result:**
+- Electron root directory reduced from 25+ files to 4 files (main.ts, preload.ts, tsconfig.json, PerformanceMonitor.ts)
+- Clean hierarchical structure with services organized by domain
+- All imports updated and verified
+
+**Files Deleted (~6,200 lines):**
+- AudioStreamProcessor.ts (937 lines)
+- AudioTranscriber.ts, QuestionRefiner.ts, StreamingQuestionDetector.ts, QuestionDetector.ts
+- WorkflowOptimizationManager.ts (551 lines)
+- OptimizationValidator.ts (400 lines)
+- AdaptiveQualityManager.ts (657 lines)
+- AdaptiveAudioChunker.ts (647 lines)
+- ConnectionPoolManager.ts (411 lines)
+- PerformanceIpcHandlers.ts, AudioDebugger.ts, shortcuts.ts
+- Test files: AdaptiveAudioChunker.test.ts, AudioStreamProcessor.test.ts
+
+**IPC Handlers Removed:**
+- All audio-stream-* handlers (replaced by dual-audio-*)
+- audio-get-sources, audio-switch-source, audio-request-permissions, audio-check-system-support
+- permission-request-system-audio, permission-get-diagnostics, permission-attempt-fix
+
+**Code Updates:**
+- Removed AudioStreamProcessor and ShortcutsHelper references from AppState.ts
+- Removed setupAudioStreamEvents() and related methods
+- Updated audioHandlers.ts to remove obsolete handlers
+- Updated permissionHandlers.ts to remove obsolete handlers
+- Updated utilityHandlers.ts to use dualAudioManager
+
+**CRITICAL CORRECTION - OpenAI Still Needed:**
+- ❌ Initially removed OpenAI - **WRONG**
+- ✅ **Restored OpenAI** - Required for embeddings (text-embedding-3-large)
+- ✅ CueMeWeb uses OpenAI embeddings - must align
+- ✅ Supabase stores OpenAI embeddings (1536 dimensions)
+- ✅ Gemini Live only replaced audio transcription, NOT embeddings
+- ✅ Restored OpenAI in QnAService.ts and DocumentService.ts
+- ✅ Re-added openai package to dependencies
+- ✅ Restored OPENAI_API_KEY in .env with clarifying comments
+
+**Build Status:** ✅ PASSING (0 TypeScript errors)
+
+**Remaining Work:**
+- TODO: Reimplement global shortcuts (Cmd+H, Cmd+Shift+Space)
+- TODO: Move to Phase 2 (reorganize electron services)
 
 ---
 
@@ -767,5 +901,6 @@ rmdir AUDIO UI WINDOWS releases update 2>/dev/null || true
 
 ---
 
-**Status:** 📋 Ready for Review  
-**Last Updated:** 2025-11-12 (Refined for Gemini Live migration)
+**Status:** � In dProgress - Day 1 Complete  
+**Last Updated:** 2025-11-12  
+**Progress:** Phase 0 ✅ | Phase 1 ✅ (with corrections)

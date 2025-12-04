@@ -43,58 +43,9 @@ export function registerPermissionHandlers(appState: AppState): void {
     }
   });
 
-  // Request system audio permission (Screen Recording on macOS)
-  ipcMain.handle("permission-request-system-audio", async () => {
-    try {
-      console.log('[Permission] Requesting system audio permission via enhanced system...');
-      const result = await appState.audioStreamProcessor.requestAudioPermissions();
-      console.log('[Permission] Enhanced system audio permission result:', result);
-      
-      if (!result.granted) {
-        console.log('[Permission] Permission denied, opening System Preferences...');
-        // Auto-open System Preferences to Screen Recording
-        if (process.platform === 'darwin') {
-          await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
-        }
-      }
-      
-      return result;
-    } catch (error: any) {
-      console.error("Error requesting system audio permission:", error);
-      return { granted: false, error: error.message };
-    }
-  });
-
-  // Get comprehensive permission diagnostics
-  ipcMain.handle("permission-get-diagnostics", async () => {
-    try {
-      console.log('[Permission] Getting comprehensive permission diagnostics...');
-      const diagnostics = appState.audioStreamProcessor.getPermissionDiagnostics();
-      console.log('[Permission] Diagnostics result:', diagnostics);
-      return { success: true, diagnostics };
-    } catch (error: any) {
-      console.error("Error getting permission diagnostics:", error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  // Attempt comprehensive permission fix
-  ipcMain.handle("permission-attempt-fix", async () => {
-    try {
-      console.log('[Permission] Attempting comprehensive permission fix...');
-      const result = await appState.audioStreamProcessor.attemptPermissionFix();
-      console.log('[Permission] Fix result:', result);
-      return { success: true, ...result };
-    } catch (error: any) {
-      console.error("Error attempting permission fix:", error);
-      return { 
-        success: false, 
-        message: error.message,
-        stepsCompleted: [],
-        nextActions: ['Check console for detailed error information']
-      };
-    }
-  });
+  // OLD permission handlers REMOVED - referenced deleted AudioStreamProcessor
+  // permission-request-system-audio, permission-get-diagnostics, permission-attempt-fix
+  // TODO: Reimplement if needed using UniversalPermissionManager
 
   // Open system preferences for permissions
   ipcMain.handle("permission-open-system-preferences", async (event, permissionType?: string) => {

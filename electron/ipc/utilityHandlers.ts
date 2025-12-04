@@ -145,7 +145,7 @@ export function registerUtilityHandlers(appState: AppState): void {
         openaiKeyPresent: !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== ''),
         geminiKeyPresent: !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== ''),
         supabaseConfigured: !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-        audioSystemInitialized: !!appState.audioStreamProcessor,
+        audioSystemInitialized: !!appState.dualAudioManager, // Updated to use new dual audio system
         logFilePath: Logger.getLogPath(),
         isPackaged: app.isPackaged,
         platform: process.platform,

@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai"
 import fs from "fs"
-import { QnAService, SearchResult } from "./QnAService"
-import { DocumentService, DocumentSearchResult } from "./DocumentService"
+import { QnAService, SearchResult } from "../qna/QnAService"
+import { DocumentService, DocumentSearchResult } from "../qna/DocumentService"
 import { ModeManager } from "./ModeManager"
-import { ModeResponse, CompatibleResponse } from "../src/types/modes"
+import { ModeResponse, CompatibleResponse } from "../../../src/types/modes"
 
 export interface RAGContext {
   hasContext: boolean

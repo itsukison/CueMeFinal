@@ -23,6 +23,7 @@ import {
   AudioStreamState,
   AudioSource,
 } from "../../types/audio-stream";
+import { createAudioWorkletBlobURL } from "../../utils/audioWorkletProcessor";
 
 interface QnACollection {
   id: string;
@@ -500,23 +501,22 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             "[QueueCommands] Set frontendListening to true (before AudioWorklet connection)"
           );
 
-          // Construct the correct path for AudioWorklet processor
-          // In development: served by Vite dev server
-          // In production: needs to be relative to the current page location
-          const workletPath = import.meta.env.DEV
-            ? "/audio-worklet-processor.js"
-            : new URL("/audio-worklet-processor.js", window.location.href).href;
+          // Use Blob URL for AudioWorklet processor (works reliably in Electron production)
+          // This avoids file loading issues with file:// protocol
+          const workletBlobURL = createAudioWorkletBlobURL();
 
           console.log(
-            "[QueueCommands] Loading AudioWorklet module from:",
-            workletPath
+            "[QueueCommands] Loading AudioWorklet module from Blob URL"
           );
           window.electronAPI.invoke(
             "debug-log",
-            `[QueueCommands] Loading AudioWorklet module from: ${workletPath}`
+            "[QueueCommands] Loading AudioWorklet module from Blob URL"
           );
 
-          await ctx.audioWorklet.addModule(workletPath);
+          await ctx.audioWorklet.addModule(workletBlobURL);
+          
+          // Clean up Blob URL after loading
+          URL.revokeObjectURL(workletBlobURL);
 
           console.log(
             "[QueueCommands] ✅ AudioWorklet module loaded successfully"

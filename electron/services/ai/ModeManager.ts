@@ -1,5 +1,5 @@
 // ModeManagerクラス - モード設定を直接埋め込み版
-import { ModeConfig, ModeResponse, StructureType } from '../src/types/modes'
+import { ModeConfig, ModeResponse, StructureType } from '../../../src/types/modes'
 
 export class ModeManager {
   private modes: Map<string, ModeConfig> = new Map()

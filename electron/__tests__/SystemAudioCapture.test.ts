@@ -1,4 +1,4 @@
-import { SystemAudioCapture, AudioSource } from '../SystemAudioCapture';
+import { SystemAudioCapture, AudioSource } from '../audio/SystemAudioCapture';
 import { desktopCapturer } from 'electron';
 
 // Mock Electron's desktopCapturer

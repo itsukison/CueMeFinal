@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { SystemAudioCapture } from '../SystemAudioCapture';
+import { SystemAudioCapture } from './SystemAudioCapture';
 import { GeminiLiveQuestionDetector } from './GeminiLiveQuestionDetector';
 import { DetectedQuestion } from '../../src/types/audio-stream';
 import { DiagnosticLogger } from '../utils/DiagnosticLogger';

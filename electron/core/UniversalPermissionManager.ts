@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { app, dialog, shell } from 'electron';
-import { PermissionStorage } from '../PermissionStorage';
+import { PermissionStorage } from '../services/permissions/PermissionStorage';
 import { ProcessSupervisor } from './ProcessSupervisor';
 import { PermissionWatcher } from './PermissionWatcher';
 import path from 'path';
