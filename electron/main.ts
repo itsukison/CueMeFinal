@@ -5,6 +5,7 @@ EnvLoader.load();
 import { app, session, desktopCapturer } from "electron";
 import { Logger } from "./utils/Logger";
 import { DiagnosticLogger } from "./utils/DiagnosticLogger";
+import { VisibilityConfig } from "./config/VisibilityConfig";
 
 // Initialize Logger as early as possible
 Logger.initialize();
@@ -58,11 +59,11 @@ async function requestMicAccess(appState: AppState): Promise<void> {
     console.log('[Permission] Microphone permission request only available on macOS');
     return;
   }
-  
+
   try {
     console.log('[Permission] Requesting microphone permission...');
     const granted = await appState.permissionStorage.requestMicrophonePermission();
-    
+
     if (granted) {
       console.log('[Permission] ✅ Microphone access granted');
     } else {
@@ -81,25 +82,25 @@ async function initializeApp() {
   console.log('[App Init] Starting application initialization...');
   console.log('[App Init] Process args:', process.argv);
   console.log('[App Init] ==============================');
-  
+
   // Set app identification early for proper permission dialogs on macOS
   app.setName('CueMe');
   if (process.platform === 'darwin') {
     app.setAppUserModelId('com.cueme.interview-assistant');
     console.log('[App Init] Set app name and ID for macOS permission dialogs');
   }
-  
+
   // Validate environment variables
   const envValidation = EnvLoader.validate();
   if (!envValidation.valid) {
     console.error('[App Init] ❌ Missing required environment variables:', envValidation.missing);
     // Continue anyway - some features may be disabled
   }
-  
+
   // Prevent multiple instances
   const gotTheLock = app.requestSingleInstanceLock();
   console.log('[App Init] Single instance lock acquired:', gotTheLock);
-  
+
   if (!gotTheLock) {
     console.log('[App Init] Another instance is running, quitting...');
     app.quit();
@@ -120,7 +121,7 @@ async function initializeApp() {
 
   app.whenReady().then(async () => {
     console.log('[App Init] ✅ Electron app is ready!');
-    
+
     // Setup display media request handler for system audio loopback
     // This enables Electron's native audio loopback capture
     console.log('[App Init] Setting up display media request handler...');
@@ -142,21 +143,25 @@ async function initializeApp() {
           callback({});
         });
     });
-    
+
     console.log('[App Init] Creating main window...');
     appState.createWindow();
-    
-    console.log('[App Init] Creating system tray...');
-    appState.createTray();
-    
+
+    if (!VisibilityConfig.IS_INVISIBLE) {
+      console.log('[App Init] Creating system tray...');
+      appState.createTray();
+    } else {
+      console.log('[App Init] System tray creation skipped (Invisible Mode)');
+    }
+
     // TODO: Register global shortcuts (Cmd+H for screenshot, Cmd+Shift+Space for toggle)
     // Shortcuts functionality needs to be reimplemented after cleanup
     console.log('[App Init] Global shortcuts registration skipped (needs reimplementation)');
-    
+
     // Request microphone permission on startup
     console.log('[App Init] Requesting microphone permission...');
     await requestMicAccess(appState);
-    
+
     console.log('[App Init] ✅ App initialization completed successfully!');
   });
 
@@ -186,9 +191,11 @@ async function initializeApp() {
     console.log('[App Init] App before quit');
   });
 
-  app.dock?.hide(); // Hide dock icon (optional)
+  if (VisibilityConfig.IS_INVISIBLE) {
+    app.dock?.hide(); // Hide dock icon
+  }
   app.commandLine.appendSwitch("disable-background-timer-throttling");
-  
+
   console.log('[App Init] App initialization setup complete');
 }
 

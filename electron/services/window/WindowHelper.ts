@@ -2,6 +2,7 @@
 import { BrowserWindow, screen, session } from "electron"
 import { AppState } from "../../core/AppState"
 import path from "node:path"
+import { VisibilityConfig } from "../../config/VisibilityConfig"
 
 const isDev = process.env.NODE_ENV === "development"
 
@@ -74,7 +75,7 @@ export class WindowHelper {
 
     // Create persistent session for authentication
     const persistentSession = session.fromPartition('persist:cueme-auth')
-    
+
     const windowSettings: Electron.BrowserWindowConstructorOptions = {
       width: 400,
       height: 600,
@@ -103,13 +104,13 @@ export class WindowHelper {
 
     this.mainWindow = new BrowserWindow(windowSettings)
     // this.mainWindow.webContents.openDevTools()
-    this.mainWindow.setContentProtection(false)
+    this.mainWindow.setContentProtection(VisibilityConfig.IS_INVISIBLE)
 
     if (process.platform === "darwin") {
       this.mainWindow.setVisibleOnAllWorkspaces(true, {
         visibleOnFullScreen: true
       })
-      this.mainWindow.setHiddenInMissionControl(false)
+      this.mainWindow.setHiddenInMissionControl(VisibilityConfig.IS_INVISIBLE)
       this.mainWindow.setAlwaysOnTop(true, "floating")
     }
     if (process.platform === "linux") {
@@ -118,8 +119,10 @@ export class WindowHelper {
         this.mainWindow.setHasShadow(false)
       }
       this.mainWindow.setFocusable(false)
-    } 
-    this.mainWindow.setSkipTaskbar(true)
+    }
+    if (VisibilityConfig.IS_INVISIBLE) {
+      this.mainWindow.setSkipTaskbar(true)
+    }
     this.mainWindow.setAlwaysOnTop(true)
 
     this.mainWindow.loadURL(startUrl).catch((err) => {
@@ -135,10 +138,10 @@ export class WindowHelper {
         this.mainWindow.focus();
         this.mainWindow.setAlwaysOnTop(true);
         console.log("Window is now visible and centered");
-        
+
         // Set window reference in AutoUpdateManager
         this.appState.getAutoUpdateManager().setMainWindow(this.mainWindow);
-        
+
         // Start update checks after window is ready
         this.appState.getAutoUpdateManager().startUpdateChecks(true);
       }
@@ -250,16 +253,16 @@ export class WindowHelper {
 
     const primaryDisplay = screen.getPrimaryDisplay()
     const workArea = primaryDisplay.workAreaSize
-    
+
     // Get current window size or use defaults
     const windowBounds = this.mainWindow.getBounds()
     const windowWidth = windowBounds.width || 400
     const windowHeight = windowBounds.height || 600
-    
+
     // Calculate center position
     const centerX = Math.floor((workArea.width - windowWidth) / 2)
     const centerY = Math.floor((workArea.height - windowHeight) / 2)
-    
+
     // Set window position
     this.mainWindow.setBounds({
       x: centerX,
@@ -267,7 +270,7 @@ export class WindowHelper {
       width: windowWidth,
       height: windowHeight
     })
-    
+
     // Update internal state
     this.windowPosition = { x: centerX, y: centerY }
     this.windowSize = { width: windowWidth, height: windowHeight }
@@ -286,7 +289,7 @@ export class WindowHelper {
     this.mainWindow.focus()
     this.mainWindow.setAlwaysOnTop(true)
     this.isWindowVisible = true
-    
+
     console.log(`Window centered and shown`)
   }
 

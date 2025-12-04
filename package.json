@@ -1,6 +1,6 @@
 {
   "name": "CueMe",
-  "version": "1.0.115",
+  "version": "1.0.116",
   "main": "./dist-electron/main.js",
   "scripts": {
     "clean": "rimraf dist dist-electron",
@@ -77,7 +77,8 @@
       "extendInfo": {
         "NSMicrophoneUsageDescription": "CueMe needs microphone access to listen for interview questions and provide real-time coding assistance.",
         "NSAudioCaptureUsageDescription": "CueMe needs system audio access to capture audio from video calls (Zoom, Teams, etc.) for better interview question detection.",
-        "NSScreenCaptureDescription": "CueMe uses screen recording to capture system audio from video calls (Zoom, Teams, etc.) for better interview question detection. No visual recording is performed - only audio is captured."
+        "NSScreenCaptureDescription": "CueMe uses screen recording to capture system audio from video calls (Zoom, Teams, etc.) for better interview question detection. No visual recording is performed - only audio is captured.",
+        "LSUIElement": true
       }
     },
     "win": {
