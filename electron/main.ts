@@ -50,6 +50,8 @@ Logger.info('  Process info:', {
 import { initializeIpcHandlers } from "./ipc";
 import { AppState } from "./core/AppState";
 import { DeepLinkHandler } from "./core/DeepLinkHandler";
+import { MenuBuilder } from "./core/MenuBuilder";
+import { globalShortcut } from "electron";
 
 /**
  * Request microphone access on app startup
@@ -154,9 +156,68 @@ async function initializeApp() {
       console.log('[App Init] System tray creation skipped (Invisible Mode)');
     }
 
-    // TODO: Register global shortcuts (Cmd+H for screenshot, Cmd+Shift+Space for toggle)
-    // Shortcuts functionality needs to be reimplemented after cleanup
-    console.log('[App Init] Global shortcuts registration skipped (needs reimplementation)');
+    // Register global shortcuts
+    // Cmd+B: Toggle App Visibility
+    globalShortcut.register('CommandOrControl+B', () => {
+      console.log('[Shortcut] Cmd+B pressed: Toggling window visibility');
+      appState.toggleMainWindow();
+    });
+
+    // Cmd+L: Toggle Recording
+    globalShortcut.register('CommandOrControl+L', () => {
+      console.log('[Shortcut] Cmd+L pressed: Toggling recording');
+      const win = appState.getMainWindow();
+      if (win) {
+        win.webContents.send('toggle-listen');
+        // If window is hidden, show it so user can see recording status
+        if (!win.isVisible()) {
+          win.show();
+        }
+      }
+    });
+
+    // Cmd+C: Toggle Chat (Note: May conflict with copy if not handled carefully)
+    // We register it globally here. If the user is in a text field, OS copy usually takes precedence
+    // but in Electron global shortcuts often swallow events.
+    // Strategy: We will try to rely on the Menu for Copy, and this shortcut for Chat.
+    // If this conflicts too much, we might need a different shortcut.
+    globalShortcut.register('CommandOrControl+C', () => {
+      console.log('[Shortcut] Cmd+C pressed: Toggling chat');
+      const win = appState.getMainWindow();
+      // Only trigger chat if window is visible and focused? 
+      // Or toggle window if hidden? Let's just send the event.
+      if (win) {
+        win.webContents.send('toggle-chat');
+        if (!win.isVisible()) {
+          win.show();
+        }
+      }
+    });
+
+    // Cmd+H: Original screenshot shortcut (optional, keeping for legacy support if user wants)
+    globalShortcut.register('CommandOrControl+H', async () => {
+      console.log('[Shortcut] Cmd+H pressed: Taking screenshot');
+      // This logic effectively duplicates the tray item logic
+      try {
+        const screenshotPath = await appState.takeScreenshot();
+        const preview = await appState.getImagePreview(screenshotPath);
+        const mainWindow = appState.getMainWindow();
+        if (mainWindow) {
+          mainWindow.webContents.send("screenshot-taken", {
+            path: screenshotPath,
+            preview
+          });
+        }
+      } catch (error) {
+        console.error("Error taking screenshot from shortcut:", error);
+      }
+    });
+
+
+    // Initialize Menu
+    const menuBuilder = new MenuBuilder(appState.getMainWindow()!);
+    menuBuilder.buildMenu();
+
 
     // Request microphone permission on startup
     console.log('[App Init] Requesting microphone permission...');
@@ -184,6 +245,8 @@ async function initializeApp() {
 
   app.on('will-quit', () => {
     console.log('[App Init] App will quit');
+    // Unregister all shortcuts
+    globalShortcut.unregisterAll();
     appState.cleanup();
   });
 

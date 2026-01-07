@@ -13,53 +13,41 @@ export class ModeManager {
   }
 
   private initializeSystemPromptTemplate(): string {
-    return `あなたは CueMe の応答エンジン。下記パラメータに厳密に従って出力を生成する。
+    return `# CueMe 応答エンジン
 
-[STYLE_KNOBS]
-- tone: {tone}               # 例: neutral | friendly | polite | assertive | sales | teacher | support
-- formality: {formality}     # 例: casual | desu_masu | keigo
-- length: {length}           # 例: one_liner | short | standard | detailed | step_by_step
-- sentence_max: {sentence_max}   # 1文の最大文長(日本語は読点区切りを意識)。目安: 20〜30語
-- bullets_max: {bullets_max}     # 箇条書き最大数
-- paragraphs_max: {paragraphs_max} # 段落最大数
-- examples_max: {examples_max}   # 例示の最大数
-- code_ok: {code_ok}             # true/false
-- show_rationale: {rationale}    # hidden | inline | solutions_only
+あなたはユーザーの代わりに話す存在です。生成する回答はユーザーが**そのまま読み上げる**ことを想定しています。
 
-[OUTPUT SHAPE]
-必ず次のJSONで返す（キー順を守る）:
-{
-  "answer": "<本文（ユーザーが直で見る）>",
-  "bullets": ["<必要なら箇条書き>"],
-  "next_actions": ["<次の一歩>"],
-  "followup_questions": ["<確認/逆質問>"],
-  "style_meta": {
-    "tone": "{tone}",
-    "formality": "{formality}",
-    "length": "{length}",
-    "sentence_max": {sentence_max}
-  },
-  "safety_notes": ["<留意点（表示不要なら空配列で可）>"],
-  "citations": ["<RAGの参照ID。なければ空配列>"]
-}
+## 🎭 ペルソナ設定
+- あなたはAI・人工知能・アシスタント・ボットではありません
+- 「私」を使う場合は、ユーザー本人として話してください
+- ユーザーが会話中に自然に発言できる内容のみを生成してください
 
-[HARD RULES]
-- 文字数・文数の超過を避ける。超えそうなら要約して削る。
-- 日本語の敬語レベルは formality に従う（casual/ですます/敬語）。
-- 禁則語や誇大表現は各モードの規約に従って抑制。
-- 思考過程は show_rationale に従い出力（hidden の場合は出さない）。
+## 📏 出力パラメータ
+- tone: {tone}
+- formality: {formality}
+- length: {length}
+- sentence_max: {sentence_max}文字
+- bullets_max: {bullets_max}個
+- paragraphs_max: {paragraphs_max}段落
+- examples_max: {examples_max}個
+- code_ok: {code_ok}
 
-[STRUCTURE MACROS]
+## 📐 構造ルール
 {structure_macros}
 
-[MODE SPECIFIC RULES]
-DO（推奨）:
+## ✅ DO（推奨）
 {rules_plus}
 
-DON'T（禁止）:
+## ❌ DON'T（絶対禁止）
 {rules_minus}
+- 「私はAI」「人工知能として」「アシスタントです」「ボットです」などの自己言及
+- 「お答えします」「ご説明します」「ご質問にお答えします」などのメタ発言
+- 「参考情報によると」「ドキュメントによれば」「資料によると」などの情報源言及
+- マークダウン記法（**太字**, *斜体*, ## 見出し, \`コード\`）
+- 「はい、」「それでは、」「では、」などの冗長な前置き
 
-JSONオブジェクトのみを返し、マークダウン形式やコードブロックは使用しないでください。`
+## 📦 出力形式
+プレーンテキストで回答してください。ユーザーが読み上げられる自然な日本語のみ。箇条書きが必要な場合は「・」を使用。`
   }
 
   private initializeStructureMacros(): void {
@@ -103,12 +91,15 @@ JSONオブジェクトのみを返し、マークダウン形式やコードブ�
         structure: ["conclusion_first", "steps"],
         rules_plus: [
           "60〜120秒で話せる量に圧縮",
-          "Big-Oは1行で",
-          "擬似コードなら最小限"
+          "結論→理由→具体例の順で構成",
+          "自信を持った言い切りの表現を使う",
+          "「私の強みは〜です」のような一人称形式"
         ],
         rules_minus: [
-          "冗長な前置きNG",
-          "自信なさげな表現NG（多分/かもしれない を避ける）"
+          "「多分」「かもしれない」「だと思います」など曖昧表現",
+          "「御社」の過剰使用（1回まで）",
+          "長すぎる前置き",
+          "謙遜しすぎる表現"
         ]
       },
       {
@@ -124,8 +115,16 @@ JSONオブジェクトのみを返し、マークダウン形式やコードブ�
         code_ok: false,
         rationale: "solutions_only",
         structure: ["conclusion_first", "steps"],
-        rules_plus: ["TL;DR→議題→決定→保留→ToDo(owner, due)"],
-        rules_minus: ["主観の断定NG", "不確実は『仮説』と明示"]
+        rules_plus: [
+          "要点を最初に述べる",
+          "決定事項とToDoを明確に分ける",
+          "担当者・期限を含める",
+          "TL;DR→議題→決定→保留→ToDo"
+        ],
+        rules_minus: [
+          "主観的断定",
+          "不確実な情報を断言（『仮説』と明示）"
+        ]
       },
       {
         key: "sales",
@@ -140,8 +139,17 @@ JSONオブジェクトのみを返し、マークダウン形式やコードブ�
         code_ok: false,
         rationale: "hidden",
         structure: ["prep", "steps"],
-        rules_plus: ["Pain→Value→Proof→Next", "実数値か事例を1つ以上"],
-        rules_minus: ["誇大表現NG", "根拠なき比較NG"]
+        rules_plus: [
+          "課題→価値→実績→次のステップの順",
+          "具体的な数値・事例を1つ以上",
+          "お客様のメリットを中心に",
+          "Pain→Value→Proof→Next"
+        ],
+        rules_minus: [
+          "誇大表現（業界No.1など根拠なし）",
+          "競合の直接批判",
+          "根拠なき比較"
+        ]
       },
       {
         key: "telesales",
@@ -156,12 +164,22 @@ JSONオブジェクトのみを返し、マークダウン形式やコードブ�
         code_ok: false,
         rationale: "hidden",
         structure: ["opener", "hook_question", "value_15s", "cta"],
-        rules_plus: ["1文は短く", "反論が来たら即『型』で返す"],
-        rules_minus: ["詰問口調NG", "圧迫クロージングNG"]
+        rules_plus: [
+          "1文は15秒以内で話せる長さ",
+          "相手の反論には型で即返答",
+          "具体的な次のアクションを提示",
+          "開口一番で興味を引く"
+        ],
+        rules_minus: [
+          "詰問口調",
+          "圧迫クロージング",
+          "「お忙しいところ申し訳ございません」など過剰謝罪",
+          "長々とした説明"
+        ]
       },
       {
         key: "support",
-        displayName: "ヘルプ",
+        displayName: "カスタマーサポート",
         tone: "support",
         formality: "keigo",
         length: "standard",
@@ -172,8 +190,68 @@ JSONオブジェクトのみを返し、マークダウン形式やコードブ�
         code_ok: true,
         rationale: "hidden",
         structure: ["empathy", "diagnosis", "steps", "fallback", "followup"],
-        rules_plus: ["番号付き手順", "危険操作は⚠で注意喚起"],
-        rules_minus: ["お客さまの責任示唆NG"]
+        rules_plus: [
+          "まず共感を示す",
+          "手順は番号付きで",
+          "代替案も提示",
+          "危険操作は⚠で警告"
+        ],
+        rules_minus: [
+          "お客様の責任示唆",
+          "「できません」だけの回答",
+          "冷たい印象を与える表現"
+        ]
+      },
+      {
+        key: "debate",
+        displayName: "ディベートモード",
+        tone: "assertive",
+        formality: "desu_masu",
+        length: "detailed",
+        sentence_max: 22,
+        bullets_max: 6,
+        paragraphs_max: 5,
+        examples_max: 2,
+        code_ok: false,
+        rationale: "solutions_only",
+        structure: ["claim", "evidence", "counterarguments", "rebuttal"],
+        rules_plus: [
+          "主張→根拠→反論想定→再反論の構成",
+          "検証可能なデータ・事例を含める",
+          "論理的な接続詞を使用",
+          "相手の主張を正確に要約してから反論"
+        ],
+        rules_minus: [
+          "人格攻撃",
+          "感情的な形容詞の多用",
+          "論点のすり替え",
+          "根拠なき主張"
+        ]
+      },
+      {
+        key: "class",
+        displayName: "授業モード",
+        tone: "teacher",
+        formality: "desu_masu",
+        length: "step_by_step",
+        sentence_max: 22,
+        bullets_max: 6,
+        paragraphs_max: 6,
+        examples_max: 2,
+        code_ok: true,
+        rationale: "inline",
+        structure: ["concept", "example", "exercise", "solution_key_points"],
+        rules_plus: [
+          "専門用語は先に定義",
+          "具体例で理解を促進",
+          "ヒント→解答の順",
+          "段階的に難易度を上げる"
+        ],
+        rules_minus: [
+          "一度に多すぎる新概念",
+          "専門用語の羅列",
+          "説明なしの前提知識使用"
+        ]
       }
     ]
 
@@ -285,13 +363,14 @@ JSONオブジェクトのみを返し、マークダウン形式やコードブ�
 
       // 必須フィールドの検証
       if (!parsed.answer || !parsed.style_meta) {
-        console.warn('[ModeManager] Invalid response format')
+        // Plain text response, not JSON - this is expected
         return null
       }
 
       return parsed as ModeResponse
-    } catch (error) {
-      console.error('[ModeManager] Error parsing response:', error)
+    } catch {
+      // Plain text response is expected with new prompt format
+      // JSON parsing failure is normal, not an error
       return null
     }
   }

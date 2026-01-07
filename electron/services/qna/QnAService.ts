@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export interface QnACollection {
   id: string
@@ -30,22 +30,23 @@ export interface SearchResult {
 
 export class QnAService {
   private supabase: SupabaseClient
-  private openai: OpenAI
+  private genAI: GoogleGenerativeAI
+  private geminiApiKey: string
 
   constructor(supabaseClient: SupabaseClient) {
     this.supabase = supabaseClient
-    
-    // Initialize OpenAI client for embeddings (NOT for transcription - that's Gemini Live now)
-    const openaiApiKey = process.env.OPENAI_API_KEY
-    
-    if (!openaiApiKey) {
-      console.error('[QnAService] Missing OpenAI API key - embeddings will not work')
-      console.warn('[QnAService] Q&A search functionality requires OPENAI_API_KEY for embeddings')
+
+    // Initialize Gemini client for embeddings
+    this.geminiApiKey = process.env.GEMINI_API_KEY || ''
+
+    if (!this.geminiApiKey) {
+      console.error('[QnAService] Missing Gemini API key - embeddings will not work')
+      console.warn('[QnAService] Q&A search functionality requires GEMINI_API_KEY for embeddings')
     }
-    
-    this.openai = new OpenAI({
-      apiKey: openaiApiKey || 'placeholder-key',
-    })
+
+    this.genAI = new GoogleGenerativeAI(this.geminiApiKey || 'placeholder-key')
+
+    console.log('[QnAService] Initialized with Gemini embeddings (768 dimensions)')
   }
 
   private normalizeJapaneseText(text: string): string {
@@ -61,19 +62,22 @@ export class QnAService {
 
   private async generateEmbedding(text: string): Promise<number[]> {
     try {
-      // Normalize Japanese text for better embedding quality (same as web version)
+      if (!this.geminiApiKey) {
+        throw new Error('Gemini API key not configured in QnAService')
+      }
+
+      // Normalize Japanese text for better embedding quality
       const normalizedText = this.normalizeJapaneseText(text)
-      
-      const response = await this.openai.embeddings.create({
-        model: 'text-embedding-3-large',
-        input: normalizedText.replace(/\n/g, ' '),
-        dimensions: 1536
-      })
-      
-      return response.data[0].embedding
+
+      // Use Gemini's text embedding model (768 dimensions)
+      const model = this.genAI.getGenerativeModel({ model: 'text-embedding-004' })
+
+      const result = await model.embedContent(normalizedText.replace(/\n/g, ' '))
+
+      return result.embedding.values
     } catch (error) {
-      console.error('Error generating embedding:', error)
-      throw new Error('Failed to generate embedding')
+      console.error('[QnAService] Error generating Gemini embedding:', error)
+      throw new Error(`Failed to generate embedding: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
