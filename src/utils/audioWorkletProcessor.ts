@@ -55,6 +55,13 @@ class AudioCaptureProcessor extends AudioWorkletProcessor {
           // Create chunk from buffer
           const chunkData = new Float32Array(this.audioBuffer.splice(0, this.chunkSize));
           
+          // Calculate RMS for debugging silence
+          let sumSquares = 0;
+          for (let i = 0; i < chunkData.length; i++) {
+            sumSquares += chunkData[i] * chunkData[i];
+          }
+          const rms = Math.sqrt(sumSquares / chunkData.length);
+
           // Send audio chunk to main thread immediately
           this.port.postMessage({
             type: 'audio-chunk',
@@ -62,7 +69,8 @@ class AudioCaptureProcessor extends AudioWorkletProcessor {
             chunkNumber: this.chunkCount,
             length: chunkData.length,
             durationMs: (chunkData.length / this.sampleRate) * 1000,
-            triggerReason: 'continuous-stream'
+            triggerReason: 'continuous-stream',
+            rms: rms // Send RMS to main thread
           });
           
           // Log every 50 chunks to avoid spam

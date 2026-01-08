@@ -43,7 +43,7 @@ interface ElectronAPI {
   analyzeImageFile: (path: string) => Promise<void>
   quitApp: () => Promise<void>
   invoke: (channel: string, ...args: any[]) => Promise<any>
-  
+
   // Audio Stream methods (legacy)
   audioStreamStart: (audioSourceId?: string) => Promise<{ success: boolean; error?: string }>
   audioStreamStop: () => Promise<{ success: boolean; error?: string }>
@@ -53,10 +53,10 @@ interface ElectronAPI {
   audioStreamClearQuestions: () => Promise<{ success: boolean; error?: string }>
   audioStreamAnswerQuestion: (questionText: string, collectionId?: string) => Promise<{ response: string; timestamp: number }>
   audioStreamAnswerQuestionStreaming: (questionText: string, collectionId: string | undefined, onChunk: (chunk: string) => void) => Promise<{ response: string; ragContext: any; timestamp: number }>
-  
+
   // Microphone capture from renderer (new - MicrophoneCapture service)
   audioProcessMicrophoneChunk: (audioData: Float32Array) => Promise<{ success: boolean; error?: string }>
-  
+
   // Dual Audio methods (new - Gemini Live)
   dualAudioStart: (systemAudioSourceId?: string) => Promise<{ success: boolean; error?: string }>
   dualAudioStop: () => Promise<{ success: boolean; error?: string }>
@@ -64,19 +64,19 @@ interface ElectronAPI {
   dualAudioGetState: () => Promise<{ isCapturing: boolean; geminiState: any }>
   dualAudioGetQuestions: () => Promise<Array<{ text: string; timestamp: number }>>
   dualAudioClearQuestions: () => Promise<{ success: boolean; error?: string }>
-  
+
   // System Audio methods
   audioGetSources: () => Promise<{ success: boolean; sources: AudioSource[]; error?: string }>
   audioSwitchSource: (sourceId: string) => Promise<{ success: boolean; error?: string }>
   audioRequestPermissions: () => Promise<{ granted: boolean; error?: string }>
   audioCheckSystemSupport: () => Promise<{ supported: boolean }>
-  
+
   // Audio Stream event listeners
   onAudioQuestionDetected: (callback: (question: { text: string; timestamp: number }) => void) => () => void
   onAudioBatchProcessed: (callback: (questions: Array<{ text: string; timestamp: number }>) => void) => () => void
   onAudioStreamStateChanged: (callback: (state: { isListening: boolean; error?: string }) => void) => () => void
   onAudioStreamError: (callback: (error: string) => void) => () => void
-  
+
   // Permission methods
   permissionGetStatus: () => Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown' }>
   permissionRequestMicrophone: () => Promise<{ granted: boolean; error?: string }>
@@ -91,7 +91,7 @@ interface ElectronAPI {
   onChatToggle: (callback: () => void) => () => void
   onListenToggle: (callback: () => void) => () => void
   onDevAuthOpen: (callback: () => void) => () => void
-  
+
   // Update event listeners
   onUpdateAvailable: (callback: (info: any) => void) => () => void
   onUpdateDownloaded: (callback: (info: any) => void) => () => void
@@ -235,7 +235,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openExternalUrl: (url: string) => ipcRenderer.invoke("open-external-url", url),
   quitApp: () => ipcRenderer.invoke("quit-app"),
   invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
-  
+
   // Audio Stream methods (legacy)
   audioStreamStart: (audioSourceId?: string) => ipcRenderer.invoke("audio-stream-start", audioSourceId),
   audioStreamStop: () => ipcRenderer.invoke("audio-stream-stop"),
@@ -248,21 +248,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Set up listener for chunks
     const chunkHandler = (_: any, chunk: string) => onChunk(chunk);
     ipcRenderer.on("audio-stream-answer-chunk", chunkHandler);
-    
+
     // Start the streaming request
     const promise = ipcRenderer.invoke("audio-stream-answer-question-streaming", questionText, collectionId);
-    
+
     // Clean up listener when done
     promise.finally(() => {
       ipcRenderer.removeListener("audio-stream-answer-chunk", chunkHandler);
     });
-    
+
     return promise;
   },
-  
+
   // Microphone capture from renderer (new - MicrophoneCapture service)
   audioProcessMicrophoneChunk: (audioData: Float32Array) => ipcRenderer.invoke("audio-process-microphone-chunk", audioData),
-  
+
   // Dual Audio methods (new - Gemini Live)
   dualAudioStart: (systemAudioSourceId?: string) => ipcRenderer.invoke("dual-audio-start", systemAudioSourceId),
   dualAudioStop: () => ipcRenderer.invoke("dual-audio-stop"),
@@ -270,13 +270,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   dualAudioGetState: () => ipcRenderer.invoke("dual-audio-get-state"),
   dualAudioGetQuestions: () => ipcRenderer.invoke("dual-audio-get-questions"),
   dualAudioClearQuestions: () => ipcRenderer.invoke("dual-audio-clear-questions"),
-  
+
   // System Audio methods
   audioGetSources: () => ipcRenderer.invoke("audio-get-sources") as Promise<{ success: boolean; sources: AudioSource[]; error?: string }>,
   audioSwitchSource: (sourceId: string) => ipcRenderer.invoke("audio-switch-source", sourceId) as Promise<{ success: boolean; error?: string }>,
   audioRequestPermissions: () => ipcRenderer.invoke("audio-request-permissions") as Promise<{ granted: boolean; error?: string }>,
   audioCheckSystemSupport: () => ipcRenderer.invoke("audio-check-system-support") as Promise<{ supported: boolean }>,
-  
+
   // Audio Stream event listeners
   onAudioQuestionDetected: (callback: (question: any) => void) => {
     const subscription = (_: any, question: any) => callback(question)
@@ -306,7 +306,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener("audio-stream-error", subscription)
     }
   },
-  
+
   // Auth methods
   authSignIn: (email: string, password: string) => ipcRenderer.invoke("auth-sign-in", email, password),
   authSignUp: (email: string, password: string) => ipcRenderer.invoke("auth-sign-up", email, password),
@@ -341,7 +341,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener("open-dev-auth", subscription)
     }
   },
-  
+
   // Update event listeners
   onUpdateAvailable: (callback: (info: any) => void) => {
     const subscription = (_: any, info: any) => callback(info)
@@ -371,17 +371,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener("update-error", subscription)
     }
   },
-  
+
   // Permission methods
   permissionGetStatus: () => ipcRenderer.invoke("permission-check-status") as Promise<{ microphone: 'granted' | 'denied' | 'not-determined' | 'unknown'; screenCapture: 'granted' | 'denied' | 'not-determined' | 'unknown' }>,
   permissionRequestMicrophone: () => ipcRenderer.invoke("permission-request-microphone") as Promise<{ granted: boolean; error?: string }>,
   permissionRequestSystemAudio: () => ipcRenderer.invoke("permission-request-system-audio") as Promise<{ granted: boolean; error?: string }>,
-  
+
   // System status and logging
   getSystemStatus: () => ipcRenderer.invoke("get-system-status") as Promise<{ success: boolean; status?: any; error?: string }>,
   openLogFile: () => ipcRenderer.invoke("open-log-file") as Promise<{ success: boolean; path?: string; error?: string }>,
   getLogPath: () => ipcRenderer.invoke("get-log-path") as Promise<{ success: boolean; path?: string; error?: string }>,
-  
+
   // Diagnostics methods
   diagnosticsTestIPC: () => ipcRenderer.invoke("diagnostics-test-ipc") as Promise<any>,
   diagnosticsGetSystemInfo: () => ipcRenderer.invoke("diagnostics-get-system-info") as Promise<any>,

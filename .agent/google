@@ -1,0 +1,1954 @@
+[Skip to main content](https://ai.google.dev/api/live#main-content)
+- 
+      [English](https://ai.google.dev/api/live)
+
+- 
+      [Deutsch](https://ai.google.dev/api/live)
+
+- 
+      [Español – América Latina](https://ai.google.dev/api/live)
+
+- 
+      [Français](https://ai.google.dev/api/live)
+
+- 
+      [Indonesia](https://ai.google.dev/api/live)
+
+- 
+      [Italiano](https://ai.google.dev/api/live)
+
+- 
+      [Polski](https://ai.google.dev/api/live)
+
+- 
+      [Português – Brasil](https://ai.google.dev/api/live)
+
+- 
+      [Shqip](https://ai.google.dev/api/live)
+
+- 
+      [Tiếng Việt](https://ai.google.dev/api/live)
+
+- 
+      [Türkçe](https://ai.google.dev/api/live)
+
+- 
+      [Русский](https://ai.google.dev/api/live)
+
+- 
+      [עברית](https://ai.google.dev/api/live)
+
+- 
+      [العربيّة](https://ai.google.dev/api/live)
+
+- 
+      [فارسی](https://ai.google.dev/api/live)
+
+- 
+      [हिंदी](https://ai.google.dev/api/live)
+
+- 
+      [বাংলা](https://ai.google.dev/api/live)
+
+- 
+      [ภาษาไทย](https://ai.google.dev/api/live)
+
+- 
+      [中文 – 简体](https://ai.google.dev/api/live)
+
+- 
+      [中文 – 繁體](https://ai.google.dev/api/live)
+
+- 
+      [日本語](https://ai.google.dev/api/live)
+
+- 
+      [한국어](https://ai.google.dev/api/live)
+
+[English](https://ai.google.dev/api/live)
+[Deutsch](https://ai.google.dev/api/live)
+[Español – América Latina](https://ai.google.dev/api/live)
+[Français](https://ai.google.dev/api/live)
+[Indonesia](https://ai.google.dev/api/live)
+[Italiano](https://ai.google.dev/api/live)
+[Polski](https://ai.google.dev/api/live)
+[Português – Brasil](https://ai.google.dev/api/live)
+[Shqip](https://ai.google.dev/api/live)
+[Tiếng Việt](https://ai.google.dev/api/live)
+[Türkçe](https://ai.google.dev/api/live)
+[Русский](https://ai.google.dev/api/live)
+[עברית](https://ai.google.dev/api/live)
+[العربيّة](https://ai.google.dev/api/live)
+[فارسی](https://ai.google.dev/api/live)
+[हिंदी](https://ai.google.dev/api/live)
+[বাংলা](https://ai.google.dev/api/live)
+[ภาษาไทย](https://ai.google.dev/api/live)
+[中文 – 简体](https://ai.google.dev/api/live)
+[中文 – 繁體](https://ai.google.dev/api/live)
+[日本語](https://ai.google.dev/api/live)
+[한국어](https://ai.google.dev/api/live)
+[Get API key](https://aistudio.google.com/apikey)
+[Cookbook](https://github.com/google-gemini/cookbook)
+[Community](https://discuss.ai.google.dev/c/gemini-api/)
+[Docs](https://ai.google.dev/gemini-api/docs)
+[API reference](https://ai.google.dev/api)
+- 
+
+
+  [Gemini API](https://ai.google.dev/gemini-api/docs)
+
+
+
+
+
+
+
+
+
+
+
+
+  [Docs](https://ai.google.dev/gemini-api/docs)
+
+
+
+
+
+
+
+
+
+
+
+  [API reference](https://ai.google.dev/api)
+
+
+
+
+
+
+
+
+- 
+
+
+  [Docs](https://ai.google.dev/gemini-api/docs)
+
+
+
+
+- 
+
+
+  [API reference](https://ai.google.dev/api)
+
+
+
+
+- 
+
+
+  [Get API key](https://aistudio.google.com/apikey)
+
+
+
+- 
+
+
+  [Cookbook](https://github.com/google-gemini/cookbook)
+
+
+
+- 
+
+
+  [Community](https://discuss.ai.google.dev/c/gemini-api/)
+
+
+
+[Gemini API](https://ai.google.dev/gemini-api/docs)
+- 
+
+
+  [Docs](https://ai.google.dev/gemini-api/docs)
+
+
+
+
+- 
+
+
+  [API reference](https://ai.google.dev/api)
+
+
+
+
+[Docs](https://ai.google.dev/gemini-api/docs)
+[API reference](https://ai.google.dev/api)
+[Get API key](https://aistudio.google.com/apikey)
+[Cookbook](https://github.com/google-gemini/cookbook)
+[Community](https://discuss.ai.google.dev/c/gemini-api/)
+- [Overview](https://ai.google.dev/api)
+- [API versions](https://ai.google.dev/gemini-api/docs/api-versions)
+- 
+        Capabilities
+
+- [Models](https://ai.google.dev/api/models)
+- [Generating content](https://ai.google.dev/api/generate-content)
+- [Live API](https://ai.google.dev/api/live)
+- [Live Music API](https://ai.google.dev/api/live_music)
+- [Interactions API](https://ai.google.dev/api/interactions-api)
+- [Tokens](https://ai.google.dev/api/tokens)
+- [Files](https://ai.google.dev/api/files)
+- [Batch API](https://ai.google.dev/api/batch-api)
+- [Caching](https://ai.google.dev/api/caching)
+- [Embeddings](https://ai.google.dev/api/embeddings)
+- https://ai.google.dev/api/live
+
+        File search
+      [File search stores](https://ai.google.dev/api/file-search/file-search-stores)[Document](https://ai.google.dev/api/file-search/documents)
+- [File search stores](https://ai.google.dev/api/file-search/file-search-stores)
+
+- [Document](https://ai.google.dev/api/file-search/documents)
+- [All methods](https://ai.google.dev/api/all-methods)
+- https://ai.google.dev/api/live
+
+        Deprecated
+      [PaLM (decomissioned)](https://ai.google.dev/api/palm)
+- [PaLM (decomissioned)](https://ai.google.dev/api/palm)
+- 
+        SDK references
+
+- [Python](https://googleapis.github.io/python-genai/)
+- [Go](https://pkg.go.dev/google.golang.org/genai)
+- [TypeScript](https://googleapis.github.io/js-genai/)
+- [Java](https://googleapis.github.io/java-genai/javadoc/)
+- [C#](https://googleapis.github.io/dotnet-genai/)
+[Overview](https://ai.google.dev/api)
+[API versions](https://ai.google.dev/gemini-api/docs/api-versions)
+[Models](https://ai.google.dev/api/models)
+[Generating content](https://ai.google.dev/api/generate-content)
+[Live API](https://ai.google.dev/api/live)
+[Live Music API](https://ai.google.dev/api/live_music)
+[Interactions API](https://ai.google.dev/api/interactions-api)
+[Tokens](https://ai.google.dev/api/tokens)
+[Files](https://ai.google.dev/api/files)
+[Batch API](https://ai.google.dev/api/batch-api)
+[Caching](https://ai.google.dev/api/caching)
+[Embeddings](https://ai.google.dev/api/embeddings)
+- [File search stores](https://ai.google.dev/api/file-search/file-search-stores)
+- [Document](https://ai.google.dev/api/file-search/documents)
+[File search stores](https://ai.google.dev/api/file-search/file-search-stores)
+[Document](https://ai.google.dev/api/file-search/documents)
+[All methods](https://ai.google.dev/api/all-methods)
+- [PaLM (decomissioned)](https://ai.google.dev/api/palm)
+[PaLM (decomissioned)](https://ai.google.dev/api/palm)
+[Python](https://googleapis.github.io/python-genai/)
+[Go](https://pkg.go.dev/google.golang.org/genai)
+[TypeScript](https://googleapis.github.io/js-genai/)
+[Java](https://googleapis.github.io/java-genai/javadoc/)
+[C#](https://googleapis.github.io/dotnet-genai/)
+- 
+
+
+
+
+
+  [Home](https://ai.google.dev/)
+
+
+
+
+- 
+
+
+
+
+
+
+
+
+  [Gemini API](https://ai.google.dev/gemini-api)
+
+
+
+
+- 
+
+
+
+
+
+
+
+
+  [API reference](https://ai.google.dev/api)
+
+
+
+
+[Home](https://ai.google.dev/)
+[Gemini API](https://ai.google.dev/gemini-api)
+[API reference](https://ai.google.dev/api)
+
+# Live API - WebSockets API reference
+
+The Live API is a stateful API that uses [WebSockets](https://en.wikipedia.org/wiki/WebSocket). In this section, you'll find additional details regarding the WebSockets API.
+
+## Sessions
+
+A WebSocket connection establishes a session between the client and the Gemini server. After a client initiates a new connection the session can exchange messages with the server to:
+- Send text, audio, or video to the Gemini server.
+- Receive audio, text, or function call requests from the Gemini server.
+
+### WebSocket connection
+To start a session, connect to this websocket endpoint:
+
+```
+wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent
+```
+
+
+```
+wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent
+```
+
+
+```
+v1beta
+```
+
+### Session configuration
+The initial message after connection sets the session configuration, which includes the model, generation parameters, system instructions, and tools.
+You can change the configuration parameters except the model during the session.
+See the following example configuration. Note that the name casing in SDKs may vary. You can look up the [Python SDK configuration options here](https://github.com/googleapis/python-genai/blob/main/google/genai/types.py).
+
+```
+{ "model": string, "generationConfig": { "candidateCount": integer, "maxOutputTokens": integer, "temperature": number, "topP": number, "topK": integer, "presencePenalty": number, "frequencyPenalty": number, "responseModalities": [string], "speechConfig": object, "mediaResolution": object }, "systemInstruction": string, "tools": [object] }
+```
+
+
+```
+{ "model": string, "generationConfig": { "candidateCount": integer, "maxOutputTokens": integer, "temperature": number, "topP": number, "topK": integer, "presencePenalty": number, "frequencyPenalty": number, "responseModalities": [string], "speechConfig": object, "mediaResolution": object }, "systemInstruction": string, "tools": [object] }
+```
+
+For more information on the API field, see [generationConfig](https://ai.google.dev/api/generate-content#v1beta.GenerationConfig).
+
+## Send messages
+
+To exchange messages over the WebSocket connection, the client must send a JSON object over an open WebSocket connection. The JSON object must have exactly one of the fields from the following object set:
+
+```
+{ "setup": BidiGenerateContentSetup, "clientContent": BidiGenerateContentClientContent, "realtimeInput": BidiGenerateContentRealtimeInput, "toolResponse": BidiGenerateContentToolResponse }
+```
+
+
+```
+{ "setup": BidiGenerateContentSetup, "clientContent": BidiGenerateContentClientContent, "realtimeInput": BidiGenerateContentRealtimeInput, "toolResponse": BidiGenerateContentToolResponse }
+```
+
+### Supported client messages
+
+See the supported client messages in the following table:
+
+```
+BidiGenerateContentSetup
+```
+
+
+```
+BidiGenerateContentClientContent
+```
+
+
+```
+BidiGenerateContentRealtimeInput
+```
+
+
+```
+BidiGenerateContentToolResponse
+```
+
+
+```
+ToolCallMessage
+```
+
+## Receive messages
+
+To receive messages from Gemini, listen for the WebSocket 'message' event, and then parse the result according to the definition of the supported server messages.
+See the following:
+
+```
+async with client.aio.live.connect(model='...', config=config) as session: await session.send(input='Hello world!', end_of_turn=True) async for message in session.receive(): print(message)
+```
+
+
+```
+async with client.aio.live.connect(model='...', config=config) as session: await session.send(input='Hello world!', end_of_turn=True) async for message in session.receive(): print(message)
+```
+
+Server messages may have a [usageMetadata](https://ai.google.dev/api/live#UsageMetadata) field but will otherwise include exactly one of the other fields from the [BidiGenerateContentServerMessage](https://ai.google.dev/api/live#BidiGenerateContentServerMessage) message. (The messageType union is not expressed in JSON so the field will appear at the top-level of the message.)
+
+```
+usageMetadata
+```
+
+
+```
+BidiGenerateContentServerMessage
+```
+
+
+```
+messageType
+```
+
+### ActivityEnd
+This type has no fields.
+Marks the end of user activity.
+
+### ActivityHandling
+The different ways of handling user activity.
+
+```
+ACTIVITY_HANDLING_UNSPECIFIED
+```
+
+
+```
+START_OF_ACTIVITY_INTERRUPTS
+```
+
+
+```
+START_OF_ACTIVITY_INTERRUPTS
+```
+
+
+```
+NO_INTERRUPTION
+```
+
+### ActivityStart
+This type has no fields.
+Marks the start of user activity.
+
+### AudioTranscriptionConfig
+This type has no fields.
+The audio transcription configuration.
+
+### AutomaticActivityDetection
+Configures automatic detection of activity.
+
+```
+disabled
+```
+
+bool
+
+```
+bool
+```
+
+Optional. If enabled (the default), detected voice and text input count as activity. If disabled, the client must send activity signals.
+
+```
+startOfSpeechSensitivity
+```
+
+[StartSensitivity](https://ai.google.dev/api/live#RealtimeInputConfig.AutomaticActivityDetection.StartSensitivity)
+
+```
+[StartSensitivity](https://ai.google.dev/api/live#RealtimeInputConfig.AutomaticActivityDetection.StartSensitivity)
+```
+
+Optional. Determines how likely speech is to be detected.
+
+```
+prefixPaddingMs
+```
+
+int32
+
+```
+int32
+```
+
+Optional. The required duration of detected speech before start-of-speech is committed. The lower this value, the more sensitive the start-of-speech detection is and shorter speech can be recognized. However, this also increases the probability of false positives.
+
+```
+endOfSpeechSensitivity
+```
+
+[EndSensitivity](https://ai.google.dev/api/live#RealtimeInputConfig.AutomaticActivityDetection.EndSensitivity)
+
+```
+[EndSensitivity](https://ai.google.dev/api/live#RealtimeInputConfig.AutomaticActivityDetection.EndSensitivity)
+```
+
+Optional. Determines how likely detected speech is ended.
+
+```
+silenceDurationMs
+```
+
+int32
+
+```
+int32
+```
+
+Optional. The required duration of detected non-speech (e.g. silence) before end-of-speech is committed. The larger this value, the longer speech gaps can be without interrupting the user's activity but this will increase the model's latency.
+
+### BidiGenerateContentClientContent
+Incremental update of the current conversation delivered from the client. All of the content here is unconditionally appended to the conversation history and used as part of the prompt to the model to generate content.
+A message here will interrupt any current model generation.
+
+```
+turns[]
+```
+
+[Content](https://ai.google.dev/api/live#Content)
+
+```
+[Content](https://ai.google.dev/api/live#Content)
+```
+
+Optional. The content appended to the current conversation with the model.
+For single-turn queries, this is a single instance. For multi-turn queries, this is a repeated field that contains conversation history and the latest request.
+
+```
+turnComplete
+```
+
+bool
+
+```
+bool
+```
+
+Optional. If true, indicates that the server content generation should start with the currently accumulated prompt. Otherwise, the server awaits additional messages before starting generation.
+
+### BidiGenerateContentRealtimeInput
+
+User input that is sent in real time.
+The different modalities (audio, video and text) are handled as concurrent streams. The ordering across these streams is not guaranteed.
+This is different from [BidiGenerateContentClientContent](https://ai.google.dev/api/live#BidiGenerateContentClientContent) in a few ways:
+
+```
+[BidiGenerateContentClientContent](https://ai.google.dev/api/live#BidiGenerateContentClientContent)
+```
+
+- Can be sent continuously without interruption to model generation.
+- If there is a need to mix data interleaved across the  [BidiGenerateContentClientContent](https://ai.google.dev/api/live#BidiGenerateContentClientContent) and the  [BidiGenerateContentRealtimeInput](https://ai.google.dev/api/live#BidiGenerateContentRealtimeInput), the server attempts to optimize for  best response, but there are no guarantees.
+- End of turn is not explicitly specified, but is rather derived from user  activity (for example, end of speech).
+- Even before the end of turn, the data is processed incrementally  to optimize for a fast start of the response from the model.
+
+```
+[BidiGenerateContentClientContent](https://ai.google.dev/api/live#BidiGenerateContentClientContent)
+```
+
+[BidiGenerateContentClientContent](https://ai.google.dev/api/live#BidiGenerateContentClientContent)
+
+```
+[BidiGenerateContentRealtimeInput](https://ai.google.dev/api/live#BidiGenerateContentRealtimeInput)
+```
+
+[BidiGenerateContentRealtimeInput](https://ai.google.dev/api/live#BidiGenerateContentRealtimeInput)
+
+```
+mediaChunks[]
+```
+
+[Blob](https://ai.google.dev/api/live#Blob)
+
+```
+[Blob](https://ai.google.dev/api/live#Blob)
+```
+
+Optional. Inlined bytes data for media input. Multiple mediaChunks are not supported, all but the first will be ignored.
+
+```
+mediaChunks
+```
+
+DEPRECATED: Use one of audio, video, or text instead.
+
+```
+audio
+```
+
+
+```
+video
+```
+
+
+```
+text
+```
+
+
+```
+audio
+```
+
+[Blob](https://ai.google.dev/api/live#Blob)
+
+```
+[Blob](https://ai.google.dev/api/live#Blob)
+```
+
+Optional. These form the realtime audio input stream.
+
+```
+video
+```
+
+[Blob](https://ai.google.dev/api/live#Blob)
+
+```
+[Blob](https://ai.google.dev/api/live#Blob)
+```
+
+Optional. These form the realtime video input stream.
+
+```
+activityStart
+```
+
+[ActivityStart](https://ai.google.dev/api/live#BidiGenerateContentRealtimeInput.ActivityStart)
+
+```
+[ActivityStart](https://ai.google.dev/api/live#BidiGenerateContentRealtimeInput.ActivityStart)
+```
+
+Optional. Marks the start of user activity. This can only be sent if automatic (i.e. server-side) activity detection is disabled.
+
+```
+activityEnd
+```
+
+[ActivityEnd](https://ai.google.dev/api/live#BidiGenerateContentRealtimeInput.ActivityEnd)
+
+```
+[ActivityEnd](https://ai.google.dev/api/live#BidiGenerateContentRealtimeInput.ActivityEnd)
+```
+
+Optional. Marks the end of user activity. This can only be sent if automatic (i.e. server-side) activity detection is disabled.
+
+```
+audioStreamEnd
+```
+
+bool
+
+```
+bool
+```
+
+Optional. Indicates that the audio stream has ended, e.g. because the microphone was turned off.
+This should only be sent when automatic activity detection is enabled (which is the default).
+The client can reopen the stream by sending an audio message.
+
+```
+text
+```
+
+string
+
+```
+string
+```
+
+Optional. These form the realtime text input stream.
+
+### BidiGenerateContentServerContent
+
+Incremental server update generated by the model in response to client messages.
+Content is generated as quickly as possible, and not in real time. Clients may choose to buffer and play it out in real time.
+
+```
+generationComplete
+```
+
+bool
+
+```
+bool
+```
+
+Output only. If true, indicates that the model is done generating.
+When model is interrupted while generating there will be no 'generation_complete' message in interrupted turn, it will go through 'interrupted > turn_complete'.
+When model assumes realtime playback there will be delay between generation_complete and turn_complete that is caused by model waiting for playback to finish.
+
+```
+turnComplete
+```
+
+bool
+
+```
+bool
+```
+
+Output only. If true, indicates that the model has completed its turn. Generation will only start in response to additional client messages.
+
+```
+interrupted
+```
+
+bool
+
+```
+bool
+```
+
+Output only. If true, indicates that a client message has interrupted current model generation. If the client is playing out the content in real time, this is a good signal to stop and empty the current playback queue.
+
+```
+groundingMetadata
+```
+
+[GroundingMetadata](https://ai.google.dev/api/live#GroundingMetadata)
+
+```
+[GroundingMetadata](https://ai.google.dev/api/live#GroundingMetadata)
+```
+
+Output only. Grounding metadata for the generated content.
+
+```
+inputTranscription
+```
+
+[BidiGenerateContentTranscription](https://ai.google.dev/api/live#BidiGenerateContentTranscription)
+
+```
+[BidiGenerateContentTranscription](https://ai.google.dev/api/live#BidiGenerateContentTranscription)
+```
+
+Output only. Input audio transcription. The transcription is sent independently of the other server messages and there is no guaranteed ordering.
+
+```
+outputTranscription
+```
+
+[BidiGenerateContentTranscription](https://ai.google.dev/api/live#BidiGenerateContentTranscription)
+
+```
+[BidiGenerateContentTranscription](https://ai.google.dev/api/live#BidiGenerateContentTranscription)
+```
+
+Output only. Output audio transcription. The transcription is sent independently of the other server messages and there is no guaranteed ordering, in particular not between serverContent and this outputTranscription.
+
+```
+serverContent
+```
+
+
+```
+outputTranscription
+```
+
+
+```
+urlContextMetadata
+```
+
+[UrlContextMetadata](https://ai.google.dev/api/live#UrlContextMetadata)
+
+```
+[UrlContextMetadata](https://ai.google.dev/api/live#UrlContextMetadata)
+```
+
+
+```
+modelTurn
+```
+
+[Content](https://ai.google.dev/api/live#Content)
+
+```
+[Content](https://ai.google.dev/api/live#Content)
+```
+
+Output only. The content that the model has generated as part of the current conversation with the user.
+
+### BidiGenerateContentServerMessage
+
+Response message for the BidiGenerateContent call.
+
+```
+usageMetadata
+```
+
+[UsageMetadata](https://ai.google.dev/api/live#UsageMetadata)
+
+```
+[UsageMetadata](https://ai.google.dev/api/live#UsageMetadata)
+```
+
+Output only. Usage metadata about the response(s).
+
+```
+messageType
+```
+
+
+```
+messageType
+```
+
+
+```
+setupComplete
+```
+
+[BidiGenerateContentSetupComplete](https://ai.google.dev/api/live#BidiGenerateContentSetupComplete)
+
+```
+[BidiGenerateContentSetupComplete](https://ai.google.dev/api/live#BidiGenerateContentSetupComplete)
+```
+
+Output only. Sent in response to a BidiGenerateContentSetup message from the client when setup is complete.
+
+```
+BidiGenerateContentSetup
+```
+
+
+```
+serverContent
+```
+
+[BidiGenerateContentServerContent](https://ai.google.dev/api/live#BidiGenerateContentServerContent)
+
+```
+[BidiGenerateContentServerContent](https://ai.google.dev/api/live#BidiGenerateContentServerContent)
+```
+
+Output only. Content generated by the model in response to client messages.
+
+```
+toolCall
+```
+
+[BidiGenerateContentToolCall](https://ai.google.dev/api/live#BidiGenerateContentToolCall)
+
+```
+[BidiGenerateContentToolCall](https://ai.google.dev/api/live#BidiGenerateContentToolCall)
+```
+
+Output only. Request for the client to execute the functionCalls and return the responses with the matching ids.
+
+```
+functionCalls
+```
+
+
+```
+id
+```
+
+
+```
+toolCallCancellation
+```
+
+[BidiGenerateContentToolCallCancellation](https://ai.google.dev/api/live#BidiGenerateContentToolCallCancellation)
+
+```
+[BidiGenerateContentToolCallCancellation](https://ai.google.dev/api/live#BidiGenerateContentToolCallCancellation)
+```
+
+Output only. Notification for the client that a previously issued ToolCallMessage with the specified ids should be cancelled.
+
+```
+ToolCallMessage
+```
+
+
+```
+id
+```
+
+
+```
+goAway
+```
+
+[GoAway](https://ai.google.dev/api/live#GoAway)
+
+```
+[GoAway](https://ai.google.dev/api/live#GoAway)
+```
+
+Output only. A notice that the server will soon disconnect.
+
+```
+sessionResumptionUpdate
+```
+
+[SessionResumptionUpdate](https://ai.google.dev/api/live#SessionResumptionUpdate)
+
+```
+[SessionResumptionUpdate](https://ai.google.dev/api/live#SessionResumptionUpdate)
+```
+
+Output only. Update of the session resumption state.
+
+### BidiGenerateContentSetup
+Message to be sent in the first (and only in the first) BidiGenerateContentClientMessage. Contains configuration that will apply for the duration of the streaming RPC.
+
+```
+BidiGenerateContentClientMessage
+```
+
+Clients should wait for a BidiGenerateContentSetupComplete message before sending any additional messages.
+
+```
+BidiGenerateContentSetupComplete
+```
+
+
+```
+model
+```
+
+string
+
+```
+string
+```
+
+Required. The model's resource name. This serves as an ID for the Model to use.
+Format: models/{model}
+
+```
+models/{model}
+```
+
+
+```
+generationConfig
+```
+
+[GenerationConfig](https://ai.google.dev/api/live#GenerationConfig)
+
+```
+[GenerationConfig](https://ai.google.dev/api/live#GenerationConfig)
+```
+
+Optional. Generation config.
+The following fields are not supported:
+- responseLogprobs
+- responseMimeType
+- logprobs
+- responseSchema
+- stopSequence
+- routingConfig
+- audioTimestamp
+
+```
+responseLogprobs
+```
+
+
+```
+responseMimeType
+```
+
+
+```
+logprobs
+```
+
+
+```
+responseSchema
+```
+
+
+```
+stopSequence
+```
+
+
+```
+routingConfig
+```
+
+
+```
+audioTimestamp
+```
+
+
+```
+systemInstruction
+```
+
+[Content](https://ai.google.dev/api/live#Content)
+
+```
+[Content](https://ai.google.dev/api/live#Content)
+```
+
+Optional. The user provided system instructions for the model.
+Note: Only text should be used in parts and content in each part will be in a separate paragraph.
+
+```
+tools[]
+```
+
+[Tool](https://ai.google.dev/api/live#Tool)
+
+```
+[Tool](https://ai.google.dev/api/live#Tool)
+```
+
+Optional. A list of Tools the model may use to generate the next response.
+
+```
+Tools
+```
+
+A Tool is a piece of code that enables the system to interact with external systems to perform an action, or set of actions, outside of knowledge and scope of the model.
+
+```
+Tool
+```
+
+
+```
+realtimeInputConfig
+```
+
+[RealtimeInputConfig](https://ai.google.dev/api/live#RealtimeInputConfig)
+
+```
+[RealtimeInputConfig](https://ai.google.dev/api/live#RealtimeInputConfig)
+```
+
+Optional. Configures the handling of realtime input.
+
+```
+sessionResumption
+```
+
+[SessionResumptionConfig](https://ai.google.dev/api/live#SessionResumptionConfig)
+
+```
+[SessionResumptionConfig](https://ai.google.dev/api/live#SessionResumptionConfig)
+```
+
+Optional. Configures session resumption mechanism.
+If included, the server will send SessionResumptionUpdate messages.
+
+```
+SessionResumptionUpdate
+```
+
+
+```
+contextWindowCompression
+```
+
+[ContextWindowCompressionConfig](https://ai.google.dev/api/live#ContextWindowCompressionConfig)
+
+```
+[ContextWindowCompressionConfig](https://ai.google.dev/api/live#ContextWindowCompressionConfig)
+```
+
+Optional. Configures a context window compression mechanism.
+If included, the server will automatically reduce the size of the context when it exceeds the configured length.
+
+```
+inputAudioTranscription
+```
+
+[AudioTranscriptionConfig](https://ai.google.dev/api/live#AudioTranscriptionConfig)
+
+```
+[AudioTranscriptionConfig](https://ai.google.dev/api/live#AudioTranscriptionConfig)
+```
+
+Optional. If set, enables transcription of voice input. The transcription aligns with the input audio language, if configured.
+
+```
+outputAudioTranscription
+```
+
+[AudioTranscriptionConfig](https://ai.google.dev/api/live#AudioTranscriptionConfig)
+
+```
+[AudioTranscriptionConfig](https://ai.google.dev/api/live#AudioTranscriptionConfig)
+```
+
+Optional. If set, enables transcription of the model's audio output. The transcription aligns with the language code specified for the output audio, if configured.
+
+```
+proactivity
+```
+
+[ProactivityConfig](https://ai.google.dev/api/live#ProactivityConfig)
+
+```
+[ProactivityConfig](https://ai.google.dev/api/live#ProactivityConfig)
+```
+
+Optional. Configures the proactivity of the model.
+This allows the model to respond proactively to the input and to ignore irrelevant input.
+
+### BidiGenerateContentSetupComplete
+This type has no fields.
+Sent in response to a BidiGenerateContentSetup message from the client.
+
+```
+BidiGenerateContentSetup
+```
+
+### BidiGenerateContentToolCall
+Request for the client to execute the functionCalls and return the responses with the matching ids.
+
+```
+functionCalls
+```
+
+
+```
+id
+```
+
+
+```
+functionCalls[]
+```
+
+[FunctionCall](https://ai.google.dev/api/live#FunctionCall)
+
+```
+[FunctionCall](https://ai.google.dev/api/live#FunctionCall)
+```
+
+Output only. The function call to be executed.
+
+### BidiGenerateContentToolCallCancellation
+Notification for the client that a previously issued ToolCallMessage with the specified ids should not have been executed and should be cancelled. If there were side-effects to those tool calls, clients may attempt to undo the tool calls. This message occurs only in cases where the clients interrupt server turns.
+
+```
+ToolCallMessage
+```
+
+
+```
+id
+```
+
+
+```
+ids[]
+```
+
+string
+
+```
+string
+```
+
+Output only. The ids of the tool calls to be cancelled.
+
+### BidiGenerateContentToolResponse
+Client generated response to a ToolCall received from the server. Individual FunctionResponse objects are matched to the respective FunctionCall objects by the id field.
+
+```
+ToolCall
+```
+
+
+```
+FunctionResponse
+```
+
+
+```
+FunctionCall
+```
+
+
+```
+id
+```
+
+Note that in the unary and server-streaming GenerateContent APIs function calling happens by exchanging the Content parts, while in the bidi GenerateContent APIs function calling happens over these dedicated set of messages.
+
+```
+Content
+```
+
+
+```
+functionResponses[]
+```
+
+[FunctionResponse](https://ai.google.dev/api/live#FunctionResponse)
+
+```
+[FunctionResponse](https://ai.google.dev/api/live#FunctionResponse)
+```
+
+Optional. The response to the function calls.
+
+### BidiGenerateContentTranscription
+Transcription of audio (input or output).
+
+```
+text
+```
+
+string
+
+```
+string
+```
+
+Transcription text.
+
+### ContextWindowCompressionConfig
+Enables context window compression — a mechanism for managing the model's context window so that it does not exceed a given length.
+
+```
+compressionMechanism
+```
+
+
+```
+compressionMechanism
+```
+
+
+```
+slidingWindow
+```
+
+[SlidingWindow](https://ai.google.dev/api/live#ContextWindowCompressionConfig.SlidingWindow)
+
+```
+[SlidingWindow](https://ai.google.dev/api/live#ContextWindowCompressionConfig.SlidingWindow)
+```
+
+A sliding-window mechanism.
+
+```
+triggerTokens
+```
+
+int64
+
+```
+int64
+```
+
+The number of tokens (before running a turn) required to trigger a context window compression.
+This can be used to balance quality against latency as shorter context windows may result in faster model responses. However, any compression operation will cause a temporary latency increase, so they should not be triggered frequently.
+If not set, the default is 80% of the model's context window limit. This leaves 20% for the next user request/model response.
+
+### EndSensitivity
+Determines how end of speech is detected.
+
+```
+END_SENSITIVITY_UNSPECIFIED
+```
+
+
+```
+END_SENSITIVITY_HIGH
+```
+
+
+```
+END_SENSITIVITY_LOW
+```
+
+### GoAway
+A notice that the server will soon disconnect.
+
+```
+timeLeft
+```
+
+[Duration](https://protobuf.dev/reference/protobuf/google.protobuf/#duration)
+
+```
+[Duration](https://protobuf.dev/reference/protobuf/google.protobuf/#duration)
+```
+
+The remaining time before the connection will be terminated as ABORTED.
+This duration will never be less than a model-specific minimum, which will be specified together with the rate limits for the model.
+
+### ProactivityConfig
+Config for proactivity features.
+
+```
+proactiveAudio
+```
+
+bool
+
+```
+bool
+```
+
+Optional. If enabled, the model can reject responding to the last prompt. For example, this allows the model to ignore out of context speech or to stay silent if the user did not make a request, yet.
+
+### RealtimeInputConfig
+Configures the realtime input behavior in BidiGenerateContent.
+
+```
+BidiGenerateContent
+```
+
+
+```
+automaticActivityDetection
+```
+
+[AutomaticActivityDetection](https://ai.google.dev/api/live#RealtimeInputConfig.AutomaticActivityDetection)
+
+```
+[AutomaticActivityDetection](https://ai.google.dev/api/live#RealtimeInputConfig.AutomaticActivityDetection)
+```
+
+Optional. If not set, automatic activity detection is enabled by default. If automatic voice detection is disabled, the client must send activity signals.
+
+```
+activityHandling
+```
+
+[ActivityHandling](https://ai.google.dev/api/live#RealtimeInputConfig.ActivityHandling)
+
+```
+[ActivityHandling](https://ai.google.dev/api/live#RealtimeInputConfig.ActivityHandling)
+```
+
+Optional. Defines what effect activity has.
+
+```
+turnCoverage
+```
+
+[TurnCoverage](https://ai.google.dev/api/live#RealtimeInputConfig.TurnCoverage)
+
+```
+[TurnCoverage](https://ai.google.dev/api/live#RealtimeInputConfig.TurnCoverage)
+```
+
+Optional. Defines which input is included in the user's turn.
+
+### SessionResumptionConfig
+Session resumption configuration.
+This message is included in the session configuration as BidiGenerateContentSetup.sessionResumption. If configured, the server will send SessionResumptionUpdate messages.
+
+```
+BidiGenerateContentSetup.sessionResumption
+```
+
+
+```
+SessionResumptionUpdate
+```
+
+
+```
+handle
+```
+
+string
+
+```
+string
+```
+
+The handle of a previous session. If not present then a new session is created.
+Session handles come from SessionResumptionUpdate.token values in previous connections.
+
+```
+SessionResumptionUpdate.token
+```
+
+### SessionResumptionUpdate
+Update of the session resumption state.
+Only sent if BidiGenerateContentSetup.sessionResumption was set.
+
+```
+BidiGenerateContentSetup.sessionResumption
+```
+
+
+```
+newHandle
+```
+
+string
+
+```
+string
+```
+
+New handle that represents a state that can be resumed. Empty if resumable=false.
+
+```
+resumable
+```
+
+
+```
+resumable
+```
+
+bool
+
+```
+bool
+```
+
+True if the current session can be resumed at this point.
+Resumption is not possible at some points in the session. For example, when the model is executing function calls or generating. Resuming the session (using a previous session token) in such a state will result in some data loss. In these cases, newHandle will be empty and resumable will be false.
+
+```
+newHandle
+```
+
+
+```
+resumable
+```
+
+### SlidingWindow
+The SlidingWindow method operates by discarding content at the beginning of the context window. The resulting context will always begin at the start of a USER role turn. System instructions and any BidiGenerateContentSetup.prefixTurns will always remain at the beginning of the result.
+
+```
+BidiGenerateContentSetup.prefixTurns
+```
+
+
+```
+targetTokens
+```
+
+int64
+
+```
+int64
+```
+
+The target number of tokens to keep. The default value is trigger_tokens/2.
+Discarding parts of the context window causes a temporary latency increase so this value should be calibrated to avoid frequent compression operations.
+
+### StartSensitivity
+Determines how start of speech is detected.
+
+```
+START_SENSITIVITY_UNSPECIFIED
+```
+
+
+```
+START_SENSITIVITY_HIGH
+```
+
+
+```
+START_SENSITIVITY_LOW
+```
+
+### TurnCoverage
+Options about which input is included in the user's turn.
+
+```
+TURN_COVERAGE_UNSPECIFIED
+```
+
+
+```
+TURN_INCLUDES_ONLY_ACTIVITY
+```
+
+
+```
+TURN_INCLUDES_ONLY_ACTIVITY
+```
+
+
+```
+TURN_INCLUDES_ALL_INPUT
+```
+
+### UrlContextMetadata
+Metadata related to url context retrieval tool.
+
+```
+urlMetadata[]
+```
+
+[UrlMetadata](https://ai.google.dev/api/live#UrlMetadata)
+
+```
+[UrlMetadata](https://ai.google.dev/api/live#UrlMetadata)
+```
+
+List of url context.
+
+### UsageMetadata
+
+Usage metadata about response(s).
+
+```
+promptTokenCount
+```
+
+int32
+
+```
+int32
+```
+
+Output only. Number of tokens in the prompt. When cachedContent is set, this is still the total effective prompt size meaning this includes the number of tokens in the cached content.
+
+```
+cachedContent
+```
+
+
+```
+cachedContentTokenCount
+```
+
+int32
+
+```
+int32
+```
+
+Number of tokens in the cached part of the prompt (the cached content)
+
+```
+responseTokenCount
+```
+
+int32
+
+```
+int32
+```
+
+Output only. Total number of tokens across all the generated response candidates.
+
+```
+toolUsePromptTokenCount
+```
+
+int32
+
+```
+int32
+```
+
+Output only. Number of tokens present in tool-use prompt(s).
+
+```
+thoughtsTokenCount
+```
+
+int32
+
+```
+int32
+```
+
+Output only. Number of tokens of thoughts for thinking models.
+
+```
+totalTokenCount
+```
+
+int32
+
+```
+int32
+```
+
+Output only. Total token count for the generation request (prompt + response candidates).
+
+```
+promptTokensDetails[]
+```
+
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+
+```
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+```
+
+Output only. List of modalities that were processed in the request input.
+
+```
+cacheTokensDetails[]
+```
+
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+
+```
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+```
+
+Output only. List of modalities of the cached content in the request input.
+
+```
+responseTokensDetails[]
+```
+
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+
+```
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+```
+
+Output only. List of modalities that were returned in the response.
+
+```
+toolUsePromptTokensDetails[]
+```
+
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+
+```
+[ModalityTokenCount](https://ai.google.dev/api/live#ModalityTokenCount)
+```
+
+Output only. List of modalities that were processed for tool-use request inputs.
+
+## Ephemeral authentication tokens
+
+Ephemeral authentication tokens can be obtained by calling AuthTokenService.CreateToken and then used with GenerativeService.BidiGenerateContentConstrained, either by passing the token in an access_token query parameter, or in an HTTP Authorization header with "Token" prefixed to it.
+
+```
+AuthTokenService.CreateToken
+```
+
+
+```
+GenerativeService.BidiGenerateContentConstrained
+```
+
+
+```
+access_token
+```
+
+
+```
+Authorization
+```
+
+
+```
+Token
+```
+
+### CreateAuthTokenRequest
+Create an ephemeral authentication token.
+
+```
+authToken
+```
+
+[AuthToken](https://ai.google.dev/api/live#AuthToken)
+
+```
+[AuthToken](https://ai.google.dev/api/live#AuthToken)
+```
+
+Required. The token to create.
+
+### AuthToken
+A request to create an ephemeral authentication token.
+
+```
+name
+```
+
+string
+
+```
+string
+```
+
+Output only. Identifier. The token itself.
+
+```
+expireTime
+```
+
+[Timestamp](https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp)
+
+```
+[Timestamp](https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp)
+```
+
+Optional. Input only. Immutable. An optional time after which, when using the resulting token, messages in BidiGenerateContent sessions will be rejected. (Gemini may preemptively close the session after this time.)
+If not set then this defaults to 30 minutes in the future. If set, this value must be less than 20 hours in the future.
+
+```
+newSessionExpireTime
+```
+
+[Timestamp](https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp)
+
+```
+[Timestamp](https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp)
+```
+
+Optional. Input only. Immutable. The time after which new Live API sessions using the token resulting from this request will be rejected.
+If not set this defaults to 60 seconds in the future. If set, this value must be less than 20 hours in the future.
+
+```
+fieldMask
+```
+
+[FieldMask](https://protobuf.dev/reference/protobuf/google.protobuf/#field-mask)
+
+```
+[FieldMask](https://protobuf.dev/reference/protobuf/google.protobuf/#field-mask)
+```
+
+Optional. Input only. Immutable. If field_mask is empty, and bidiGenerateContentSetup is not present, then the effective BidiGenerateContentSetup message is taken from the Live API connection.
+
+```
+bidiGenerateContentSetup
+```
+
+
+```
+BidiGenerateContentSetup
+```
+
+If field_mask is empty, and bidiGenerateContentSetup is present, then the effective BidiGenerateContentSetup message is taken entirely from bidiGenerateContentSetup in this request. The setup message from the Live API connection is ignored.
+
+```
+bidiGenerateContentSetup
+```
+
+
+```
+BidiGenerateContentSetup
+```
+
+
+```
+bidiGenerateContentSetup
+```
+
+If field_mask is not empty, then the corresponding fields from bidiGenerateContentSetup will overwrite the fields from the setup message in the Live API connection.
+
+```
+bidiGenerateContentSetup
+```
+
+
+```
+config
+```
+
+
+```
+config
+```
+
+
+```
+bidiGenerateContentSetup
+```
+
+[BidiGenerateContentSetup](https://ai.google.dev/api/live#BidiGenerateContentSetup)
+
+```
+[BidiGenerateContentSetup](https://ai.google.dev/api/live#BidiGenerateContentSetup)
+```
+
+Optional. Input only. Immutable. Configuration specific to BidiGenerateContent.
+
+```
+BidiGenerateContent
+```
+
+
+```
+uses
+```
+
+int32
+
+```
+int32
+```
+
+Optional. Input only. Immutable. The number of times the token can be used. If this value is zero then no limit is applied. Resuming a Live API session does not count as a use. If unspecified, the default is 1.
+
+## More information on common types
+
+For more information on the commonly-used API resource types Blob, Content, FunctionCall, FunctionResponse, GenerationConfig, GroundingMetadata, ModalityTokenCount, and Tool, see [Generating content](https://ai.google.dev/api/generate-content).
+
+```
+Blob
+```
+
+
+```
+Content
+```
+
+
+```
+FunctionCall
+```
+
+
+```
+FunctionResponse
+```
+
+
+```
+GenerationConfig
+```
+
+
+```
+GroundingMetadata
+```
+
+
+```
+ModalityTokenCount
+```
+
+
+```
+Tool
+```
+
+Except as otherwise noted, the content of this page is licensed under the [Creative Commons Attribution 4.0 License](https://creativecommons.org/licenses/by/4.0/), and code samples are licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0). For details, see the [Google Developers Site Policies](https://developers.google.com/site-policies). Java is a registered trademark of Oracle and/or its affiliates.
+Last updated 2025-05-19 UTC.
+- 
+
+
+        [Terms](https://policies.google.com/terms)
+
+
+- 
+
+
+        [Privacy](https://policies.google.com/privacy)
+
+
+- 
+
+
+        [Manage cookies](https://ai.google.dev/api/live)
+
+
+[Terms](https://policies.google.com/terms)
+[Privacy](https://policies.google.com/privacy)
+[Manage cookies](https://ai.google.dev/api/live)
+- 
+      [English](https://ai.google.dev/api/live)
+
+- 
+      [Deutsch](https://ai.google.dev/api/live)
+
+- 
+      [Español – América Latina](https://ai.google.dev/api/live)
+
+- 
+      [Français](https://ai.google.dev/api/live)
+
+- 
+      [Indonesia](https://ai.google.dev/api/live)
+
+- 
+      [Italiano](https://ai.google.dev/api/live)
+
+- 
+      [Polski](https://ai.google.dev/api/live)
+
+- 
+      [Português – Brasil](https://ai.google.dev/api/live)
+
+- 
+      [Shqip](https://ai.google.dev/api/live)
+
+- 
+      [Tiếng Việt](https://ai.google.dev/api/live)
+
+- 
+      [Türkçe](https://ai.google.dev/api/live)
+
+- 
+      [Русский](https://ai.google.dev/api/live)
+
+- 
+      [עברית](https://ai.google.dev/api/live)
+
+- 
+      [العربيّة](https://ai.google.dev/api/live)
+
+- 
+      [فارسی](https://ai.google.dev/api/live)
+
+- 
+      [हिंदी](https://ai.google.dev/api/live)
+
+- 
+      [বাংলা](https://ai.google.dev/api/live)
+
+- 
+      [ภาษาไทย](https://ai.google.dev/api/live)
+
+- 
+      [中文 – 简体](https://ai.google.dev/api/live)
+
+- 
+      [中文 – 繁體](https://ai.google.dev/api/live)
+
+- 
+      [日本語](https://ai.google.dev/api/live)
+
+- 
+      [한국어](https://ai.google.dev/api/live)
+
+[English](https://ai.google.dev/api/live)
+[Deutsch](https://ai.google.dev/api/live)
+[Español – América Latina](https://ai.google.dev/api/live)
+[Français](https://ai.google.dev/api/live)
+[Indonesia](https://ai.google.dev/api/live)
+[Italiano](https://ai.google.dev/api/live)
+[Polski](https://ai.google.dev/api/live)
+[Português – Brasil](https://ai.google.dev/api/live)
+[Shqip](https://ai.google.dev/api/live)
+[Tiếng Việt](https://ai.google.dev/api/live)
+[Türkçe](https://ai.google.dev/api/live)
+[Русский](https://ai.google.dev/api/live)
+[עברית](https://ai.google.dev/api/live)
+[العربيّة](https://ai.google.dev/api/live)
+[فارسی](https://ai.google.dev/api/live)
+[हिंदी](https://ai.google.dev/api/live)
+[বাংলা](https://ai.google.dev/api/live)
+[ภาษาไทย](https://ai.google.dev/api/live)
+[中文 – 简体](https://ai.google.dev/api/live)
+[中文 – 繁體](https://ai.google.dev/api/live)
+[日本語](https://ai.google.dev/api/live)
+[한국어](https://ai.google.dev/api/live)

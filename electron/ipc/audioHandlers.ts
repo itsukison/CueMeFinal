@@ -113,7 +113,7 @@ export function registerAudioHandlers(appState: AppState): void {
       } else {
         result = await appState.processingHelper.getLLMHelper().chatWithGemini(questionText);
       }
-      
+
       // Handle different return types
       const response = typeof result === 'string' ? result : result.response;
 
@@ -223,20 +223,20 @@ export function registerAudioHandlers(appState: AppState): void {
   ipcMain.handle("dual-audio-start", async () => {
     Logger.info(`[IPC audioHandlers] 🎙️  Received dual-audio-start request (AUTOMATIC dual capture)`);
     diagLogger.info('IPC: dual-audio-start called');
-    
+
     try {
       diagLogger.info('🔍 Checking dualAudioManager', {
         exists: !!appState.dualAudioManager,
         type: typeof appState.dualAudioManager
       });
-      
+
       if (!appState.dualAudioManager) {
         const error = 'Dual audio manager not initialized. Check GEMINI_API_KEY.';
         Logger.error('[IPC audioHandlers] ❌', error);
         diagLogger.error('Dual audio manager not initialized', new Error(error));
         return { success: false, error };
       }
-      
+
       diagLogger.info('✅ dualAudioManager exists, calling startCapture()...');
       // No sourceId needed - both sources start automatically
       await appState.dualAudioManager.startCapture();
@@ -270,14 +270,14 @@ export function registerAudioHandlers(appState: AppState): void {
       if (!appState.dualAudioManager) {
         return { success: false, error: 'Dual audio manager not initialized' };
       }
-      
+
       // Convert Float32Array to Buffer
       const buffer = Buffer.alloc(audioData.length * 2);
       for (let i = 0; i < audioData.length; i++) {
         const sample = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
         buffer.writeInt16LE(sample, i * 2);
       }
-      
+
       await appState.dualAudioManager.processMicrophoneAudio(buffer);
       return { success: true };
     } catch (error: any) {

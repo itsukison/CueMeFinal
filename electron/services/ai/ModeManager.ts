@@ -32,6 +32,9 @@ export class ModeManager {
 - examples_max: {examples_max}個
 - code_ok: {code_ok}
 
+## 🎌 敬語レベル（formality）の適用
+{formality_instructions}
+
 ## 📐 構造ルール
 {structure_macros}
 
@@ -73,6 +76,28 @@ export class ModeManager {
     this.structureMacros.set('followup', 'フォローアップの提案。')
   }
 
+  private getFormalityInstructions(formality: string): string {
+    const instructions: Record<string, string> = {
+      'keigo': `【敬語（けいご）で出力してください】
+- 尊敬語・謙譲語・丁寧語を適切に使い分けること
+- 「〜させていただきます」「〜いたします」「〜でございます」などの謙譲表現を使用
+- 「〜いただけますでしょうか」「〜くださいますよう」などの丁寧なお願い表現
+- ビジネスシーンや面接で即座に使える、洗練された表現
+- 「〜と存じます」「〜かと存じます」などのフォーマルな表現
+- 例: 「私は〇〇と申します」「〜に携わらせていただきました」「〜に取り組んでまいりました」`,
+
+      'desu_masu': `【ですます調で出力してください】
+- 文末は「〜です」「〜ます」「〜でした」「〜ました」で統一
+- カジュアルすぎず、堅すぎない丁寧な表現
+- 例: 「私は〜です」「〜しています」「〜と考えています」`,
+
+      'casual': `【カジュアルな表現で出力してください】
+- 「〜だよ」「〜だね」「〜かな」などのフレンドリーな語尾
+- 自然で親しみやすい表現`
+    }
+    return instructions[formality] || instructions['desu_masu']
+  }
+
   private loadModes(): void {
     // モード設定を直接定義（ファイル読み込みを避ける）
     const modesData: ModeConfig[] = [
@@ -80,7 +105,7 @@ export class ModeManager {
         key: "interview",
         displayName: "面接モード（候補者）",
         tone: "assertive",
-        formality: "desu_masu",
+        formality: "keigo",  // Changed from desu_masu to keigo for interview-ready responses
         length: "short",
         sentence_max: 26,
         bullets_max: 3,
@@ -92,14 +117,18 @@ export class ModeManager {
         rules_plus: [
           "60〜120秒で話せる量に圧縮",
           "結論→理由→具体例の順で構成",
-          "自信を持った言い切りの表現を使う",
-          "「私の強みは〜です」のような一人称形式"
+          "自信を持った言い切りの表現を使う（「〜いたしました」「〜でございます」）",
+          "「私は〜と申します」「〜に取り組んでまいりました」などの面接に適した敬語表現",
+          "即座に読み上げられる、完成度の高い文章",
+          "自己PRや志望動機として直接使える形式"
         ],
         rules_minus: [
           "「多分」「かもしれない」「だと思います」など曖昧表現",
           "「御社」の過剰使用（1回まで）",
           "長すぎる前置き",
-          "謙遜しすぎる表現"
+          "謙遜しすぎる表現",
+          "カジュアルな語尾（「〜だ」「〜である」「〜なんです」）",
+          "途中で終わる文章や未完成の表現"
         ]
       },
       {
@@ -278,6 +307,9 @@ export class ModeManager {
     const rulesPlusText = mode.rules_plus.map(rule => `- ${rule}`).join('\n')
     const rulesMinusText = mode.rules_minus.map(rule => `- ${rule}`).join('\n')
 
+    // 敬語レベルの指示を取得
+    const formalityInstructions = this.getFormalityInstructions(mode.formality)
+
     // テンプレートの置換
     return this.systemPromptTemplate
       .replace(/\{tone\}/g, mode.tone)
@@ -289,6 +321,7 @@ export class ModeManager {
       .replace(/\{examples_max\}/g, mode.examples_max.toString())
       .replace(/\{code_ok\}/g, mode.code_ok.toString())
       .replace(/\{rationale\}/g, mode.rationale)
+      .replace(/\{formality_instructions\}/g, formalityInstructions)
       .replace(/\{structure_macros\}/g, structureMacrosText)
       .replace(/\{rules_plus\}/g, rulesPlusText)
       .replace(/\{rules_minus\}/g, rulesMinusText)

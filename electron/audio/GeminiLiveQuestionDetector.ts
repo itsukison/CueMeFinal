@@ -44,7 +44,7 @@ export class GeminiLiveQuestionDetector {
     });
 
     this.config = {
-      model: 'gemini-live-2.5-flash-preview', // Official Live API model
+      model: 'gemini-2.5-flash-native-audio-preview-12-2025', // Native audio model (requires AUDIO response modality)
       language: 'ja-JP',
       ...config
     };
@@ -62,7 +62,7 @@ export class GeminiLiveQuestionDetector {
       // Initialize Gemini Live client
       this.genAI = new GoogleGenAI({ apiKey: this.config.apiKey });
       logger.info('✅ GoogleGenAI client created');
-      
+
       // Check if live API is available
       logger.info('🔍 Checking genAI.live availability', {
         hasLive: !!this.genAI.live,
@@ -87,7 +87,7 @@ export class GeminiLiveQuestionDetector {
    */
   public async startListening(): Promise<void> {
     logger.info('🎙️ startListening() called');
-    
+
     if (this.state.isListening) {
       logger.info('⚠️ Already listening, skipping');
       return;
@@ -131,7 +131,7 @@ export class GeminiLiveQuestionDetector {
    */
   private async createLiveSession(source: 'user' | 'opponent'): Promise<any> {
     logger.info(`🔧 createLiveSession(${source}) called`);
-    
+
     const systemPrompt = this.buildSystemPrompt(source);
     const responseQueue = source === 'user' ? this.userResponseQueue : this.opponentResponseQueue;
 
@@ -168,22 +168,22 @@ export class GeminiLiveQuestionDetector {
           },
           onmessage: (message: any) => {
             messageCount++;
-            
+
             // Log every message for diagnostics
             const messageStr = JSON.stringify(message);
             const preview = messageStr.length > 200 ? messageStr.substring(0, 200) + '...' : messageStr;
-            
+
             logger.info(`📨 Gemini message received (${source}) #${messageCount}`, {
-              messageType: message.serverContent?.modelTurn ? 'modelTurn' : 
-                          message.serverContent?.turnComplete ? 'turnComplete' :
-                          message.serverContent?.interrupted ? 'interrupted' : 'other',
+              messageType: message.serverContent?.modelTurn ? 'modelTurn' :
+                message.serverContent?.turnComplete ? 'turnComplete' :
+                  message.serverContent?.interrupted ? 'interrupted' : 'other',
               hasParts: !!message.serverContent?.modelTurn?.parts,
               partCount: message.serverContent?.modelTurn?.parts?.length || 0,
               turnComplete: !!message.serverContent?.turnComplete,
               interrupted: !!message.serverContent?.interrupted,
               preview: preview
             });
-            
+
             // Push to queue for async processing
             responseQueue.push(message);
             // Process immediately for real-time detection
@@ -209,17 +209,14 @@ export class GeminiLiveQuestionDetector {
           }
         },
         config: {
-          responseModalities: [Modality.TEXT], // Only need text output (questions)
+          responseModalities: [Modality.AUDIO], // Native audio model requires AUDIO output
+          outputAudioTranscription: {}, // Get text transcription of audio output
           systemInstruction: systemPrompt,
           generationConfig: {
-            temperature: 0.3, // Lower for more deterministic, less eager responses
-            maxOutputTokens: 100, // Sufficient for most questions
-            topP: 0.9, // Slightly lower for more focused responses
+            temperature: 0.0, // Zero for maximum determinism - MUST output exact JSON format
+            maxOutputTokens: 100, // Short output - just the JSON
+            topP: 0.8,
           }
-          // Note: VAD sensitivity is controlled by the prompt instructions
-          // The prompt explicitly tells Gemini to wait for complete questions
-          // and ignore short pauses mid-sentence
-          // No inputAudioTranscription - we only need questions, not transcriptions
         }
       });
 
@@ -239,25 +236,36 @@ export class GeminiLiveQuestionDetector {
    * Build system prompt for question detection
    * SIMPLIFIED for faster, more accurate responses
    */
+  /**
+   * Build system prompt for question detection
+   * OPTIMIZED: JSON-based prompting for reliable extraction
+   */
   private buildSystemPrompt(source: 'user' | 'opponent'): string {
-    const sourceLabel = source === 'user' ? 'ユーザー' : '相手';
+    return `You are a JSON-only Question Extractor.
 
-    return `${sourceLabel}の音声から質問のみを抽出。
+Your ONLY output must be this EXACT format:
+{"question": "detected question text"}
+OR
+{"question": null}
 
-ルール:
-- 質問のみ出力
-- 質問でない→何も返さない
-- フィラーワード除去
-- 質問完了まで待つ
+CRITICAL RULES:
+- Output ONLY the JSON object, nothing else
+- NEVER use markdown (no ** or other formatting)
+- NEVER write analysis, thoughts, or explanations
+- NEVER say "Awaiting", "Listening", "I'm", or any description
+- If no question detected, output: {"question": null}
+- The question must be in Japanese
 
-質問形式: 〜ですか、〜ますか、〜ください、どう/何/なぜ/誰/いつ/どこ
+FORBIDDEN outputs (NEVER do these):
+❌ "**Awaiting Question**"
+❌ "I'm listening..."
+❌ "Analysis: ..."
+❌ Any text that is not the JSON object
 
-例:
-入力: "ええそうですねではそれはどうやって実装するんんんですか？"
-出力: それはどうやって実装するんですか？
-
-入力: "今日はいい天気ですね"
-出力: `;
+CORRECT outputs:
+✓ {"question": "これまでに直面した困難は何ですか？"}
+✓ {"question": null}
+`;
   }
 
   // Track audio sending for logging
@@ -317,7 +325,7 @@ export class GeminiLiveQuestionDetector {
           isAllZeros: audioData.every(byte => byte === 0)
         });
       }
-      
+
       // Calculate audio level (RMS) to detect silence
       const samples = new Int16Array(audioData.buffer, audioData.byteOffset, audioData.length / 2);
       let sumSquares = 0;
@@ -326,7 +334,7 @@ export class GeminiLiveQuestionDetector {
       }
       const rms = Math.sqrt(sumSquares / samples.length);
       const normalizedRMS = rms / 32768; // Normalize to 0-1 range
-      
+
       // Log audio level for first chunk and every 50 chunks
       if (count === 1 || count % 50 === 0) {
         logger.info(`🎚️ Audio level (${source})`, {
@@ -337,7 +345,7 @@ export class GeminiLiveQuestionDetector {
           sampleCount: samples.length
         });
       }
-      
+
       // Warn if audio is suspiciously quiet
       if (count === 1 && normalizedRMS < 0.01) {
         logger.warn(`⚠️ First audio chunk is very quiet or silent (${source})`, {
@@ -359,7 +367,7 @@ export class GeminiLiveQuestionDetector {
         }
       });
       const sendDuration = Date.now() - sendStartTime;
-      
+
       if (count === 1) {
         logger.info(`⏱️ First audio send latency (${source}): ${sendDuration}ms`);
       }
@@ -380,11 +388,27 @@ export class GeminiLiveQuestionDetector {
    * Handle messages from Gemini Live API
    * Buffers text until turn is complete, then validates and emits
    */
-  private handleLiveMessage(message: any, source: 'user' | 'opponent'): void {
+  /**
+   * Process message from Live API
+   */
+  private async handleLiveMessage(message: any, source: 'user' | 'opponent'): Promise<void> {
     try {
       const buffer = source === 'user' ? 'userTurnBuffer' : 'opponentTurnBuffer';
 
-      // Accumulate text parts in buffer
+      // Handle audio output transcription (NEW - for native audio model)
+      if (message.serverContent?.outputTranscription) {
+        const transcribedText = message.serverContent.outputTranscription.text;
+        if (transcribedText) {
+          this[buffer] += transcribedText;
+          logger.info(`📝 Accumulating transcription in ${source} buffer`, {
+            addedLength: transcribedText.length,
+            addedText: transcribedText.substring(0, 100),
+            totalBufferLength: this[buffer].length
+          });
+        }
+      }
+
+      // Handle modelTurn text parts (fallback for direct text if available)
       if (message.serverContent?.modelTurn?.parts) {
         let addedText = '';
         for (const part of message.serverContent.modelTurn.parts) {
@@ -393,7 +417,7 @@ export class GeminiLiveQuestionDetector {
             addedText += part.text;
           }
         }
-        
+
         if (addedText) {
           logger.info(`📝 Accumulating text in ${source} buffer`, {
             addedLength: addedText.length,
@@ -408,53 +432,42 @@ export class GeminiLiveQuestionDetector {
         const completeText = this[buffer].trim();
 
         logger.info(`🏁 Turn complete for ${source}`, {
-          bufferLength: completeText.length,
-          text: completeText.substring(0, 200),
-          isEmpty: !completeText
+          rawText: completeText.substring(0, 200),
+          length: completeText.length
         });
 
         if (completeText) {
-          // Filter out meta-instructions that Gemini might output literally
-          if (this.isMetaInstruction(completeText)) {
-            logger.info(`❌ Rejected meta-instruction (${source}): "${completeText}"`);
-            this[buffer] = '';
-            return;
-          }
+          // Parse JSON output
+          const extractedQuestion = this.parseQuestionFromJson(completeText);
 
-          // Validate the COMPLETE question
-          const isQuestion = this.looksLikeQuestion(completeText);
-          
-          logger.info(`🔍 Question validation for ${source}`, {
-            text: completeText,
-            isQuestion: isQuestion,
-            length: completeText.length
-          });
-          
-          if (isQuestion) {
-            const question: DetectedQuestion = {
-              id: uuidv4(),
-              text: completeText,
-              timestamp: Date.now(),
-              confidence: 0.95, // High confidence from Gemini Live
-              source: source,
-              isRefined: true,
-              refinedText: completeText
-            };
+          if (extractedQuestion) {
+            // Validate the extracted question (final safety check)
+            const isQuestion = this.looksLikeQuestion(extractedQuestion);
 
-            logger.info(`❓ Question detected (${source}): "${completeText}"`);
+            if (isQuestion) {
+              const question: DetectedQuestion = {
+                id: uuidv4(),
+                text: extractedQuestion,
+                timestamp: Date.now(),
+                confidence: 0.98, // High confidence if JSON parsed
+                source: source,
+                isRefined: true,
+                refinedText: extractedQuestion
+              };
 
-            this.state.questionBuffer.push(question);
-            this.state.lastActivityTime = Date.now();
+              logger.info(`❓ Question detected (${source}): "${extractedQuestion}"`);
 
-            this.emitQuestionDetected(question);
-            this.emitStateChanged();
+              this.state.questionBuffer.push(question);
+              this.state.lastActivityTime = Date.now();
+
+              this.emitQuestionDetected(question);
+              this.emitStateChanged();
+            } else {
+              logger.info(`❌ Question validation failed for: "${extractedQuestion}"`);
+            }
           } else {
-            logger.info(`❌ Text rejected - not a question (${source})`, {
-              text: completeText
-            });
+            logger.info(`ℹ️ No valid question in JSON response`);
           }
-        } else {
-          logger.warn(`⚠️ Turn complete but buffer is empty (${source})`);
         }
 
         // Clear buffer for next turn
@@ -463,11 +476,8 @@ export class GeminiLiveQuestionDetector {
 
       // Check for interruption (VAD detected user speaking)
       if (message.serverContent?.interrupted) {
-        logger.info(`⚡ Generation interrupted for ${source} (VAD) - clearing buffer`, {
-          bufferLength: this[buffer].length,
-          bufferContent: this[buffer].substring(0, 100)
-        });
-        this[buffer] = ''; // Clear buffer on interruption
+        logger.info(`⚡ Generation interrupted for ${source} (VAD) - clearing buffer`);
+        this[buffer] = '';
       }
 
     } catch (error) {
@@ -476,86 +486,61 @@ export class GeminiLiveQuestionDetector {
   }
 
   /**
-   * Check if text is a meta-instruction that Gemini output literally
+   * Parse question from JSON output
+   * Tries to parse strict JSON, then falls back to regex extraction
    */
-  private isMetaInstruction(text: string): boolean {
-    const metaPatterns = [
-      /何も出力しない/,
-      /出力なし/,
-      /^沈黙\)?$/,  // "沈黙" or "沈黙)"
-      /^\(沈黙\)?$/,  // "(沈黙" or "(沈黙)"
-      /応答しない/,
-      /質問ではない/,
-      /何も返さない/,
-      /^\(.*\)$/,  // Text in parentheses like "(何も出力しない)"
-    ];
+  private parseQuestionFromJson(text: string): string | null {
+    // 1. Try cleaning and strict parsing
+    try {
+      // Remove code blocks if present
+      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const data = JSON.parse(cleanText);
 
-    return metaPatterns.some(pattern => pattern.test(text));
+      if (data && typeof data.question === 'string' && data.question.trim().length > 0) {
+        logger.info(`✅ JSON Parsed successfully: "${data.question}"`);
+        return data.question.trim();
+      }
+      return null; // Explicit null or empty question
+    } catch (e) {
+      // JSON parse failed, fall back to regex
+    }
+
+    // 2. Fallback: Regex extraction for {"question": "..."}
+    const jsonMatch = text.match(/"question":\s*"([^"]+)"/);
+    if (jsonMatch && jsonMatch[1]) {
+      logger.info(`✅ Regex extracted question from JSON: "${jsonMatch[1]}"`);
+      return jsonMatch[1].trim();
+    }
+
+    logger.warn(`⚠️ Failed to parse JSON from text: "${text.substring(0, 50)}..."`);
+    return null;
+  }
+
+  // Deprecated with JSON mode, keeping purely for compilation if referenced elsewhere (unlikely)
+  private isMetaInstruction(text: string): boolean {
+    return false;
   }
 
   /**
    * Validate that text is a complete, well-formed question
-   * ENHANCED - rejects auto-generated responses from Gemini
    */
   private looksLikeQuestion(text: string): boolean {
-    // Reject if looks like a response/answer (common response patterns)
-    const responsePatterns = [
-      /^はい[、。]/,                    // "はい、" (Yes,)
-      /^いいえ[、。]/,                  // "いいえ、" (No,)
-      /^えっと[、。]/,                  // "えっと、" (Um,)
-      /^そうですね[、。]/,              // "そうですね、" (Well,)
-      /私の|私は/,                     // "私の" "私は" (my/I) - likely a personal response
-      /成功体験|経験/,                 // Common answer keywords (experience)
-      /思います(?!か)|考えます(?!か)/,  // "思います" or "考えます" NOT followed by か (question marker)
-      /でした[。、]?$/,                // Ends with past tense statement
-      /です(?!か)[。、]?$/,            // Ends with です but NOT ですか (question)
-      /ました[。、]?$/,                 // Past tense statement ending
+    // Reject if too long (likely analysis, not a question)
+    if (text.length > 200) return false;
+
+    // Reject if it's just "null" or empty
+    if (text === 'null' || !text) return false;
+
+    // Reject known analysis markers (safety net)
+    const thinkingPatterns = [
+      /^\*\*/,
+      /^I'm /,
+      /^Analysis:/i
     ];
 
-    if (responsePatterns.some(pattern => pattern.test(text))) {
-      logger.info(`❌ Rejected: Looks like a response/answer, not a question: "${text}"`);
-      return false;
-    }
+    if (thinkingPatterns.some(p => p.test(text))) return false;
 
-    // Reject if ends with incomplete markers (particles/connectors)
-    const incompleteEndings = [
-      /、$/,              // Ends with comma
-      /[のがをにでと]$/,  // Ends with particle
-      /って$/,            // Ends with quotation marker
-      /という$/,          // Ends with "called/that"
-      /について$/,        // Ends with "about" (needs verb)
-    ];
-
-    if (incompleteEndings.some(pattern => pattern.test(text))) {
-      logger.info(`❌ Rejected: Incomplete ending: "${text}"`);
-      return false;
-    }
-
-    // Reject if excessive spaces (poor transcription)
-    const spaceRatio = (text.match(/ /g) || []).length / text.replace(/ /g, '').length;
-    if (spaceRatio > 0.3) {
-      logger.info(`❌ Rejected: Too many spaces: "${text}"`);
-      return false;
-    }
-
-    // Japanese question patterns (simplified)
-    const questionPatterns = [
-      /[？?]$/,                                                    // Question mark
-      /(です|ます|でしょう|です)か[？?]?$/,                        // Standard questions
-      /(ください|もらえますか|いただけますか|くれますか)[？?]?$/,  // Requests
-      /(思い|考え|感じ)ますか[？?]?$/,                            // Opinion questions
-      /(いかが|よろしい|どう)ですか[？?]?$/,                      // Polite inquiries
-      /^(どう|何|いつ|どこ|なぜ|誰|どの|いくら|どちら|どれ)/,      // Question words
-      /(教えて|話して|説明して|聞かせて)(ください|もらえますか|いただけますか)/,  // Request patterns
-    ];
-
-    const isQuestion = questionPatterns.some(pattern => pattern.test(text));
-
-    if (!isQuestion) {
-      logger.info(`❌ Rejected: Not a question: "${text}"`);
-    }
-
-    return isQuestion;
+    return true;
   }
 
   /**

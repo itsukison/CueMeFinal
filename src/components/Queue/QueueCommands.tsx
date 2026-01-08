@@ -475,11 +475,11 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
         window.electronAPI.invoke(
           "debug-log",
           "[QueueCommands] Audio track - enabled: " +
-            track.enabled +
-            ", readyState: " +
-            track.readyState +
-            ", muted: " +
-            track.muted
+          track.enabled +
+          ", readyState: " +
+          track.readyState +
+          ", muted: " +
+          track.muted
         );
 
         try {
@@ -514,7 +514,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           );
 
           await ctx.audioWorklet.addModule(workletBlobURL);
-          
+
           // Clean up Blob URL after loading
           URL.revokeObjectURL(workletBlobURL);
 
@@ -564,8 +564,13 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
               // Log only every 50 chunks to avoid spam (50 chunks = ~6.4 seconds)
               if (chunkCount % 50 === 0) {
                 console.log(
-                  `[QueueCommands] Streaming: ${chunkCount} chunks sent (${((chunkCount * 128) / 1000).toFixed(1)}s)`
+                  `[QueueCommands] Streaming: ${chunkCount} chunks sent (${((chunkCount * 128) / 1000).toFixed(1)}s), RMS: ${(event.data.rms || 0).toFixed(6)}`
                 );
+              }
+
+              // Warm if silence detected (RMS near 0)
+              if ((event.data.rms || 0) < 0.0001 && chunkCount % 50 === 0) {
+                console.warn(`[QueueCommands] ⚠️ SILENCE DETECTED from browser mic (RMS: ${(event.data.rms || 0).toFixed(6)})`);
               }
 
               if (!currentlyListening) {
@@ -612,7 +617,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           window.electronAPI.invoke(
             "debug-log",
             "[QueueCommands] AudioWorklet connected, context state: " +
-              ctx.state
+            ctx.state
           );
 
           setAudioContext(ctx);
@@ -642,9 +647,9 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           window.electronAPI.invoke(
             "debug-log",
             "[QueueCommands] AudioWorklet failed: " +
-              (workletError instanceof Error
-                ? workletError.message
-                : String(workletError))
+            (workletError instanceof Error
+              ? workletError.message
+              : String(workletError))
           );
 
           console.warn(
@@ -686,7 +691,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
             // Calculate audio level for visualization (still needed for internal monitoring)
             const rms = Math.sqrt(
               inputData.reduce((sum, sample) => sum + sample * sample, 0) /
-                inputData.length
+              inputData.length
             );
             // Note: Audio level no longer displayed in UI but useful for debugging
 
@@ -981,7 +986,7 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
         if (isListening) {
           try {
             // Stop backend processor first
-            window.electronAPI.audioStreamStop().catch(() => {});
+            window.electronAPI.audioStreamStop().catch(() => { });
           } finally {
             // Always stop local capture
             stopAudioCapture();
@@ -1020,11 +1025,10 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
           {/* Always-On Listen Button */}
           {isAuthenticated && (
             <button
-              className={`glass-button px-2 py-1 text-[11px] leading-none flex items-center gap-1 ${
-                isListening
+              className={`glass-button px-2 py-1 text-[11px] leading-none flex items-center gap-1 ${isListening
                   ? "!bg-white/30 hover:!bg-white/40 text-white"
                   : "text-white/70 hover:text-white hover:bg-white/15"
-              }`}
+                }`}
               onClick={handleListenToggle}
               type="button"
               title={
@@ -1082,9 +1086,8 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
                   </>
                 )}
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    isDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`w-4 h-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
             </div>
@@ -1166,11 +1169,10 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
               <div className="p-1 overflow-y-auto morphism-scrollbar h-full">
                 {/* Plain Mode Option */}
                 <button
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-lg transition-colors ${
-                    responseMode.type === "plain"
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-lg transition-colors ${responseMode.type === "plain"
                       ? "bg-white/20 text-white"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
-                  }`}
+                    }`}
                   onClick={() => handleResponseModeChange({ type: "plain" })}
                 >
                   <Bot className="w-4 h-4" />
@@ -1195,12 +1197,11 @@ const QueueCommands = forwardRef<QueueCommandsRef, QueueCommandsProps>(
                     collections.map((collection) => (
                       <button
                         key={collection.id}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-lg transition-colors ${
-                          responseMode.type === "qna" &&
-                          responseMode.collectionId === collection.id
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] rounded-lg transition-colors ${responseMode.type === "qna" &&
+                            responseMode.collectionId === collection.id
                             ? "bg-white/20 text-white"
                             : "text-white/70 hover:bg-white/10 hover:text-white"
-                        }`}
+                          }`}
                         onClick={() =>
                           handleResponseModeChange({
                             type: "qna",

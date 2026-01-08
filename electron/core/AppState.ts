@@ -106,7 +106,7 @@ export class AppState {
       if (mainWindow) {
         mainWindow.webContents.send('auth-state-changed', authState);
       }
-      
+
       // Handle cache lifecycle based on auth state
       if (authState.user && authState.session?.access_token) {
         console.log('[AppState] User logged in, initializing usage cache');
@@ -189,7 +189,7 @@ export class AppState {
    */
   private initializeDualAudioManager(): DualAudioCaptureManager | null {
     const geminiApiKey = process.env.GEMINI_API_KEY;
-    
+
     console.log('[AppState] 🔍 Starting DualAudioCaptureManager initialization...');
     console.log('[AppState] Gemini API Key status:', geminiApiKey ? `Present (length: ${geminiApiKey.length})` : 'Missing');
 
@@ -203,12 +203,12 @@ export class AppState {
       // Only Gemini API key needed - direct audio streaming to Gemini Live
       const manager = new DualAudioCaptureManager(geminiApiKey);
       console.log('[AppState] ✅ DualAudioCaptureManager instance created');
-      
+
       // Setup event listeners for dual audio events
       console.log('[AppState] 🔗 Setting up dual audio event listeners...');
       this.setupDualAudioEvents(manager);
       console.log('[AppState] ✅ Event listeners setup complete');
-      
+
       console.log('[AppState] ✅ DualAudioCaptureManager initialized successfully (Gemini Live)');
       return manager;
     } catch (error) {
@@ -223,7 +223,7 @@ export class AppState {
    */
   private setupDualAudioEvents(manager: DualAudioCaptureManager): void {
     const getMainWindow = () => this.getMainWindow();
-    
+
     // Delay setup until window is available
     const setupListeners = () => {
       const mainWindow = getMainWindow();
@@ -239,12 +239,12 @@ export class AppState {
       });
 
       manager.on('state-changed', (state) => {
-        mainWindow.webContents.send('gemini-live-state-changed', state);
+        mainWindow.webContents.send('audio-stream-state-changed', state);
       });
 
       manager.on('error', (error) => {
         console.error('[AppState] Dual audio error:', error);
-        mainWindow.webContents.send('audio-error', error);
+        mainWindow.webContents.send('audio-stream-error', error);
       });
 
       console.log('[AppState] Dual audio event listeners setup complete');
@@ -391,7 +391,7 @@ export class AppState {
   public createTray(): void {
     // Create a simple tray icon
     const image = nativeImage.createEmpty();
-    
+
     let trayImage = image;
     try {
       trayImage = nativeImage.createFromBuffer(Buffer.alloc(0));
@@ -399,9 +399,9 @@ export class AppState {
       console.log("Using empty tray image");
       trayImage = nativeImage.createEmpty();
     }
-    
+
     this.tray = new Tray(trayImage);
-    
+
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'Show Interview Coder',
@@ -447,15 +447,15 @@ export class AppState {
         }
       }
     ]);
-    
+
     this.tray.setToolTip('Interview Coder - Press Cmd+Shift+Space to show');
     this.tray.setContextMenu(contextMenu);
-    
+
     // Set a title for macOS (will appear in menu bar)
     if (process.platform === 'darwin') {
       this.tray.setTitle('IC');
     }
-    
+
     // Double-click to show window
     this.tray.on('double-click', () => {
       this.centerAndShowWindow();
