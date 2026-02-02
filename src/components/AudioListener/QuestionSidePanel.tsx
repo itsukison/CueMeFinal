@@ -43,9 +43,8 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
 
   return (
     <div
-      className={`p-3 cursor-pointer transition-all rounded-lg ${
-        isSelected ? "bg-white/10" : "bg-transparent hover:bg-white/5"
-      }`}
+      className={`p-3 cursor-pointer transition-all rounded-lg ${isSelected ? "bg-white/10" : "bg-transparent hover:bg-white/5"
+        }`}
       onClick={onClick}
     >
       <p className="text-xs text-white/90 leading-relaxed">{displayText}</p>
@@ -112,10 +111,10 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
     setGeneratingAnswer(true);
     setCurrentAnswer(""); // Start with empty string for streaming
 
+    const collectionId =
+      responseMode.type === "qna" ? responseMode.collectionId : undefined;
+
     try {
-      const collectionId =
-        responseMode.type === "qna" ? responseMode.collectionId : undefined;
-      
       // Use streaming API directly for real-time updates
       let streamingResponse = "";
       let chunkCount = 0;
@@ -192,7 +191,7 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
   // Determine what to show
   const hasQuestions = refinedQuestions.length > 0 || isListening;
   const shouldShowUnifiedPanel = showAnswerPanel || isChatOpen; // Show when user clicks question or opens chat
-  
+
   // Dynamic layout based on what's visible
   const showBothPanels = hasQuestions && shouldShowUnifiedPanel;
 
@@ -200,16 +199,15 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
     <div className={`w-full h-full flex justify-center ${className}`}>
       {/* Question Panel - Dynamic width and visibility */}
       <div
-        className={`transition-all duration-300 ${
-          showBothPanels
-            ? "w-1/2 mr-1"  // Split view: left side
-            : shouldShowUnifiedPanel
+        className={`transition-all duration-300 ${showBothPanels
+          ? "w-1/2 mr-1"  // Split view: left side
+          : shouldShowUnifiedPanel
             ? "w-0 opacity-0"  // Hide when only chat is open
             : "w-full max-w-lg"  // Centered when only questions - reduced from max-w-2xl to max-w-lg
-        }`}
+          }`}
       >
         {hasQuestions && (
-          <div className="liquid-glass chat-container p-4 flex flex-col h-full min-h-[80px] relative">
+          <div className="liquid-glass chat-container p-4 flex flex-col h-full min-h-[140px] relative">
             {/* Close Button - Question Panel (always show when questions exist) */}
             {onCloseQuestions && (
               <button
@@ -234,58 +232,57 @@ const QuestionSidePanel: React.FC<QuestionSidePanelProps> = ({
               </button>
             )}
 
-          <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-            <MessageSquare className="w-4 h-4 text-[#D8F9B8]" />
-            <span className="text-sm font-medium text-white/90">
-              検出された質問
-            </span>
-            {refinedQuestions.length > 0 && (
-              <span className="bg-[#D8F9B8]/20 text-[#D8F9B8] text-xs px-2 py-0.5 rounded-full">
-                {refinedQuestions.length}
+            <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+              <MessageSquare className="w-4 h-4 text-[#D8F9B8]" />
+              <span className="text-sm font-medium text-white/90">
+                検出された質問
               </span>
-            )}
-            {isListening && (
-              <div className="ml-auto flex items-center gap-1">
-                <div className="w-2 h-2 bg-[#D8F9B8] rounded-full animate-pulse" />
-                <span className="text-[10px] text-[#D8F9B8]">リスニング中</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 flex flex-col min-h-0">
-            {refinedQuestions.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <MessageSquare className="w-8 h-8 text-white/30 mx-auto mb-2" />
-                  <p className="text-xs text-white/50">質問を検出中...</p>
+              {refinedQuestions.length > 0 && (
+                <span className="bg-[#D8F9B8]/20 text-[#D8F9B8] text-xs px-2 py-0.5 rounded-full">
+                  {refinedQuestions.length}
+                </span>
+              )}
+              {isListening && (
+                <div className="ml-auto flex items-center gap-1">
+                  <div className="w-2 h-2 bg-[#D8F9B8] rounded-full animate-pulse" />
+                  <span className="text-[10px] text-[#D8F9B8]">リスニング中</span>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-1 overflow-y-auto flex-1 min-h-0 morphism-scrollbar">
-                {refinedQuestions.map((question) => (
-                  <QuestionItem
-                    key={question.id}
-                    question={question}
-                    isSelected={selectedQuestionId === question.id}
-                    onClick={() => handleQuestionClick(question)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+
+            <div className="flex-1 flex flex-col min-h-0">
+              {refinedQuestions.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    <MessageSquare className="w-8 h-8 text-white/30 mx-auto mb-2" />
+                    <p className="text-xs text-white/50">質問を検出中...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1 overflow-y-auto flex-1 min-h-0 morphism-scrollbar">
+                  {refinedQuestions.map((question) => (
+                    <QuestionItem
+                      key={question.id}
+                      question={question}
+                      isSelected={selectedQuestionId === question.id}
+                      onClick={() => handleQuestionClick(question)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
       {/* Unified Chat/Answer Panel - Dynamic width and visibility */}
       <div
-        className={`transition-all duration-300 overflow-hidden ${
-          showBothPanels
-            ? "w-1/2 opacity-100 ml-1"  // Split view: right side
-            : shouldShowUnifiedPanel
+        className={`transition-all duration-300 overflow-hidden ${showBothPanels
+          ? "w-1/2 opacity-100 ml-1"  // Split view: right side
+          : shouldShowUnifiedPanel
             ? "w-full max-w-lg opacity-100"  // Centered when only chat - reduced from max-w-2xl to max-w-lg
             : "w-0 opacity-0"  // Hidden
-        }`}
+          }`}
       >
         {shouldShowUnifiedPanel && (
           <div className="liquid-glass chat-container p-4 flex flex-col h-full min-h-[100px] relative">

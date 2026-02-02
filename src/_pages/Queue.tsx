@@ -88,9 +88,9 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
     initialHeight: 200,
   });
   const questionResize = useVerticalResize({
-    minHeight: 80,  // Reduced for minimal chat input bar
+    minHeight: 160,  // Increased to prevent text cutoff
     maxHeight: 600,
-    initialHeight: 100,  // Reduced for compact initial view
+    initialHeight: 160,  // Increased for comfortable initial view
   });
 
   const barRef = useRef<HTMLDivElement>(null);
@@ -99,13 +99,13 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
   useEffect(() => {
     const hasContent = detectedQuestions.length > 0 || chatMessages.length > 0;
     const hasAnswer = detectedQuestions.some(q => (q as any).refinedText);
-    
+
     if (hasContent && questionResize.height < 300) {
       // Expand to comfortable viewing height when content appears
       questionResize.setHeight(350);
-    } else if (!hasContent && questionResize.height > 100) {
+    } else if (!hasContent && questionResize.height > 140) {
       // Shrink back to minimal when no content
-      questionResize.setHeight(100);
+      questionResize.setHeight(140);
     }
   }, [detectedQuestions.length, chatMessages.length]);
 
@@ -443,12 +443,12 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
         (chunk: string) => {
           // Append each chunk as it arrives
           streamingResponse += chunk;
-          
+
           // Update chat with streaming response
           setChatMessages((prev) => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
-            
+
             if (lastMessage && lastMessage.role === "gemini") {
               // Update existing gemini message
               lastMessage.text = streamingResponse;
@@ -456,7 +456,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
               // Add new gemini message
               newMessages.push({ role: "gemini", text: streamingResponse });
             }
-            
+
             return newMessages;
           });
         }
@@ -467,7 +467,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       // Cache the final result
       const finalResult = { response: result.response, timestamp: result.timestamp };
       answersCacheRef.current.set(question.id, finalResult);
-      
+
       return finalResult;
     } catch (error: any) {
       console.error("[Queue] Failed to answer question:", error);
@@ -557,7 +557,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
       } catch (error) {
         console.log("IPC setup skipped:", error);
       }
-      return () => {};
+      return () => { };
     };
 
     const cleanup = setupIpcListeners();
@@ -677,11 +677,11 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
 
               {/* Upgrade Button */}
               <button
-  onClick={handleSubscriptionUpgrade}
-  className="bg-red-600 hover:bg-red-700 text-white !px-2 !py-2 rounded text-xs font-medium transition-colors morphism-button"
->
-  プランをアップグレード
-</button>
+                onClick={handleSubscriptionUpgrade}
+                className="bg-red-600 hover:bg-red-700 text-white !px-2 !py-2 rounded text-xs font-medium transition-colors morphism-button"
+              >
+                プランをアップグレード
+              </button>
             </div>
           )}
 
@@ -697,7 +697,7 @@ const Queue: React.FC<QueueProps> = ({ setView, onSignOut }) => {
               className="mt-4 w-full max-w-4xl relative"
               style={{
                 height: `${questionResize.height}px`,
-                minHeight: "80px",  // Reduced for minimal chat input bar
+                minHeight: "140px",  // Increased to prevent text cutoff
               }}
             >
               <QuestionSidePanel

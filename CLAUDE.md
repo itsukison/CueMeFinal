@@ -18,9 +18,9 @@ CueMe is an AI-powered interview assistant built with Electron that provides rea
 ### Build & Run
 ```bash
 # Development
-npm run dev -- --port 5180                # Start Vite dev server only
+npm run dev                # Start Vite dev server only (default port 5173)
 npm run electron:dev       # Start Electron only
-npm start                  # Run both concurrently (recommended)
+npm start                  # Run both concurrently (recommended, uses port 5181)
 
 # Production builds
 npm run build              # Build for current platform (includes native binary)
@@ -91,7 +91,9 @@ Services are organized in `electron/services/` by domain:
 **Audio** (`electron/audio/`)
 - `DualAudioCaptureManager.ts`: Manages both mic and system audio capture
 - `GeminiLiveQuestionDetector.ts`: Real-time question detection via Gemini Live
+- `StreamingQuestionDetector.ts`: Streaming question detection logic
 - `SystemAudioCapture.ts`: Native system audio capture (macOS)
+- `DeepgramTranscriptionService.ts`: Alternative transcription service (optional)
 
 **Other Services**
 - `services/screenshot/ScreenshotHelper.ts`: Screenshot capture and management
@@ -158,8 +160,9 @@ mainWindow.webContents.send('event-name', data)
 - `ui/`: Radix UI wrappers, dialogs, toast notifications
 
 **Large Files Requiring Refactoring:**
-- `components/Queue/QueueCommands.tsx` (1230 lines) - handles too many responsibilities
-- `_pages/Queue.tsx` (1169 lines) - needs component extraction
+- `components/Queue/QueueCommands.tsx` (1245 lines) - handles too many responsibilities
+- `_pages/Queue.tsx` (756 lines) - improved but could use further extraction
+- `_pages/Solutions.tsx` (577 lines) - could benefit from component extraction
 - See `.agent/tasks/ACTIVE/PROJECT_CLEANUP_REORGANIZATION.md` for refactoring plan
 
 ## Important Patterns & Conventions
@@ -271,17 +274,11 @@ APPLE_TEAM_ID=            # Developer team ID
 - Unified usage tracking under LocalUsageManager
 
 **Pending Cleanup (See `.agent/tasks/ACTIVE/PROJECT_CLEANUP_REORGANIZATION.md`):**
-- Split oversized React components (QueueCommands.tsx, Queue.tsx, Solutions.tsx)
+- Split oversized React components (QueueCommands.tsx, Solutions.tsx)
 - Feature-based organization for frontend
 - Extract custom hooks from large components
 
-**Files to Deprecate/Remove:**
-- `electron-system-audio-recorder/`: Legacy standalone recorder (not used)
-- `check-permissions.js`: Debug script (development only)
-- `debug-system-audio.js`: Debug script (development only)
-- `test-model.js`: Testing script (development only)
-- `USAGE_LIMIT_FIX_COMPLETE.md`: Completed task doc (should move to .agent/tasks/COMPLETED/)
-- `USAGE_TRACKING_OPTIMIZATION_COMPLETE.md`: Completed task doc (should move to .agent/tasks/COMPLETED/)
+**Note:** Previous cleanup successfully completed - legacy audio recorder, debug scripts, and completed task docs have been removed.
 
 ## Documentation
 

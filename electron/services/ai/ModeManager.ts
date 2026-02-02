@@ -208,7 +208,7 @@ export class ModeManager {
       },
       {
         key: "support",
-        displayName: "カスタマーサポート",
+        displayName: "カスサポ",
         tone: "support",
         formality: "keigo",
         length: "standard",
